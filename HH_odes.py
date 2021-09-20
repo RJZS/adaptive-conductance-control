@@ -72,7 +72,7 @@ def HH_ode(dz,z,p,t):
 
     dz[:] = [dv,dm,dh,dn]
 
-def HH_observer(dz,z,p,t):
+def HH_observer(z,p,t):
     Iapp =          p[1]
     c =             p[2]
     (gNa,gK,gL) =   p[3]
@@ -161,7 +161,7 @@ def HH_observer(dz,z,p,t):
     dñ = 1/τñ*(-ñ + σñ);
     dθ̃ = γ*ϕ̃*(v-ṽ);
 
-    dz[:] = [dv,dm,dh,dn,dv̂,dm̂,dĥ,dn̂,dθ̂,dP[:],dΨ,dṽ,dm̃,dh̃,dñ,dθ̃];
+    return [dv,dm,dh,dn,dv̂,dm̂,dĥ,dn̂,dθ̂,dP[:],dΨ,dṽ,dm̃,dh̃,dñ,dθ̃];
 
 ### REMOVE!
 # function HH_loss_ode!(dz,z,p,t)
