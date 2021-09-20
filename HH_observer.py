@@ -33,7 +33,7 @@ P_0 = np.eye(7);
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 100.
+Tfinal = 10. # 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x̂_0, θ̂_0))
 p = (Iapp,c,g,E,(α,γ))
@@ -41,19 +41,20 @@ p = (Iapp,c,g,E,(α,γ))
 # Integrate
 #prob = ODEProblem(HH_observer,z_0,tspan,p)
 #sol = solve(prob,Tsit5(),reltol=1e-8,abstol=1e-8,saveat=0.1,maxiters=1e6)
-sol = solve_ivp(lambda t, z: HH_observer(t, z, p), tspan, z_0)
-t = sol.t
+out = solve_ivp(lambda t, z: HH_observer(t, z, p), tspan, z_0)
+t = out.t
+sol = out.y
 
 # All these need to be updated. sol.y is the array to look at
-v = sol[1,1,:];
-w = sol[1,2:4,:];
-v̂ = sol[1,5,:];
-ŵ = sol[1,6:8,:];
-θ̂ = sol[1,9:15,:];
+v = sol[0,:];
+w = sol[1:4,:];
+v̂ = sol[4,:];
+ŵ = sol[5:8,:];
+θ̂ = sol[8:15,:];
 N = 15+49+7;
-ṽ = sol[1,N+1,:];
-w̃ = sol[1,N+2:N+4,:];
-θ̃ = sol[1,N+5:N+11,:];
+ṽ = sol[N,:];
+w̃ = sol[N+1:N+4,:];
+θ̃ = sol[N+4:N+11,:];
 
 if save_data == 1:
     np.savetxt("data/HH_voltages.txt",  np.concatenate((t,v,v̂,ṽ),axis=1), delimiter=" ")
@@ -67,50 +68,49 @@ if save_data == 1:
 
 # Need to sort plots.
 # Solution?: https://www.futurelearn.com/info/courses/data-visualisation-with-python-matplotlib-and-visual-analysis/0/steps/192875
-# TODO: REMEMBER TO CHANGE INDICES, INCLUDING ON OTHER FILE!!!!
 plt0 = plt.figure(); plt0ax = plt0.add_axes([0,0,1,1])
 plt0ax.plot(t,v)
 plt0ax.plot(t,v̂,color="red",linestyle="dashed")
-plt0ax.plot(t,ṽ,color="green",linestyle="dashdotted")
+plt0ax.plot(t,ṽ,color="green",linestyle="dashdot")
 
 # gNa/c
 plt1 = plt.figure(); plt1ax = plt1.add_axes([0,0,1,1])
-plt1ax.plot([0,Tfinal],[g[1]/c,g[1]/c],linecolor="black",linestyle="dashed",labels="gNa/c")
-plt1ax.plot(t,θ̂[1,:],linecolor="red")
-plt1ax.plot(t,θ̃[1,:],linecolor="green",linestyle="dashdotted")
+plt1ax.plot([0,Tfinal],[g[0]/c,g[0]/c],color="black",linestyle="dashed",label="gNa/c")
+plt1ax.plot(t,θ̂[0,:],color="red")
+plt1ax.plot(t,θ̃[0,:],color="green",linestyle="dashdot")
 
 # gK/c
 plt2 = plt.figure(); plt2ax = plt2.add_axes([0,0,1,1])
-plt2ax.plot([0,Tfinal],[g[2]/c,g[2]/c],linecolor="black",linestyle="dashed",labels="gK/c")
-plt2ax.plot(t,θ̂[2,:],linecolor="red")
-plt2ax.plot(t,θ̃[2,:],linecolor="green",linestyle= "dashdotted")
+plt2ax.plot([0,Tfinal],[g[1]/c,g[1]/c],color="black",linestyle="dashed",label="gK/c")
+plt2ax.plot(t,θ̂[1,:],color="red")
+plt2ax.plot(t,θ̃[1,:],color="green",linestyle= "dashdot")
 
 # gL/c
 plt3 = plt.figure(); plt3ax = plt3.add_axes([0,0,1,1])
-plt3ax.plot([0,Tfinal],[g[3]/c,g[3]/c],linecolor="black",linestyle="dashed",labels="gL/c")
-plt3ax.plot(t,θ̂[3,:],linecolor="red")
-plt3ax.plot(t,θ̃[3,:],linecolor="green",linestyle= "dashdotted")
+plt3ax.plot([0,Tfinal],[g[2]/c,g[2]/c],color="black",linestyle="dashed",label="gL/c")
+plt3ax.plot(t,θ̂[2,:],color="red")
+plt3ax.plot(t,θ̃[2,:],color="green",linestyle= "dashdot")
 
 # gNa*ENa/c
 plt4 = plt.figure(); plt4ax = plt4.add_axes([0,0,1,1])
-plt4ax.plot([0,Tfinal],[g[1]*E[1]/c,g[1]*E[1]/c],linecolor="black",linestyle="dashed",labels="gNa*ENa/c")
-plt4ax.plot(t,θ̂[4,:],linecolor="red")
-plt4ax.plot(t,θ̃[4,:],linecolor="green",linestyle= "dashdotted")
+plt4ax.plot([0,Tfinal],[g[0]*E[0]/c,g[0]*E[0]/c],color="black",linestyle="dashed",label="gNa*ENa/c")
+plt4ax.plot(t,θ̂[3,:],color="red")
+plt4ax.plot(t,θ̃[3,:],color="green",linestyle= "dashdot")
 
 # gK*EK/c
 plt5 = plt.figure(); plt5ax = plt5.add_axes([0,0,1,1])
-plt5ax.plot([0,Tfinal],[g[2]*E[2]/c,g[2]*E[2]/c],linecolor="black",linestyle="dashed",labels="gK*EK/c")
-plt5ax.plot(t,θ̂[5,:],linecolor="red")
-plt5ax.plot(t,θ̃[5,:],linecolor="green",linestyle= "dashdotted")
+plt5ax.plot([0,Tfinal],[g[1]*E[1]/c,g[1]*E[1]/c],color="black",linestyle="dashed",label="gK*EK/c")
+plt5ax.plot(t,θ̂[4,:],color="red")
+plt5ax.plot(t,θ̃[4,:],color="green",linestyle= "dashdot")
 
 # gL*EL/c
 plt6 = plt.figure(); plt6ax = plt6.add_axes([0,0,1,1])
-plt6ax.plot([0,Tfinal],[g[3]*E[3]/c,g[3]*E[3]/c],linecolor="black",linestyle="dashed",labels="gL*EL/c")
-plt6ax.plot(t,θ̂[6,:],linecolor="red")
-plt6ax.plot(t,θ̃[6,:],linecolor="green",linestyle= "dashdotted")
+plt6ax.plot([0,Tfinal],[g[2]*E[2]/c,g[2]*E[2]/c],color="black",linestyle="dashed",label="gL*EL/c")
+plt6ax.plot(t,θ̂[5,:],color="red")
+plt6ax.plot(t,θ̃[5,:],color="green",linestyle= "dashdot")
 
 # 1/c
 plt7 = plt.figure(); plt7ax = plt7.add_axes([0,0,1,1])
-plt7ax.plot([0,Tfinal],[1/c,1/c],linecolor="black",linestyle="dashed",labels="1/c")
-plt7ax.plot(t,θ̂[7,:],linecolor="red")
-plt7ax.plot(t,θ̃[7,:],linecolor="green",linestyle= "dashdotted")
+plt7ax.plot([0,Tfinal],[1/c,1/c],color="black",linestyle="dashed",label="1/c")
+plt7ax.plot(t,θ̂[6,:],color="red")
+plt7ax.plot(t,θ̃[6,:],color="green",linestyle= "dashdot")
