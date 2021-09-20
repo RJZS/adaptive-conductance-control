@@ -6,7 +6,6 @@ Created on Sun Sep 19 09:28:07 2021
 """
 # Based on Thiago's Julia code.
 import numpy as np
-# Need to subtract 1 from every index...
 
 # Observer parameters
 α = 0.5
@@ -19,7 +18,7 @@ def gating_m(v):
     std = 30.;
     Camp = 0.46;
     Cbase = 0.04;
-    τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std^2);
+    τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std**2);
     σ = np.divide(1, (1+np.exp(-(v-Vhalf)/k)));
     return τ, σ 
 
@@ -31,7 +30,7 @@ def gating_h(v):
     std = 20.;
     Camp = 7.4;
     Cbase = 1.2;
-    τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std^2);
+    τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std**2);
     σ = np.divide(1, (1+np.exp(-(v-Vhalf)/k)));
     return τ, σ
 
@@ -43,59 +42,59 @@ def gating_n(v):
     std = 50.;
     Camp = 4.7;
     Cbase = 1.1;
-    τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std^2);
+    τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std**2);
     σ = np.divide(1, (1+np.exp(-(v-Vhalf)/k)));
     return τ, σ
 
-def HH_ode(dz,z,p,t):
-    Iapp =          p[1]
-    c =             p[2]
-    (gNa,gK,gL) =   p[3]
-    (ENa,EK,EL) =   p[4]
+def HH_ode(z,p,t):
+    Iapp =          p[0]
+    c =             p[1]
+    (gNa,gK,gL) =   p[2]
+    (ENa,EK,EL) =   p[3]
 
-    v = z[1]
-    m = z[2]
-    h = z[3]
-    n = z[4]
+    v = z[0]
+    m = z[1]
+    h = z[2]
+    n = z[3]
 
     (τm,σm) = gating_m(v);
     (τh,σh) = gating_h(v);
     (τn,σn) = gating_n(v);
 
     g = [gNa, gK, gL];
-    phi = [-m^3*h*(v-ENa),-n^4*(v-EK),-(v-EL)];
+    phi = [-m**3*h*(v-ENa),-n**4*(v-EK),-(v-EL)];
 
     dv = 1/c * (np.dot(phi,g) + Iapp(t));
     dm = 1/τm*(-m + σm);
     dh = 1/τh*(-h + σh);
     dn = 1/τn*(-n + σn);
 
-    dz[:] = [dv,dm,dh,dn]
+    return [dv,dm,dh,dn]
 
-def HH_observer(z,p,t):
-    Iapp =          p[1]
-    c =             p[2]
-    (gNa,gK,gL) =   p[3]
-    (ENa,EK,EL) =   p[4]
+def HH_observer(t,z,p):
+    Iapp =          p[0]
+    c =             p[1]
+    (gNa,gK,gL) =   p[2]
+    (ENa,EK,EL) =   p[3]
 
     # True system
-    v = z[1]
-    m = z[2]
-    h = z[3]
-    n = z[4]
+    v = z[0]
+    m = z[1]
+    h = z[2]
+    n = z[3]
 
     (τm,σm) = gating_m(v);
     (τh,σh) = gating_h(v);
     (τn,σn) = gating_n(v);
 
-    θ = 1/c*[gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]
-    ϕ = [-m^3*h*v,
-         -n^4*v, 
+    θ = np.divide(1,c*np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]))
+    ϕ = np.array([-m**3*h*v,
+         -n**4*v, 
          -v,
-         m^3*h,
-         n^4,
+         m**3*h,
+         n**4,
          1,
-         Iapp(t)];
+         Iapp(t)]);
 
     dv = np.dot(ϕ,θ)
     dm = 1/τm*(-m + σm);
@@ -103,33 +102,33 @@ def HH_observer(z,p,t):
     dn = 1/τn*(-n + σn);
 
     # Adaptive observer
-    v̂ = z[5]
-    m̂ = z[6]
-    ĥ = z[7]
-    n̂ = z[8]
-    θ̂ = z[9:15]
-    P = np.reshape(z[15+1:15+49],(7,7));    
+    v̂ = z[4]
+    m̂ = z[5]
+    ĥ = z[6]
+    n̂ = z[7]
+    θ̂ = z[8:15]
+    P = np.reshape(z[15:15+49],(7,7));    
     P = (P+np.transpose(P))/2
-    Ψ = z[15+49+1:15+49+7]
+    Ψ = z[15+49:15+49+7]
 
     (τm̂,σm̂) = gating_m(v);
     (τĥ,σĥ) = gating_h(v);
     (τn̂,σn̂) = gating_n(v);
 
-    ϕ̂ = [-m̂^3*ĥ*v,
-         -n̂^4*v, 
+    ϕ̂ = np.array([-m̂**3*ĥ*v,
+         -n̂**4*v, 
          -v,
-         m̂^3*ĥ,
-         n̂^4,
+         m̂**3*ĥ,
+         n̂**4,
          1,
-         Iapp(t)];
+         Iapp(t)]);
 
-    dv̂ = np.dot(ϕ̂,θ̂) + γ*(1+np.transpose(Ψ)*P*Ψ)*(v-v̂)
+    dv̂ = np.dot(ϕ̂,θ̂) + γ*(1+np.matmul(np.matmul(np.transpose(Ψ),P), Ψ))*(v-v̂)
     dm̂ = 1/τm̂*(-m̂ + σm̂);
     dĥ = 1/τĥ*(-ĥ + σĥ);
     dn̂ = 1/τn̂*(-n̂ + σn̂);
 
-    dθ̂ = γ*P*Ψ*(v-v̂);
+    dθ̂ = γ*np.matmul(P,Ψ)*(v-v̂);
     dΨ = -γ*Ψ + ϕ̂; 
     dP = α*P - ((P*Ψ)*np.transpose(P*Ψ));
     dP = (dP+np.transpose(dP))/2;
@@ -137,19 +136,19 @@ def HH_observer(z,p,t):
     # Besancon 2000 observer
     N = 15+49+7;
 
-    ṽ = z[N+1]
-    m̃ = z[N+2]
-    h̃ = z[N+3]
-    ñ = z[N+4]
-    θ̃ = z[N+5:N+11]
+    ṽ = z[N]
+    m̃ = z[N+1]
+    h̃ = z[N+2]
+    ñ = z[N+3]
+    θ̃ = z[N+4:N+11]
 
-    ϕ̃ = [-m̃^3*h̃*v,
-         -ñ^4*v, 
+    ϕ̃ = np.array([-m̃**3*h̃*v,
+         -ñ**4*v, 
          -v,
-         m̃^3*h̃,
-         ñ^4,
+         m̃**3*h̃,
+         ñ**4,
          1,
-         Iapp(t)];
+         Iapp(t)]);
             
     (τm̃,σm̃) = gating_m(v);
     (τh̃,σh̃) = gating_h(v);
@@ -160,8 +159,12 @@ def HH_observer(z,p,t):
     dh̃ = 1/τh̃*(-h̃ + σh̃);
     dñ = 1/τñ*(-ñ + σñ);
     dθ̃ = γ*ϕ̃*(v-ṽ);
-
-    return [dv,dm,dh,dn,dv̂,dm̂,dĥ,dn̂,dθ̂,dP[:],dΨ,dṽ,dm̃,dh̃,dñ,dθ̃];
+    
+    # dz[:] = [dv;dm;dh;dn;dv̂;dm̂;dĥ;dn̂;dθ̂;dP[:];dΨ;dṽ;dm̃;dh̃;dñ;dθ̃]';
+    ## BUT z_0 only has length 82...
+    dz = np.concatenate(( [dv,dm,dh,dn],[dv̂,dm̂,dĥ,dn̂],dθ̂.flatten(),
+                         dP.flatten(),dΨ,[dṽ,dm̃,dh̃,dñ],dθ̃))
+    return dz
 
 ### REMOVE!
 # function HH_loss_ode!(dz,z,p,t)

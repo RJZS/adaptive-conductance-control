@@ -41,7 +41,7 @@ p = (Iapp,c,g,E,(α,γ))
 # Integrate
 #prob = ODEProblem(HH_observer,z_0,tspan,p)
 #sol = solve(prob,Tsit5(),reltol=1e-8,abstol=1e-8,saveat=0.1,maxiters=1e6)
-sol = solve_ivp(lambda t, z: HH_observer(z, p, t), tspan, z_0)
+sol = solve_ivp(lambda t, z: HH_observer(t, z, p), tspan, z_0)
 t = sol.t
 
 # All these need to be updated. sol.y is the array to look at
