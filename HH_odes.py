@@ -130,7 +130,7 @@ def HH_observer(t,z,p):
 
     dθ̂ = γ*np.matmul(P,Ψ)*(v-v̂);
     dΨ = -γ*Ψ + ϕ̂; 
-    dP = α*P - ((P*Ψ)*np.transpose(P*Ψ));
+    dP = α*P - np.matmul((P*Ψ),np.transpose(P*Ψ));
     dP = (dP+np.transpose(dP))/2;
 
     # Besancon 2000 observer

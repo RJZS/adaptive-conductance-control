@@ -33,7 +33,7 @@ P_0 = np.eye(7);
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 10. # 100.
+Tfinal = 60. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x̂_0, θ̂_0))
 p = (Iapp,c,g,E,(α,γ))
@@ -45,7 +45,6 @@ out = solve_ivp(lambda t, z: HH_observer(t, z, p), tspan, z_0)
 t = out.t
 sol = out.y
 
-# All these need to be updated. sol.y is the array to look at
 v = sol[0,:];
 w = sol[1:4,:];
 v̂ = sol[4,:];
