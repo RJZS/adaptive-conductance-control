@@ -7,9 +7,6 @@ Created on Sun Sep 19 09:28:07 2021
 # Based on Thiago's Julia code.
 import numpy as np
 
-# Observer parameters
-α = 0.5
-γ = 70
 # Sodium activation
 def gating_m(v):
     Vhalf = -40.;
@@ -46,7 +43,7 @@ def gating_n(v):
     σ = np.divide(1, (1+np.exp(-(v-Vhalf)/k)));
     return τ, σ
 
-def HH_ode(z,p,t):
+def HH_ode(t,z,p):
     Iapp =          p[0]
     c =             p[1]
     (gNa,gK,gL) =   p[2]
@@ -76,6 +73,7 @@ def HH_observer(t,z,p):
     c =             p[1]
     (gNa,gK,gL) =   p[2]
     (ENa,EK,EL) =   p[3]
+    (α,γ) = p[4]
 
     # True system
     v = z[0]
@@ -87,7 +85,8 @@ def HH_observer(t,z,p):
     (τh,σh) = gating_h(v);
     (τn,σn) = gating_n(v);
 
-    θ = np.divide(1,c*np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]))
+    # θ = np.divide(1,c*np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]))
+    θ = np.divide(np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]),c)
     ϕ = np.array([-m**3*h*v,
          -n**4*v, 
          -v,
@@ -123,14 +122,15 @@ def HH_observer(t,z,p):
          1,
          Iapp(t)]);
 
-    dv̂ = np.dot(ϕ̂,θ̂) + γ*(1+np.matmul(np.matmul(np.transpose(Ψ),P), Ψ))*(v-v̂)
+    dv̂ = np.dot(ϕ̂,θ̂) + γ*Ψ@P@Ψ.T*(v-v̂)
     dm̂ = 1/τm̂*(-m̂ + σm̂);
     dĥ = 1/τĥ*(-ĥ + σĥ);
     dn̂ = 1/τn̂*(-n̂ + σn̂);
 
-    dθ̂ = γ*np.matmul(P,Ψ)*(v-v̂);
+    dθ̂ = γ*P@Ψ.T*(v-v̂);
     dΨ = -γ*Ψ + ϕ̂; 
-    dP = α*P - np.matmul((P*Ψ),np.transpose(P*Ψ));
+    aux = np.outer(Ψ,Ψ)
+    dP = α*P - P@aux@P;
     dP = (dP+np.transpose(dP))/2;
 
     # Besancon 2000 observer
