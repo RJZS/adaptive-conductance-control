@@ -5,14 +5,14 @@ Created on Sun Sep 19 11:09:52 2021
 @author: Rafi
 """
 # Based on Thiago's Julia code.
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
 # Flag for saving data to .txt files 
 save_data = 0
-
-from HH_odes import HH_observer
+from HH_odes import HH_observer, HH_ode
 
 # True Parameters 
 c = 1.
@@ -31,9 +31,11 @@ x̂_0 = [-60, 0.5, 0.5, 0.5];
 P_0 = np.eye(7);
 Ψ_0 = [0, 0, 0, 0, 0, 0, 0];
 
+#%%
+
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 60. # Default is 100.
+Tfinal = 140. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x̂_0, θ̂_0))
 p = (Iapp,c,g,E,(α,γ))
@@ -41,7 +43,8 @@ p = (Iapp,c,g,E,(α,γ))
 # Integrate
 #prob = ODEProblem(HH_observer,z_0,tspan,p)
 #sol = solve(prob,Tsit5(),reltol=1e-8,abstol=1e-8,saveat=0.1,maxiters=1e6)
-out = solve_ivp(lambda t, z: HH_observer(t, z, p), tspan, z_0)
+out = solve_ivp(lambda t, z: HH_observer(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6)
+# out = solve_ivp(lambda t, z: HH_ode(t, z, p), tspan, x_0)
 t = out.t
 sol = out.y
 
