@@ -68,6 +68,77 @@ def HH_ode(t,z,p):
 
     return [dv,dm,dh,dn]
 
+def HH_one_observer(t,z,p):
+    Iapp =          p[0]
+    c =             p[1]
+    (gNa,gK,gL) =   p[2]
+    (ENa,EK,EL) =   p[3]
+    (α,γ) = p[4]
+
+    # True system
+    v = z[0]
+    m = z[1]
+    h = z[2]
+    n = z[3]
+
+    (τm,σm) = gating_m(v);
+    (τh,σh) = gating_h(v);
+    (τn,σn) = gating_n(v);
+
+    # θ = np.divide(1,c*np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]))
+    θ = np.divide(np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]),c)
+    ϕ = np.array([-m**3*h*v,
+         -n**4*v, 
+         -v,
+         m**3*h,
+         n**4,
+         1,
+         Iapp(t)]);
+
+    dv = np.dot(ϕ,θ)
+    dm = 1/τm*(-m + σm);
+    dh = 1/τh*(-h + σh);
+    dn = 1/τn*(-n + σn);
+
+    # Adaptive observer
+    v̂ = z[4]
+    m̂ = z[5]
+    ĥ = z[6]
+    n̂ = z[7]
+    θ̂ = z[8:15]
+    P = np.reshape(z[15:15+49],(7,7));    
+    P = (P+np.transpose(P))/2
+    Ψ = z[15+49:15+49+7]
+
+    (τm̂,σm̂) = gating_m(v);
+    (τĥ,σĥ) = gating_h(v);
+    (τn̂,σn̂) = gating_n(v);
+
+    ϕ̂ = np.array([-m̂**3*ĥ*v,
+         -n̂**4*v, 
+         -v,
+         m̂**3*ĥ,
+         n̂**4,
+         1,
+         Iapp(t)]);
+
+    dv̂ = np.dot(ϕ̂,θ̂) + γ*Ψ@P@Ψ.T*(v-v̂)
+    dm̂ = 1/τm̂*(-m̂ + σm̂);
+    dĥ = 1/τĥ*(-ĥ + σĥ);
+    dn̂ = 1/τn̂*(-n̂ + σn̂);
+
+    dθ̂ = γ*P@Ψ.T*(v-v̂);
+    dΨ = -γ*Ψ + ϕ̂; 
+    aux = np.outer(Ψ,Ψ)
+    dP = α*P - P@aux@P;
+    dP = (dP+np.transpose(dP))/2;
+    
+    # dz[:] = [dv;dm;dh;dn;dv̂;dm̂;dĥ;dn̂;dθ̂;dP[:];dΨ;dṽ;dm̃;dh̃;dñ;dθ̃]';
+    ## BUT z_0 only has length 82...
+    dz = np.concatenate(( [dv,dm,dh,dn],[dv̂,dm̂,dĥ,dn̂],dθ̂.flatten(),
+                         dP.flatten(),dΨ))
+    return dz
+
 def HH_observer(t,z,p):
     Iapp =          p[0]
     c =             p[1]
