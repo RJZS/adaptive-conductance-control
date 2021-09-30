@@ -12,12 +12,12 @@ from scipy.integrate import solve_ivp
 
 # Flag for saving data to .txt files 
 save_data = 0
-from HH_odes import HH_observer, HH_ode, HH_one_observer
+from HH_odes import HH_observer, HH_ode, HH_synapse_observer, HH_one_observer
 
 # True Parameters 
 c = 1.
-g = (120.,36.,0.3)
-E = (55.,-77.,-54.4)
+g = (120.,36.,0.3, 0.1) # Switch off the synapse.
+E = (55.,-77.,-54.4, 10.)
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 
 # Observer parameters
@@ -25,11 +25,11 @@ Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 γ = 70
 
 # Initial conditions
-x_0 = [0, 0, 0, 0]; 
-x̂_0 = [-60, 0.5, 0.5, 0.5];
-θ̂_0 = [60, 60, 10, 0, 0, 0, 0];
-P_0 = np.eye(7);
-Ψ_0 = [0, 0, 0, 0, 0, 0, 0];
+x_0 = [0, 0, 0, 0, 0]; 
+x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5];
+θ̂_0 = [60, 60, 10, 10, 0, 0, 0, 0, 0];
+P_0 = np.eye(9);
+Ψ_0 = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
 #%%
 
@@ -43,16 +43,16 @@ p = (Iapp,c,g,E,(α,γ))
 # Integrate
 #prob = ODEProblem(HH_observer,z_0,tspan,p)
 #sol = solve(prob,Tsit5(),reltol=1e-8,abstol=1e-8,saveat=0.1,maxiters=1e6)
-out = solve_ivp(lambda t, z: HH_one_observer(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6)
+out = solve_ivp(lambda t, z: HH_synapse_observer(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6)
 # out = solve_ivp(lambda t, z: HH_ode(t, z, p), tspan, x_0)
 t = out.t
 sol = out.y
 
 v = sol[0,:];
-w = sol[1:4,:];
-v̂ = sol[4,:];
-ŵ = sol[5:8,:];
-θ̂ = sol[8:15,:];
+w = sol[1:5,:];
+v̂ = sol[5,:];
+ŵ = sol[6:10,:];
+θ̂ = sol[10:19,:];
 
 if save_data == 1:
     np.savetxt("data/HH_voltages.txt",  np.concatenate((t,v,v̂),axis=1), delimiter=" ")
