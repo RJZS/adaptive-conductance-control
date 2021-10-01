@@ -105,11 +105,11 @@ def HH_synapse_observer(t,z,p):
     ϕ = np.array([-m**3*h*v,
          -n**4*v, 
          -v,
-         -s*v,
+         s*v,
          m**3*h,
          n**4,
          1,
-         s,
+         -s,
          Iapp(t)]);
 
     dv = np.dot(ϕ,θ)
@@ -137,11 +137,11 @@ def HH_synapse_observer(t,z,p):
     ϕ̂ = np.array([-m̂**3*ĥ*v,
          -n̂**4*v, 
          -v,
-         -s_hat*v,
+         s_hat*v,
          m̂**3*ĥ,
          n̂**4,
          1,
-         s_hat,
+         -s_hat,
          Iapp(t)]);
 
     dv̂ = np.dot(ϕ̂,θ̂) + γ*Ψ@P@Ψ.T*(v-v̂)
