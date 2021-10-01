@@ -141,7 +141,7 @@ def HH_synapse_observer(t,z,p):
          m̂**3*ĥ,
          n̂**4,
          1,
-         s,
+         s_hat,
          Iapp(t)]);
 
     dv̂ = np.dot(ϕ̂,θ̂) + γ*Ψ@P@Ψ.T*(v-v̂)

@@ -16,7 +16,7 @@ from HH_odes import HH_observer, HH_ode, HH_synapse_observer, HH_one_observer
 
 # True Parameters 
 c = 1.
-g = (120.,36.,0.3, 0.1) # Switch off the synapse.
+g = (120.,36.,0.3, 0.1) # Na, K, L, syn. Switch off the synapse.
 E = (55.,-77.,-54.4, 10.)
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 
@@ -25,7 +25,7 @@ Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 γ = 70
 
 # Initial conditions
-x_0 = [0, 0, 0, 0, 0]; 
+x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
 x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5];
 θ̂_0 = [60, 60, 10, 10, 0, 0, 0, 0, 0];
 P_0 = np.eye(9);
