@@ -115,7 +115,8 @@ def HH_synapse_observer(t,z,p):
     h_p = z[19+81+9+2]
     n_p = z[19+81+9+3]
     
-    [dvp,dmp,dhp,dnp] = preysnaptic_neuron(v_p, m_p, h_p, n_p, 2)
+    I_pre = 2 + np.sin(2*np.pi/10*t) # Same as for postsynaptic.
+    [dvp,dmp,dhp,dnp] = preysnaptic_neuron(v_p, m_p, h_p, n_p, I_pre)
 
     (τm,σm) = gating_m(v);
     (τh,σh) = gating_h(v);
