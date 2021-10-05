@@ -44,9 +44,9 @@ def gating_n(v):
     return τ, σ
 
 # Synaptic gate
-def gating_s(v): # NEED TO SET PARAMS!!!
-    Vhalf = 0.;
-    k = 9.;
+def gating_s(v): # Terms are same as m unless stated.
+    Vhalf = -45.; # From Dethier et al - 2015
+    k = 2.; # From Dethier et al - 2015
     Vmax = -38.;
     std = 30.;
     Camp = 0.46;
