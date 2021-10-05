@@ -110,10 +110,10 @@ def HH_synapse_observer(t,z,p):
     h = z[2]
     n = z[3]
     s = z[4]
-    v_p = z[18+81+9]
-    m_p = z[18+81+9+1]
-    h_p = z[18+81+9+2]
-    n_p = z[18+81+9+3]
+    v_p = z[19+81+9]
+    m_p = z[19+81+9+1]
+    h_p = z[19+81+9+2]
+    n_p = z[19+81+9+3]
     
     [dvp,dmp,dhp,dnp] = preysnaptic_neuron(v_p, m_p, h_p, n_p, 2)
 
@@ -142,15 +142,15 @@ def HH_synapse_observer(t,z,p):
     ds = 1/τs*(-s + σs);
 
     # Adaptive observer
-    v̂ = z[4]
-    m̂ = z[5]
-    ĥ = z[6]
-    n̂ = z[7]
-    s_hat = z[8]
-    θ̂ = z[9:18]
-    P = np.reshape(z[18:18+81],(9,9));    
+    v̂ = z[5]
+    m̂ = z[6]
+    ĥ = z[7]
+    n̂ = z[8]
+    s_hat = z[9]
+    θ̂ = z[10:19]
+    P = np.reshape(z[19:19+81],(9,9));    
     P = (P+np.transpose(P))/2
-    Ψ = z[18+81:18+81+9]
+    Ψ = z[19+81:19+81+9]
 
     (τm̂,σm̂) = gating_m(v);
     (τĥ,σĥ) = gating_h(v);
