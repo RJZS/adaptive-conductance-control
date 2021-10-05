@@ -80,6 +80,23 @@ def HH_ode(t,z,p):
 
     return [dv,dm,dh,dn]
 
+def preysnaptic_neuron(v, m, h, n, I):
+    (τm,σm) = gating_m(v); # Currently using same gates as postsynaptic neuron.
+    (τh,σh) = gating_h(v);
+    (τn,σn) = gating_n(v);
+
+    c = 1.
+    g = [120., 36., 0.3]
+    E = [55.,-77.,-54.4]
+    phi = [-m**3*h*(v-E[0]),-n**4*(v-E[1]),-(v-E[2])];
+
+    dv = 1/c * (np.dot(phi,g) + I);
+    dm = 1/τm*(-m + σm);
+    dh = 1/τh*(-h + σh);
+    dn = 1/τn*(-n + σn);
+
+    return [dv,dm,dh,dn]    
+
 def HH_synapse_observer(t,z,p):
     Iapp =               p[0]
     c =                  p[1]
@@ -93,11 +110,17 @@ def HH_synapse_observer(t,z,p):
     h = z[2]
     n = z[3]
     s = z[4]
+    v_p = z[18+81+9]
+    m_p = z[18+81+9+1]
+    h_p = z[18+81+9+2]
+    n_p = z[18+81+9+3]
+    
+    [dvp,dmp,dhp,dnp] = preysnaptic_neuron(v_p, m_p, h_p, n_p, 2)
 
     (τm,σm) = gating_m(v);
     (τh,σh) = gating_h(v);
     (τn,σn) = gating_n(v);
-    (τs,σs) = gating_s(v);
+    (τs,σs) = gating_s(v_p);
 
     # θ = np.divide(1,c*np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]))
     θ = np.divide(np.array([gNa, gK, gL, gsyn,
@@ -132,7 +155,7 @@ def HH_synapse_observer(t,z,p):
     (τm̂,σm̂) = gating_m(v);
     (τĥ,σĥ) = gating_h(v);
     (τn̂,σn̂) = gating_n(v);
-    (τs_hat,σs_hat) = gating_s(v);
+    (τs_hat,σs_hat) = gating_s(v_p);
 
     ϕ̂ = np.array([-m̂**3*ĥ*v,
          -n̂**4*v, 
@@ -159,7 +182,7 @@ def HH_synapse_observer(t,z,p):
     # dz[:] = [dv;dm;dh;dn;dv̂;dm̂;dĥ;dn̂;dθ̂;dP[:];dΨ;dṽ;dm̃;dh̃;dñ;dθ̃]';
     ## BUT z_0 only has length 82...
     dz = np.concatenate(( [dv,dm,dh,dn,ds],[dv̂,dm̂,dĥ,dn̂,ds_hat],dθ̂.flatten(),
-                         dP.flatten(),dΨ))
+                         dP.flatten(),dΨ,[dvp,dmp,dhp,dnp]))
     return dz    
 
 def HH_one_observer(t,z,p):

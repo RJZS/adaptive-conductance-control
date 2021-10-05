@@ -27,9 +27,10 @@ Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 # Initial conditions
 x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
 x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5];
-θ̂_0 = [60, 60, 10, 10, 0, 0, 0, 0, 0];
+θ̂_0 = [60, 60, 10, 10, 0, 0, 0, 0, 0]; # gNa, gK, gL, gsyn, gNa*ENa, gK*EK, gL*EL, gsyn*Esyn, 1
 P_0 = np.eye(9);
 Ψ_0 = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
 
 #%%
 
@@ -37,7 +38,7 @@ P_0 = np.eye(9);
 dt = 0.01
 Tfinal = 140. # Default is 100.
 tspan = (0.,Tfinal)
-z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0))
+z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p))
 p = (Iapp,c,g,E,(α,γ))
 
 # Integrate
