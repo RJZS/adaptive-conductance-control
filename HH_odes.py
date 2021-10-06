@@ -80,7 +80,7 @@ def HH_ode(t,z,p):
 
     return [dv,dm,dh,dn]
 
-def preysnaptic_neuron(v, m, h, n, I):
+def neuron_calcs(v, m, h, n, I):
     (τm,σm) = gating_m(v); # Currently using same gates as postsynaptic neuron.
     (τh,σh) = gating_h(v);
     (τn,σn) = gating_n(v);
@@ -110,13 +110,22 @@ def HH_synapse_observer(t,z,p):
     h = z[2]
     n = z[3]
     s = z[4]
-    v_p = z[19+81+9]
+    v_p = z[19+81+9] # Presynaptic neuron
     m_p = z[19+81+9+1]
     h_p = z[19+81+9+2]
     n_p = z[19+81+9+3]
+    v_nosyn = z[19+81+9+4] # Simulate the postsynaptic neuron without the synapse
+    m_nosyn = z[19+81+9+5]
+    h_nosyn = z[19+81+9+6]
+    n_nosyn = z[19+81+9+7]
     
     I_pre = 2 + np.sin(2*np.pi/10*t) # Same as for postsynaptic.
-    [dvp,dmp,dhp,dnp] = preysnaptic_neuron(v_p, m_p, h_p, n_p, I_pre)
+    [dvp,dmp,dhp,dnp] = neuron_calcs(v_p, m_p, h_p, n_p, I_pre)
+    
+    # Simulate the neuron without the synapse.
+    # Note that the pre- and post-synaptic neurons are identical.
+    [dv_nosyn,dm_nosyn,dh_nosyn,dn_nosyn] = \
+            neuron_calcs(v_nosyn, m_nosyn, h_nosyn, n_nosyn, Iapp(t))
 
     (τm,σm) = gating_m(v);
     (τh,σh) = gating_h(v);
@@ -180,10 +189,9 @@ def HH_synapse_observer(t,z,p):
     dP = α*P - P@aux@P;
     dP = (dP+np.transpose(dP))/2;
     
-    # dz[:] = [dv;dm;dh;dn;dv̂;dm̂;dĥ;dn̂;dθ̂;dP[:];dΨ;dṽ;dm̃;dh̃;dñ;dθ̃]';
-    ## BUT z_0 only has length 82...
     dz = np.concatenate(( [dv,dm,dh,dn,ds],[dv̂,dm̂,dĥ,dn̂,ds_hat],dθ̂.flatten(),
-                         dP.flatten(),dΨ,[dvp,dmp,dhp,dnp]))
+                         dP.flatten(),dΨ,[dvp,dmp,dhp,dnp],
+                         [dv_nosyn,dm_nosyn,dh_nosyn,dn_nosyn] ))
     return dz    
 
 def HH_one_observer(t,z,p):
