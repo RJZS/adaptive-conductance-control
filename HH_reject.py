@@ -36,10 +36,11 @@ x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 100. # Default is 100.
+Tfinal = 140. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
-p = (Iapp,c,g,E,(α,γ))
+controller_on = False
+p = (Iapp,c,g,E,(α,γ),controller_on)
 
 # Integrate
 #prob = ODEProblem(HH_observer,z_0,tspan,p)

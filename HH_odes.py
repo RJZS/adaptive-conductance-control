@@ -103,6 +103,7 @@ def HH_synapse_observer(t,z,p):
     (gNa,gK,gL,gsyn) =   p[2]
     (ENa,EK,EL,Esyn) =   p[3]
     (α,γ) = p[4]
+    controller_on = p[5]
 
     # True system
     v = z[0]
@@ -144,10 +145,13 @@ def HH_synapse_observer(t,z,p):
     (τh,σh) = gating_h(v);
     (τn,σn) = gating_n(v);
     (τs,σs) = gating_s(v_p);
-
-    Isyn_estimate = θ̂ [3] * s_hat * (v - np.divide(θ̂[7],θ̂[3]))    
-    if Isyn_estimate > 200:
-        Isyn_estimate = 200 # Can get a large initial transient.
+    
+    injected_current = Iapp(t)
+    if controller_on:
+        Isyn_estimate = θ̂ [3] * s_hat * (v - np.divide(θ̂[7],θ̂[3]))    
+        if Isyn_estimate > 200:
+            Isyn_estimate = 200 # Can get a large initial transient.
+        injected_current = injected_current - Isyn_estimate
 
     # θ = np.divide(1,c*np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]))
     θ = np.divide(np.array([gNa, gK, gL, gsyn,
@@ -160,7 +164,7 @@ def HH_synapse_observer(t,z,p):
          n**4,
          1,
          s,
-         Iapp(t)-Isyn_estimate]);
+         injected_current]);
 
     dv = np.dot(ϕ,θ)
     dm = 1/τm*(-m + σm);
