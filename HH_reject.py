@@ -76,6 +76,7 @@ Isyn_hat = θ̂ [3,:] * ŵ[3,:] * (v - np.divide(θ̂[7,:],θ̂[3,:]))
 # Solution?: https://www.futurelearn.com/info/courses/data-visualisation-with-python-matplotlib-and-visual-analysis/0/steps/192875
 plt0 = plt.figure(); plt0ax = plt0.add_axes([0,0,1,1])
 plt0ax.plot(t,v)
+plt0ax.plot(t,v_nosyn)
 plt0ax.plot(t,v̂,color="red",linestyle="dashed")
 
 # gNa/c

@@ -130,18 +130,24 @@ def HH_synapse_observer(t,z,p):
     P = (P+np.transpose(P))/2
     Ψ = z[19+81:19+81+9]
     
+    # Simulate the presynaptic neuron
     I_pre = 2 + np.sin(2*np.pi/10*t) # Same as for postsynaptic.
     [dvp,dmp,dhp,dnp] = neuron_calcs(v_p, m_p, h_p, n_p, I_pre)
     
-    # Simulate the neuron without the synapse.
+    # Simulate the true neuron without the synapse.
     # Note that the pre- and post-synaptic neurons are identical.
     [dv_nosyn,dm_nosyn,dh_nosyn,dn_nosyn] = \
             neuron_calcs(v_nosyn, m_nosyn, h_nosyn, n_nosyn, Iapp(t))
 
+    # Simulate the true system
     (τm,σm) = gating_m(v);
     (τh,σh) = gating_h(v);
     (τn,σn) = gating_n(v);
     (τs,σs) = gating_s(v_p);
+
+    Isyn_estimate = θ̂ [3] * s_hat * (v - np.divide(θ̂[7],θ̂[3]))    
+    if Isyn_estimate > 200:
+        Isyn_estimate = 200 # Can get a large initial transient.
 
     # θ = np.divide(1,c*np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]))
     θ = np.divide(np.array([gNa, gK, gL, gsyn,
@@ -154,7 +160,7 @@ def HH_synapse_observer(t,z,p):
          n**4,
          1,
          s,
-         Iapp(t)]);
+         Iapp(t)-Isyn_estimate]);
 
     dv = np.dot(ϕ,θ)
     dm = 1/τm*(-m + σm);
