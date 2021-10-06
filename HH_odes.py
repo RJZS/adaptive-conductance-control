@@ -119,6 +119,17 @@ def HH_synapse_observer(t,z,p):
     h_nosyn = z[19+81+9+6]
     n_nosyn = z[19+81+9+7]
     
+    # Terms for adaptive observer
+    v̂ = z[5]
+    m̂ = z[6]
+    ĥ = z[7]
+    n̂ = z[8]
+    s_hat = z[9]
+    θ̂ = z[10:19]
+    P = np.reshape(z[19:19+81],(9,9));    
+    P = (P+np.transpose(P))/2
+    Ψ = z[19+81:19+81+9]
+    
     I_pre = 2 + np.sin(2*np.pi/10*t) # Same as for postsynaptic.
     [dvp,dmp,dhp,dnp] = neuron_calcs(v_p, m_p, h_p, n_p, I_pre)
     
@@ -151,17 +162,7 @@ def HH_synapse_observer(t,z,p):
     dn = 1/τn*(-n + σn);
     ds = 1/τs*(-s + σs);
 
-    # Adaptive observer
-    v̂ = z[5]
-    m̂ = z[6]
-    ĥ = z[7]
-    n̂ = z[8]
-    s_hat = z[9]
-    θ̂ = z[10:19]
-    P = np.reshape(z[19:19+81],(9,9));    
-    P = (P+np.transpose(P))/2
-    Ψ = z[19+81:19+81+9]
-
+    # Run the adaptive observer
     (τm̂,σm̂) = gating_m(v);
     (τĥ,σĥ) = gating_h(v);
     (τn̂,σn̂) = gating_n(v);

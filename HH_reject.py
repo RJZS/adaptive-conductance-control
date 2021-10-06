@@ -36,7 +36,7 @@ x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 80. # Default is 100.
+Tfinal = 100. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
 p = (Iapp,c,g,E,(α,γ))
@@ -60,6 +60,12 @@ if save_data == 1:
     np.savetxt("data/HH_voltages.txt",  np.concatenate((t,v,v̂),axis=1), delimiter=" ")
     np.savetxt("data/HH_parameters.txt",  
                np.concatenate((t,np.transpose(θ̂)),axis=1), delimiter=" ")
+
+# Calculate real and estimated synaptic current. Remember, the algorithm is
+# online, so using the parameter estimates for that timestep.
+# Estimating E_syn in the correct way??
+Isyn = g[3] * w[3,:] * (v - E[3])
+Isyn_hat = θ̂ [3,:] * ŵ[3,:] * (v - np.divide(θ̂[7,:],θ̂[3,:]))
 
 ## Plots
 # Black dashed line is true value. Red is estimate.
@@ -106,3 +112,8 @@ plt6ax.plot(t,θ̂[5,:],color="red")
 plt7 = plt.figure(); plt7ax = plt7.add_axes([0,0,1,1])
 plt7ax.plot([0,Tfinal],[1/c,1/c],color="black",linestyle="dashed",label="1/c")
 plt7ax.plot(t,θ̂[6,:],color="red")
+
+# I_syn (ignoring transient)
+plt8 = plt.figure(); plt8ax = plt8.add_axes([0,0,1,1])
+plt8ax.plot(t[300:],Isyn[300:],label="I_syn")
+plt8ax.plot(t[300:],Isyn_hat[300:],color="red")
