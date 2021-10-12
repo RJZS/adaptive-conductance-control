@@ -39,7 +39,7 @@ dt = 0.01
 Tfinal = 140. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
-controller_on = False
+controller_on = True
 p = (Iapp,c,g,E,(α,γ),controller_on)
 
 # Integrate
