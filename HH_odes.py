@@ -149,10 +149,10 @@ def HH_synapse_observer(t,z,p):
     injected_current = Iapp(t)
     if controller_on:
         Isyn_estimate = θ̂ [3] * s_hat * (v - np.divide(θ̂[7],θ̂[3]))    
-        if Isyn_estimate > 200:
-            Isyn_estimate = 200 # Can get a large initial transient.
-        elif Isyn_estimate < -200:
-            Isyn_estimate = -200
+        if Isyn_estimate > 300:
+            Isyn_estimate = 300 # Can get a large initial transient.
+        elif Isyn_estimate < -300:
+            Isyn_estimate = -300
         injected_current = injected_current - Isyn_estimate
 
     # θ = np.divide(1,c*np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]))
