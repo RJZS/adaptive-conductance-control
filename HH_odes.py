@@ -188,7 +188,7 @@ def HH_synapse_observer(t,z,p):
          n̂**4,
          1,
          s_hat,
-         Iapp(t)]);
+         injected_current]);
 
     dv̂ = np.dot(ϕ̂,θ̂) + γ*Ψ@P@Ψ.T*(v-v̂)
     dm̂ = 1/τm̂*(-m̂ + σm̂);
