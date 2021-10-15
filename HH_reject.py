@@ -98,22 +98,22 @@ plt3ax.plot(t,θ̂[2,:],color="red")
 # gNa*ENa/c
 plt4 = plt.figure(); plt4ax = plt4.add_axes([0,0,1,1])
 plt4ax.plot([0,Tfinal],[g[0]*E[0]/c,g[0]*E[0]/c],color="black",linestyle="dashed",label="gNa*ENa/c")
-plt4ax.plot(t,θ̂[3,:],color="red")
+plt4ax.plot(t,θ̂[4,:],color="red")
 
 # gK*EK/c
 plt5 = plt.figure(); plt5ax = plt5.add_axes([0,0,1,1])
 plt5ax.plot([0,Tfinal],[g[1]*E[1]/c,g[1]*E[1]/c],color="black",linestyle="dashed",label="gK*EK/c")
-plt5ax.plot(t,θ̂[4,:],color="red")
+plt5ax.plot(t,θ̂[5,:],color="red")
 
 # gL*EL/c
 plt6 = plt.figure(); plt6ax = plt6.add_axes([0,0,1,1])
 plt6ax.plot([0,Tfinal],[g[2]*E[2]/c,g[2]*E[2]/c],color="black",linestyle="dashed",label="gL*EL/c")
-plt6ax.plot(t,θ̂[5,:],color="red")
+plt6ax.plot(t,θ̂[6,:],color="red")
 
 # 1/c
 plt7 = plt.figure(); plt7ax = plt7.add_axes([0,0,1,1])
 plt7ax.plot([0,Tfinal],[1/c,1/c],color="black",linestyle="dashed",label="1/c")
-plt7ax.plot(t,θ̂[6,:],color="red")
+plt7ax.plot(t,θ̂[8,:],color="red")
 
 # I_syn (ignoring transient)
 plt8 = plt.figure(); plt8ax = plt8.add_axes([0,0,1,1])
