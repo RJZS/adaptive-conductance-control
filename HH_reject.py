@@ -21,8 +21,8 @@ E = (55.,-77.,-54.4, -80.)
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 
 # Observer parameters
-α = 0.5
-γ = 70
+α = 0.2 # Default is 0.5
+γ = 70 # Default is 70
 
 # Initial conditions
 x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
@@ -77,45 +77,111 @@ Isyn_hat = θ̂ [3,:] * ŵ[3,:] * (v - np.divide(θ̂[7,:],θ̂[3,:]))
 # Solution?: https://www.futurelearn.com/info/courses/data-visualisation-with-python-matplotlib-and-visual-analysis/0/steps/192875
 plt0 = plt.figure(); plt0ax = plt0.add_axes([0,0,1,1])
 plt0ax.plot(t,v)
-plt0ax.plot(t,v_nosyn)
 plt0ax.plot(t,v̂,color="red",linestyle="dashed")
+plt0ax.plot(t,v_nosyn)
+plt0ax.set_xlabel("t")
+plt0ax.legend(["v", "v_hat", "v if no synapse"])
+plt0ax.set_title("Membrane potential")
 
+plt9 = plt.figure(); plt9ax = plt9.add_axes([0,0,1,1])
+plt9ax.plot(t,v-v_nosyn)
+plt9ax.set_xlabel("t")
+plt9ax.set_title("v - v_nosyn")
+
+# Black dashed line is true value. Red is estimate.
 # gNa/c
 plt1 = plt.figure(); plt1ax = plt1.add_axes([0,0,1,1])
 plt1ax.plot([0,Tfinal],[g[0]/c,g[0]/c],color="black",linestyle="dashed",label="gNa/c")
 plt1ax.plot(t,θ̂[0,:],color="red")
+plt1ax.set_xlabel("t")
+plt1ax.legend(["True", "Estimated"])
+plt1ax.set_title("gNa/c")
 
 # gK/c
 plt2 = plt.figure(); plt2ax = plt2.add_axes([0,0,1,1])
 plt2ax.plot([0,Tfinal],[g[1]/c,g[1]/c],color="black",linestyle="dashed",label="gK/c")
+plt2ax.set_xlabel("t")
 plt2ax.plot(t,θ̂[1,:],color="red")
+plt2ax.set_title("gK/c")
 
 # gL/c
 plt3 = plt.figure(); plt3ax = plt3.add_axes([0,0,1,1])
 plt3ax.plot([0,Tfinal],[g[2]/c,g[2]/c],color="black",linestyle="dashed",label="gL/c")
+plt3ax.set_xlabel("t")
 plt3ax.plot(t,θ̂[2,:],color="red")
+plt3ax.set_title("gL/c")
 
 # gNa*ENa/c
 plt4 = plt.figure(); plt4ax = plt4.add_axes([0,0,1,1])
 plt4ax.plot([0,Tfinal],[g[0]*E[0]/c,g[0]*E[0]/c],color="black",linestyle="dashed",label="gNa*ENa/c")
+plt4ax.set_xlabel("t")
 plt4ax.plot(t,θ̂[4,:],color="red")
+plt4ax.set_title("gNa*ENa/c")
 
 # gK*EK/c
 plt5 = plt.figure(); plt5ax = plt5.add_axes([0,0,1,1])
 plt5ax.plot([0,Tfinal],[g[1]*E[1]/c,g[1]*E[1]/c],color="black",linestyle="dashed",label="gK*EK/c")
 plt5ax.plot(t,θ̂[5,:],color="red")
+plt5ax.set_xlabel("t")
+plt5ax.set_title("gK*EK/c")
 
 # gL*EL/c
 plt6 = plt.figure(); plt6ax = plt6.add_axes([0,0,1,1])
 plt6ax.plot([0,Tfinal],[g[2]*E[2]/c,g[2]*E[2]/c],color="black",linestyle="dashed",label="gL*EL/c")
 plt6ax.plot(t,θ̂[6,:],color="red")
+plt6ax.set_xlabel("t")
+plt6ax.set_title("gL*EL/c")
 
 # 1/c
 plt7 = plt.figure(); plt7ax = plt7.add_axes([0,0,1,1])
 plt7ax.plot([0,Tfinal],[1/c,1/c],color="black",linestyle="dashed",label="1/c")
 plt7ax.plot(t,θ̂[8,:],color="red")
+plt7ax.set_xlabel("t")
+plt7ax.set_title("1/c")
 
-# I_syn (ignoring transient)
+# Synaptic current (ignoring initial transient)
 plt8 = plt.figure(); plt8ax = plt8.add_axes([0,0,1,1])
-plt8ax.plot(t[300:],Isyn[300:],label="I_syn")
-plt8ax.plot(t[300:],Isyn_hat[300:],color="red")
+plt8ax.plot(t[3000:],Isyn[3000:],label="I_syn")
+plt8ax.plot(t[3000:],Isyn_hat[3000:],color="red")
+plt8ax.set_xlabel("t")
+plt8ax.legend(["True", "Estimated"])
+plt8ax.set_title("I_syn (neglecting transient)")
+
+plt10 = plt.figure(); plt10ax = plt10.add_axes([0,0,1,1])
+go_from = 3000
+phase_shift = 400
+
+t_trunc = t[go_from:-phase_shift]
+v_trunc = v[go_from+phase_shift:]
+v_nosyn_trunc = v_nosyn[go_from:-phase_shift]
+
+plt10ax.plot(t_trunc,v_trunc)
+plt10ax.plot(t_trunc,v_nosyn_trunc)
+plt10ax.set_xlabel("t")
+plt10ax.legend(["v (phase-shifted)", "v if no synapse"])
+plt10ax.set_title("Membrane potential")
+
+plt10 = plt.figure(); plt10ax = plt10.add_axes([0,0,1,1])
+
+zoom_idx = 10000
+
+plt10ax.plot(t_trunc[:zoom_idx],v_trunc[:zoom_idx])
+plt10ax.plot(t_trunc[:zoom_idx],v_nosyn_trunc[:zoom_idx])
+plt10ax.set_xlabel("t")
+plt10ax.legend(["v (phase-shifted)", "v if no synapse"])
+plt10ax.set_title("Membrane potential (zoomed plot)")
+
+plt11 = plt.figure(); plt11ax = plt11.add_axes([0,0,1,1])
+
+zoom_idx = 10000
+
+plt11ax.plot(t_trunc[:zoom_idx],v_trunc[:zoom_idx])
+plt11ax.plot(t_trunc[:zoom_idx],v_nosyn_trunc[:zoom_idx])
+plt11ax.set_xlabel("t")
+plt11ax.legend(["v (phase-shifted)", "v if no synapse"])
+plt11ax.set_title("Membrane potential (zoomed plot)")
+
+plt12 = plt.figure(); plt12ax = plt12.add_axes([0,0,1,1])
+plt12ax.plot(t_trunc,v_trunc-v_nosyn_trunc)
+plt12ax.set_xlabel("t")
+plt12ax.set_title("v - v_nosyn (phase-shifted v)")
