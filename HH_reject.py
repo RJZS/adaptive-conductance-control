@@ -27,7 +27,7 @@ Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 # Initial conditions
 x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
 x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5];
-θ̂_0 = [60, 60, 10, 10, 0, 0, 0, 0, 0]; # gNa, gK, gL, gsyn, gNa*ENa, gK*EK, gL*EL, gsyn*Esyn, 1
+θ̂_0 = [60, 60, 10, 10, 0, 0, 0, 0, 0.1]; # [gNa, gK, gL, gsyn, gNa*ENa, gK*EK, gL*EL, gsyn*Esyn, 1]/c
 P_0 = np.eye(9);
 Ψ_0 = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
@@ -36,7 +36,7 @@ x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 100. # Default is 100.
+Tfinal = 300. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
 controller_on = True
@@ -66,7 +66,7 @@ if save_data == 1:
 # online, so using the parameter estimates for that timestep.
 # Estimating E_syn in the correct way??
 Isyn = g[3] * w[3,:] * (v - E[3])
-Isyn_hat = θ̂ [3,:] * ŵ[3,:] * (v - np.divide(θ̂[7,:],θ̂[3,:]))
+Isyn_hat = θ̂ [3,:] * ŵ[3,:] * (v - np.divide(θ̂[7,:],θ̂[3,:]))/θ̂[8,:]**2
 
 ## Plots
 # Black dashed line is true value. Red is estimate.
@@ -149,7 +149,7 @@ plt8ax.set_title("I_syn (neglecting transient)")
 
 plt10 = plt.figure(); plt10ax = plt10.add_axes([0,0,1,1])
 go_from = 3000
-phase_shift = 400
+phase_shift = 1
 
 t_trunc = t[go_from:-phase_shift]
 v_trunc = v[go_from+phase_shift:]
@@ -160,16 +160,6 @@ plt10ax.plot(t_trunc,v_nosyn_trunc)
 plt10ax.set_xlabel("t")
 plt10ax.legend(["v (phase-shifted)", "v if no synapse"])
 plt10ax.set_title("Membrane potential")
-
-plt10 = plt.figure(); plt10ax = plt10.add_axes([0,0,1,1])
-
-zoom_idx = 10000
-
-plt10ax.plot(t_trunc[:zoom_idx],v_trunc[:zoom_idx])
-plt10ax.plot(t_trunc[:zoom_idx],v_nosyn_trunc[:zoom_idx])
-plt10ax.set_xlabel("t")
-plt10ax.legend(["v (phase-shifted)", "v if no synapse"])
-plt10ax.set_title("Membrane potential (zoomed plot)")
 
 plt11 = plt.figure(); plt11ax = plt11.add_axes([0,0,1,1])
 
