@@ -36,7 +36,7 @@ x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 300. # Default is 100.
+Tfinal = 250. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
 controller_on = True
@@ -141,8 +141,9 @@ plt7ax.set_title("1/c")
 
 # Synaptic current (ignoring initial transient)
 plt8 = plt.figure(); plt8ax = plt8.add_axes([0,0,1,1])
-plt8ax.plot(t[3000:],Isyn[3000:],label="I_syn")
-plt8ax.plot(t[3000:],Isyn_hat[3000:],color="red")
+start_idx = 9000
+plt8ax.plot(t[start_idx:],Isyn[start_idx:],label="I_syn")
+plt8ax.plot(t[start_idx:],Isyn_hat[start_idx:],color="red")
 plt8ax.set_xlabel("t")
 plt8ax.legend(["True", "Estimated"])
 plt8ax.set_title("I_syn (neglecting transient)")
