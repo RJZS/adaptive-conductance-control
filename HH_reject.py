@@ -68,6 +68,7 @@ if save_data == 1:
 Isyn = g[3] * w[3,:] * (v - E[3])
 Isyn_hat = θ̂ [3,:] * ŵ[3,:] * (v - np.divide(θ̂[7,:],θ̂[3,:]))/θ̂[8,:]**2
 
+#%% 
 ## Plots
 # Black dashed line is true value. Red is estimate.
 # Green dashed is estimate by simpler adaptive observer,
@@ -80,13 +81,13 @@ plt0ax.plot(t,v)
 plt0ax.plot(t,v̂,color="red",linestyle="dashed")
 plt0ax.plot(t,v_nosyn)
 plt0ax.set_xlabel("t")
-plt0ax.legend(["v", "v_hat", "v if no synapse"])
+plt0ax.legend([r'$v$', r'$\hat{v}$', r'$v_{nosyn}$'])
 plt0ax.set_title("Membrane potential")
 
 plt9 = plt.figure(); plt9ax = plt9.add_axes([0,0,1,1])
 plt9ax.plot(t,v-v_nosyn)
 plt9ax.set_xlabel("t")
-plt9ax.set_title("v - v_nosyn")
+plt9ax.set_title(r'$v - v_{nosyn}$')
 
 # Black dashed line is true value. Red is estimate.
 # gNa/c
@@ -95,49 +96,49 @@ plt1ax.plot([0,Tfinal],[g[0]/c,g[0]/c],color="black",linestyle="dashed",label="g
 plt1ax.plot(t,θ̂[0,:],color="red")
 plt1ax.set_xlabel("t")
 plt1ax.legend(["True", "Estimated"])
-plt1ax.set_title("gNa/c")
+plt1ax.set_title(r'$g_{Na}/c$')
 
 # gK/c
 plt2 = plt.figure(); plt2ax = plt2.add_axes([0,0,1,1])
 plt2ax.plot([0,Tfinal],[g[1]/c,g[1]/c],color="black",linestyle="dashed",label="gK/c")
 plt2ax.set_xlabel("t")
 plt2ax.plot(t,θ̂[1,:],color="red")
-plt2ax.set_title("gK/c")
+plt2ax.set_title(r'$g_K/c$')
 
 # gL/c
 plt3 = plt.figure(); plt3ax = plt3.add_axes([0,0,1,1])
 plt3ax.plot([0,Tfinal],[g[2]/c,g[2]/c],color="black",linestyle="dashed",label="gL/c")
 plt3ax.set_xlabel("t")
 plt3ax.plot(t,θ̂[2,:],color="red")
-plt3ax.set_title("gL/c")
+plt3ax.set_title(r'$g_L/c$')
 
 # gNa*ENa/c
 plt4 = plt.figure(); plt4ax = plt4.add_axes([0,0,1,1])
 plt4ax.plot([0,Tfinal],[g[0]*E[0]/c,g[0]*E[0]/c],color="black",linestyle="dashed",label="gNa*ENa/c")
 plt4ax.set_xlabel("t")
 plt4ax.plot(t,θ̂[4,:],color="red")
-plt4ax.set_title("gNa*ENa/c")
+plt4ax.set_title(r'$g_{Na}E_{Na}/c$')
 
 # gK*EK/c
 plt5 = plt.figure(); plt5ax = plt5.add_axes([0,0,1,1])
 plt5ax.plot([0,Tfinal],[g[1]*E[1]/c,g[1]*E[1]/c],color="black",linestyle="dashed",label="gK*EK/c")
 plt5ax.plot(t,θ̂[5,:],color="red")
 plt5ax.set_xlabel("t")
-plt5ax.set_title("gK*EK/c")
+plt5ax.set_title(r'$g_K E_K/c$')
 
 # gL*EL/c
 plt6 = plt.figure(); plt6ax = plt6.add_axes([0,0,1,1])
 plt6ax.plot([0,Tfinal],[g[2]*E[2]/c,g[2]*E[2]/c],color="black",linestyle="dashed",label="gL*EL/c")
 plt6ax.plot(t,θ̂[6,:],color="red")
 plt6ax.set_xlabel("t")
-plt6ax.set_title("gL*EL/c")
+plt6ax.set_title(r'$g_L E_L/c$')
 
 # 1/c
 plt7 = plt.figure(); plt7ax = plt7.add_axes([0,0,1,1])
 plt7ax.plot([0,Tfinal],[1/c,1/c],color="black",linestyle="dashed",label="1/c")
 plt7ax.plot(t,θ̂[8,:],color="red")
 plt7ax.set_xlabel("t")
-plt7ax.set_title("1/c")
+plt7ax.set_title(r'$1/c$')
 
 # Synaptic current (ignoring initial transient)
 plt8 = plt.figure(); plt8ax = plt8.add_axes([0,0,1,1])
@@ -146,20 +147,19 @@ plt8ax.plot(t[start_idx:],Isyn[start_idx:],label="I_syn")
 plt8ax.plot(t[start_idx:],Isyn_hat[start_idx:],color="red")
 plt8ax.set_xlabel("t")
 plt8ax.legend(["True", "Estimated"])
-plt8ax.set_title("I_syn (neglecting transient)")
+plt8ax.set_title("$I_{syn}$ (neglecting transient)")
 
 plt10 = plt.figure(); plt10ax = plt10.add_axes([0,0,1,1])
 go_from = 3000
-phase_shift = 1
 
-t_trunc = t[go_from:-phase_shift]
-v_trunc = v[go_from+phase_shift:]
-v_nosyn_trunc = v_nosyn[go_from:-phase_shift]
+t_trunc = t[go_from:]
+v_trunc = v[go_from:]
+v_nosyn_trunc = v_nosyn[go_from:]
 
 plt10ax.plot(t_trunc,v_trunc)
 plt10ax.plot(t_trunc,v_nosyn_trunc)
 plt10ax.set_xlabel("t")
-plt10ax.legend(["v (phase-shifted)", "v if no synapse"])
+plt10ax.legend([r'$v$', r'$v_{nosyn}$'])
 plt10ax.set_title("Membrane potential")
 
 plt11 = plt.figure(); plt11ax = plt11.add_axes([0,0,1,1])
@@ -169,10 +169,10 @@ zoom_idx = 10000
 plt11ax.plot(t_trunc[:zoom_idx],v_trunc[:zoom_idx])
 plt11ax.plot(t_trunc[:zoom_idx],v_nosyn_trunc[:zoom_idx])
 plt11ax.set_xlabel("t")
-plt11ax.legend(["v (phase-shifted)", "v if no synapse"])
+plt11ax.legend([r'$v$', r'$v_{nosyn}$'])
 plt11ax.set_title("Membrane potential (zoomed plot)")
 
 plt12 = plt.figure(); plt12ax = plt12.add_axes([0,0,1,1])
 plt12ax.plot(t_trunc,v_trunc-v_nosyn_trunc)
 plt12ax.set_xlabel("t")
-plt12ax.set_title("v - v_nosyn (phase-shifted v)")
+plt12ax.set_title(r'$v - v_{nosyn}$')
