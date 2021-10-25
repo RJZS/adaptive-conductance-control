@@ -205,7 +205,92 @@ def HH_synapse_observer(t,z,p):
     dz = np.concatenate(( [dv,dm,dh,dn,ds],[dv̂,dm̂,dĥ,dn̂,ds_hat],dθ̂.flatten(),
                          dP.flatten(),dΨ,[dvp,dmp,dhp,dnp],
                          [dv_nosyn,dm_nosyn,dh_nosyn,dn_nosyn] ))
-    return dz    
+    return dz 
+
+def HH_just_synapse_observer(t,z,p):
+    Iapp =               p[0]
+    c =                  p[1]
+    (gNa,gK,gL,gsyn) =   p[2]
+    (ENa,EK,EL,Esyn) =   p[3]
+    (α,γ) = p[4]
+    controller_on = p[5]
+
+    # True system
+    v = z[0]
+    m = z[1]
+    h = z[2]
+    n = z[3]
+    s = z[4]
+    v_p = z[9+4+2] # Presynaptic neuron
+    m_p = z[9+4+2+1]
+    h_p = z[9+4+2+2]
+    n_p = z[9+4+2+3]
+    v_nosyn = z[9+4+2+4] # Simulate the postsynaptic neuron without the synapse
+    m_nosyn = z[9+4+2+5]
+    h_nosyn = z[9+4+2+6]
+    n_nosyn = z[9+4+2+7]
+    
+    # Terms for adaptive observer
+    v̂ = z[5]
+    s_hat = z[6]
+    θ̂ = z[7:9]
+    P = np.reshape(z[9:9+4],(2,2));    
+    P = (P+np.transpose(P))/2
+    Ψ = z[9+4:9+4+2]
+    
+    # Simulate the presynaptic neuron
+    I_pre = 2 + np.sin(2*np.pi/10*t) # Same as for postsynaptic.
+    [dvp,dmp,dhp,dnp] = neuron_calcs(v_p, m_p, h_p, n_p, I_pre)
+    
+    # Simulate the true neuron without the synapse.
+    # Note that the pre- and post-synaptic neurons are identical.
+    [dv_nosyn,dm_nosyn,dh_nosyn,dn_nosyn] = \
+            neuron_calcs(v_nosyn, m_nosyn, h_nosyn, n_nosyn, Iapp(t))
+
+    # Simulate the true system
+    (τm,σm) = gating_m(v);
+    (τh,σh) = gating_h(v);
+    (τn,σn) = gating_n(v);
+    (τs,σs) = gating_s(v_p);
+    
+    injected_current = Iapp(t)
+    if controller_on:
+        Isyn_estimate = - θ̂ [0] * s_hat * (v - np.divide(θ̂[1],θ̂[0]))/c**2
+        if Isyn_estimate > 300:
+            Isyn_estimate = 300 # Can get a large initial transient.
+        elif Isyn_estimate < -300:
+            Isyn_estimate = -300
+        injected_current = injected_current - Isyn_estimate
+
+    # θ = np.divide(1,c*np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]))
+    θ = np.divide(np.array([gsyn, gsyn*Esyn]),c)
+    ϕ = np.array([-s*v, s]);
+
+    [dv_beforesyn,dm,dh,dn] = neuron_calcs(v, m, h, n, injected_current)
+    dv = dv_beforesyn + np.dot(ϕ,θ)
+    dm = 1/τm*(-m + σm);
+    dh = 1/τh*(-h + σh);
+    dn = 1/τn*(-n + σn);
+    ds = 1/τs*(-s + σs);
+
+    # Run the adaptive observer
+    (τs_hat,σs_hat) = gating_s(v_p);
+
+    ϕ̂ = np.array([-s_hat*v, s_hat]);
+
+    dv̂ = dv_beforesyn + np.dot(ϕ̂,θ̂) + γ*Ψ@P@Ψ.T*(v-v̂)
+    ds_hat = 1/τs_hat*(-s_hat + σs_hat);
+
+    dθ̂ = γ*P@Ψ.T*(v-v̂);
+    dΨ = -γ*Ψ + ϕ̂; 
+    aux = np.outer(Ψ,Ψ)
+    dP = α*P - P@aux@P;
+    dP = (dP+np.transpose(dP))/2;
+    
+    dz = np.concatenate(( [dv,dm,dh,dn,ds],[dv̂,ds_hat],dθ̂.flatten(),
+                         dP.flatten(),dΨ,[dvp,dmp,dhp,dnp],
+                         [dv_nosyn,dm_nosyn,dh_nosyn,dn_nosyn] ))
+    return dz 
 
 def HH_one_observer(t,z,p):
     Iapp =          p[0]
