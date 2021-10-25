@@ -27,7 +27,7 @@ Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 # Initial conditions
 x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
 x̂_0 = [-60, 0.5]; # V, s
-θ̂_0 = [10, 0]; # [gsyn, gsyn*Esyn]/c
+θ̂_0 = [10, 0]; # [gsyn, gsyn*Esyn]
 P_0 = np.eye(2);
 Ψ_0 = [0, 0];
 x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
@@ -36,7 +36,7 @@ x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 200. # Default is 100.
+Tfinal = 250. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
 controller_on = True
@@ -66,7 +66,7 @@ if save_data == 1:
 # online, so using the parameter estimates for that timestep.
 # Estimating E_syn in the correct way??
 Isyn = g[3] * w[3,:] * (v - E[3])
-Isyn_hat = θ̂ [0,:] * ŵ[:] * (v - np.divide(θ̂[1,:],θ̂[0,:]))/c**2
+Isyn_hat = θ̂ [0,:] * ŵ[:] * (v - np.divide(θ̂[1,:],θ̂[0,:]))
 
 #%% 
 ## Plots
@@ -92,18 +92,18 @@ plt9ax.set_title(r'$V - V_{nosyn}$')
 # Black dashed line is true value. Red is estimate.
 # gsyn/c
 plt1 = plt.figure(); plt1ax = plt1.add_axes([0,0,1,1])
-plt1ax.plot([0,Tfinal],[g[3]/c,g[3]/c],color="black",linestyle="dashed",label="gsyn/c")
+plt1ax.plot([0,Tfinal],[g[3],g[3]],color="black",linestyle="dashed",label="gsyn/c")
 plt1ax.plot(t,θ̂[0,:],color="red")
 plt1ax.set_xlabel("t")
 plt1ax.legend(["True", "Estimated"])
-plt1ax.set_title(r'$\bar{g}_{syn}/c$')
+plt1ax.set_title(r'$\bar{g}_{syn}$')
 
 # gsyn*Esyn/c
 plt4 = plt.figure(); plt4ax = plt4.add_axes([0,0,1,1])
-plt4ax.plot([0,Tfinal],[g[3]*E[3]/c,g[3]*E[3]/c],color="black",linestyle="dashed",label="gsyn*Esyn/c")
+plt4ax.plot([0,Tfinal],[g[3]*E[3],g[3]*E[3]],color="black",linestyle="dashed",label="gsyn*Esyn/c")
 plt4ax.set_xlabel("t")
 plt4ax.plot(t,θ̂[1,:],color="red")
-plt4ax.set_title(r'$g_{syn}E_{syn}/c$')
+plt4ax.set_title(r'$g_{syn}E_{syn}$')
 
 # Synaptic current (ignoring initial transient)
 plt8 = plt.figure(); plt8ax = plt8.add_axes([0,0,1,1])
@@ -134,10 +134,10 @@ zoom_idx = 10000
 plt11ax.plot(t_trunc[:zoom_idx],v_trunc[:zoom_idx])
 plt11ax.plot(t_trunc[:zoom_idx],v_nosyn_trunc[:zoom_idx])
 plt11ax.set_xlabel("t")
-plt11ax.legend([r'$v$', r'$v_{nosyn}$'])
+plt11ax.legend([r'$V$', r'$V_{nosyn}$'])
 plt11ax.set_title("Membrane potential (zoomed plot)")
 
 plt12 = plt.figure(); plt12ax = plt12.add_axes([0,0,1,1])
 plt12ax.plot(t_trunc,v_trunc-v_nosyn_trunc)
 plt12ax.set_xlabel("t")
-plt12ax.set_title(r'$v - v_{nosyn}$')
+plt12ax.set_title(r'$V - V_{nosyn}$')

@@ -255,16 +255,18 @@ def HH_just_synapse_observer(t,z,p):
     
     injected_current = Iapp(t)
     if controller_on:
-        Isyn_estimate = - θ̂ [0] * s_hat * (v - np.divide(θ̂[1],θ̂[0]))/c**2
-        if Isyn_estimate > 300:
-            Isyn_estimate = 300 # Can get a large initial transient.
-        elif Isyn_estimate < -300:
-            Isyn_estimate = -300
+        Isyn_estimate = - θ̂ [0] * s_hat * (v - np.divide(θ̂[1],θ̂[0]))
+        max_control = 800
+        if Isyn_estimate > max_control:
+            Isyn_estimate = max_control # Can get a large initial transient.
+        elif Isyn_estimate < -max_control:
+            Isyn_estimate = -max_control
+        # print("t = {}, Isyn_estimate={}".format(t,Isyn_estimate)) For debug.
         injected_current = injected_current - Isyn_estimate
 
     # θ = np.divide(1,c*np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]))
-    θ = np.divide(np.array([gsyn, gsyn*Esyn]),c)
-    ϕ = np.array([-s*v, s]);
+    θ = np.array([gsyn, gsyn*Esyn]);
+    ϕ = np.divide(np.array([-s*v, s]),c);
 
     [dv_beforesyn,dm,dh,dn] = neuron_calcs(v, m, h, n, injected_current)
     dv = dv_beforesyn + np.dot(ϕ,θ)
@@ -276,7 +278,7 @@ def HH_just_synapse_observer(t,z,p):
     # Run the adaptive observer
     (τs_hat,σs_hat) = gating_s(v_p);
 
-    ϕ̂ = np.array([-s_hat*v, s_hat]);
+    ϕ̂ = np.divide(np.array([-s_hat*v, s_hat]),c);
 
     dv̂ = dv_beforesyn + np.dot(ϕ̂,θ̂) + γ*Ψ@P@Ψ.T*(v-v̂)
     ds_hat = 1/τs_hat*(-s_hat + σs_hat);
