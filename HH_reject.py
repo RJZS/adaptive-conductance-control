@@ -36,7 +36,7 @@ x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 250. # Default is 100.
+Tfinal = 500. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
 controller_on = True
@@ -161,6 +161,21 @@ plt10ax.plot(t_trunc,v_nosyn_trunc)
 plt10ax.set_xlabel("t")
 plt10ax.legend([r'$v$', r'$v_{nosyn}$'])
 plt10ax.set_title("Membrane potential")
+
+# plt10 = plt.figure(); plt10ax = plt10.add_axes([0,0,1,1])
+# go_from = 15000
+# phase_shift = 380
+
+# t_trunc = t[go_from:-phase_shift]
+# v_trunc = v[go_from+phase_shift:]
+# v_nosyn_trunc = v_nosyn[go_from:-phase_shift]
+
+# plt10ax.plot(t_trunc,v_trunc)
+# plt10ax.plot(t_trunc,v_nosyn_trunc)
+# plt10ax.set_xlabel("t")
+# plt10ax.legend(["v (phase-shifted)", "v if no synapse"])
+# plt10ax.legend([r'$v$', r'$v_{nosyn}$'])
+# plt10ax.set_title("Membrane potential");plt10
 
 plt11 = plt.figure(); plt11ax = plt11.add_axes([0,0,1,1])
 
