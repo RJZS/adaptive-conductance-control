@@ -39,7 +39,7 @@ dt = 0.01
 Tfinal = 100. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
-controller_on = False
+controller_on = True
 p = (Iapp,c,g,E,(α,γ),controller_on)
 
 # Integrate
@@ -55,7 +55,7 @@ w = sol[1:5,:];
 v̂ = sol[5,:];
 ŵ = sol[6:10,:];
 θ̂ = sol[10:12,:];
-v_nosyn = sol[21,:];
+v_nosyn = sol[22,:];
 
 if save_data == 1:
     np.savetxt("data/HH_voltages.txt",  np.concatenate((t,v,v̂),axis=1), delimiter=" ")
