@@ -16,7 +16,7 @@ from HH_odes import HH_ode, HH_just_synapse_observer
 
 # True Parameters 
 c = 1.
-g = (120.,36.,0.3, 2) # Na, K, L, syn
+g = (120.,36.,0.3, 0) # Na, K, L, syn
 E = (55.,-77.,-54.4, -80.)
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 
@@ -26,8 +26,8 @@ Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 
 # Initial conditions
 x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
-x̂_0 = [-60, 0.5]; # V, s
-θ̂_0 = [10, 0]; # [gsyn, gsyn*Esyn]
+x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5];
+θ̂_0 = [10, 10]; # [gsyn, gsyn]
 P_0 = np.eye(2);
 Ψ_0 = [0, 0];
 x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
@@ -39,7 +39,7 @@ dt = 0.01
 Tfinal = 100. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
-controller_on = True
+controller_on = False
 p = (Iapp,c,g,E,(α,γ),controller_on)
 
 # Integrate
@@ -53,9 +53,9 @@ sol = out.y
 v = sol[0,:];
 w = sol[1:5,:];
 v̂ = sol[5,:];
-ŵ = sol[6,:];
-θ̂ = sol[7:9,:];
-v_nosyn = sol[19,:];
+ŵ = sol[6:10,:];
+θ̂ = sol[10:12,:];
+v_nosyn = sol[21,:];
 
 if save_data == 1:
     np.savetxt("data/HH_voltages.txt",  np.concatenate((t,v,v̂),axis=1), delimiter=" ")
@@ -66,7 +66,7 @@ if save_data == 1:
 # online, so using the parameter estimates for that timestep.
 # Estimating E_syn in the correct way??
 Isyn = g[3] * w[3,:] * (v - E[3])
-Isyn_hat = θ̂ [0,:] * ŵ[:] * (v - E[3])
+Isyn_hat = θ̂ [0,:] * ŵ[3,:] * (v - E[3])
 
 #%% 
 ## Plots
@@ -103,7 +103,7 @@ plt4 = plt.figure(); plt4ax = plt4.add_axes([0,0,1,1])
 plt4ax.plot([0,Tfinal],[g[3],g[3]],color="black",linestyle="dashed",label="gsyn*Esyn/c")
 plt4ax.set_xlabel("t")
 plt4ax.plot(t,θ̂[1,:],color="red")
-plt4ax.set_title(r'$g_{syn}E_{syn}$')
+plt4ax.set_title(r'$g_{syn}$')
 
 # Synaptic current (ignoring initial transient)
 plt8 = plt.figure(); plt8ax = plt8.add_axes([0,0,1,1])

@@ -133,6 +133,7 @@ def HH_synapse_observer(t,z,p):
     
     # Simulate the presynaptic neuron
     I_pre = 2 + np.sin(2*np.pi/10*t) # Same as for postsynaptic.
+    # I_pre = 2
     [dvp,dmp,dhp,dnp] = neuron_calcs(v_p, m_p, h_p, n_p, I_pre)
     
     # Simulate the true neuron without the synapse.
@@ -221,22 +222,25 @@ def HH_just_synapse_observer(t,z,p):
     h = z[2]
     n = z[3]
     s = z[4]
-    v_p = z[9+4+2] # Presynaptic neuron
-    m_p = z[9+4+2+1]
-    h_p = z[9+4+2+2]
-    n_p = z[9+4+2+3]
-    v_nosyn = z[9+4+2+4] # Simulate the postsynaptic neuron without the synapse
-    m_nosyn = z[9+4+2+5]
-    h_nosyn = z[9+4+2+6]
-    n_nosyn = z[9+4+2+7]
+    v_p = z[12+4+2] # Presynaptic neuron
+    m_p = z[12+4+2+1]
+    h_p = z[12+4+2+2]
+    n_p = z[12+4+2+3]
+    v_nosyn = z[12+4+2+4] # Simulate the postsynaptic neuron without the synapse
+    m_nosyn = z[12+4+2+5]
+    h_nosyn = z[12+4+2+6]
+    n_nosyn = z[12+4+2+7]
     
     # Terms for adaptive observer
     v̂ = z[5]
-    s_hat = z[6]
-    θ̂ = z[7:9]
-    P = np.reshape(z[9:9+4],(2,2));    
+    m̂ = z[6]
+    ĥ = z[7]
+    n̂ = z[8]
+    s_hat = z[9]
+    θ̂ = z[10:12]
+    P = np.reshape(z[12:12+4],(2,2));    
     P = (P+np.transpose(P))/2
-    Ψ = z[9+4:9+4+2]
+    Ψ = z[12+4:12+4+2]
     
     # Simulate the presynaptic neuron
     I_pre = 2 + np.sin(2*np.pi/10*t) # Same as for postsynaptic.
@@ -276,11 +280,17 @@ def HH_just_synapse_observer(t,z,p):
     ds = 1/τs*(-s + σs);
 
     # Run the adaptive observer
+    (τm̂,σm̂) = gating_m(v);
+    (τĥ,σĥ) = gating_h(v);
+    (τn̂,σn̂) = gating_n(v);
     (τs_hat,σs_hat) = gating_s(v_p);
 
     ϕ̂ = np.divide(np.array([-s_hat*v, s_hat*Esyn]),c);
 
     dv̂ = dv_beforesyn + np.dot(ϕ̂,θ̂) + γ*Ψ@P@Ψ.T*(v-v̂)
+    dm̂ = 1/τm̂*(-m̂ + σm̂);
+    dĥ = 1/τĥ*(-ĥ + σĥ);
+    dn̂ = 1/τn̂*(-n̂ + σn̂);
     ds_hat = 1/τs_hat*(-s_hat + σs_hat);
 
     dθ̂ = γ*P@Ψ.T*(v-v̂);
@@ -289,7 +299,7 @@ def HH_just_synapse_observer(t,z,p):
     dP = α*P - P@aux@P;
     dP = (dP+np.transpose(dP))/2;
     
-    dz = np.concatenate(( [dv,dm,dh,dn,ds],[dv̂,ds_hat],dθ̂.flatten(),
+    dz = np.concatenate(( [dv,dm,dh,dn,ds],[dv̂,dm̂,dĥ,dn̂,ds_hat],dθ̂.flatten(),
                          dP.flatten(),dΨ,[dvp,dmp,dhp,dnp],
                          [dv_nosyn,dm_nosyn,dh_nosyn,dn_nosyn] ))
     return dz 
