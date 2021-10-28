@@ -244,6 +244,7 @@ def HH_just_synapse_observer(t,z,p):
     
     # Simulate the presynaptic neuron
     I_pre = 2 + np.sin(2*np.pi/10*t) # Same as for postsynaptic.
+    # I_pre = 6
     [dvp,dmp,dhp,dnp] = neuron_calcs(v_p, m_p, h_p, n_p, I_pre)
     
     # Simulate the true neuron without the synapse.
@@ -259,8 +260,8 @@ def HH_just_synapse_observer(t,z,p):
     
     injected_current = Iapp(t)
     if controller_on:
-        Isyn_estimate = - θ̂ [0] * s_hat * (v - np.divide(θ̂[1],θ̂[0]))
-        max_control = 800
+        Isyn_estimate = - θ̂ [0] * s_hat * (v - Esyn)
+        max_control = 2000
         if Isyn_estimate > max_control:
             Isyn_estimate = max_control # Can get a large initial transient.
         elif Isyn_estimate < -max_control:
