@@ -36,7 +36,7 @@ x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 150. # Default is 100.
+Tfinal = 100. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
 controller_on = True
@@ -115,30 +115,47 @@ plt8ax.set_xlabel("t")
 plt8ax.legend(["True", "Estimated"])
 plt8ax.set_title("$I_{syn}$")
 
+# Synaptic current estimation error
+plt13 = plt.figure(); plt13ax = plt13.add_axes([0,0,1,1])
+start_idx = 2000
+plt13ax.plot(t[start_idx:],Isyn_hat[start_idx:]-Isyn[start_idx:])
+plt13ax.set_xlabel("t")
+plt13ax.set_title("$\hat{I}_{syn}-I_{syn}$")
+
+# %%
 plt10 = plt.figure(); plt10ax = plt10.add_axes([0,0,1,1])
 go_from = 3000
+phase_shift = 260 # Increasing this shifts V 'to the left' relative to V_nosyn
 
-t_trunc = t[go_from:]
-v_trunc = v[go_from:]
-v_nosyn_trunc = v_nosyn[go_from:]
+t_trunc = t[go_from:-phase_shift]
+v_trunc = v[go_from+phase_shift:]
+v_nosyn_trunc = v_nosyn[go_from:-phase_shift]
 
 plt10ax.plot(t_trunc,v_trunc)
 plt10ax.plot(t_trunc,v_nosyn_trunc)
 plt10ax.set_xlabel("t")
 plt10ax.legend([r'$v$', r'$v_{nosyn}$'])
-plt10ax.set_title("Membrane potential")
+plt10ax.set_title("Membrane potential (phase-shifted)")
 
 plt11 = plt.figure(); plt11ax = plt11.add_axes([0,0,1,1])
 
-zoom_idx = 10000
+zoom_idx = 4000
 
 plt11ax.plot(t_trunc[:zoom_idx],v_trunc[:zoom_idx])
 plt11ax.plot(t_trunc[:zoom_idx],v_nosyn_trunc[:zoom_idx])
 plt11ax.set_xlabel("t")
 plt11ax.legend([r'$V$', r'$V_{nosyn}$'])
-plt11ax.set_title("Membrane potential (zoomed plot)")
+plt11ax.set_title("Membrane potential (phase-shifted, zoomed plot)")
 
 plt12 = plt.figure(); plt12ax = plt12.add_axes([0,0,1,1])
 plt12ax.plot(t_trunc,v_trunc-v_nosyn_trunc)
 plt12ax.set_xlabel("t")
-plt12ax.set_title(r'$V - V_{nosyn}$')
+plt12ax.set_title(r'$V - V_{nosyn}$ (phase-shifted)')
+
+# Code to find phase shift. Can ignore.
+from scipy.signal import find_peaks
+v_trunc_peaks, _ = find_peaks(v_trunc, height=0)
+v_trunc_peaks
+
+v_nosyn_trunc_peaks,_ = find_peaks(v_nosyn_trunc)
+diffs = np.diff(v_nosyn_trunc_peaks)
