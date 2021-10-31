@@ -6,6 +6,7 @@ Created on Sat Oct 30 19:28:00 2021
 """
 import numpy as np
 
+# Note that 'gs' is a list which can include both floats and functions!
 class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
     def __init__(self, c, gs, Es):
         self.c = c
@@ -78,4 +79,12 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         dh = 1/τh*(-h + σh);
         dn = 1/τn*(-n + σn);
     
-        return [dv,dm,dh,dn]  
+        return [dv,dm,dh,dn]
+    
+class Network:
+    def __init__(self, neurons, syn_connect, res_connect):
+        self.neurons = neurons
+        self.syn_connect = syn_connect
+        self.res_connect = res_connect
+        
+    
