@@ -8,6 +8,8 @@ import numpy as np
 
 # Note that 'gs' is a list which can include both floats and functions!
 class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
+    NUM_GATES = 3
+    
     def __init__(self, c, gs, Es):
         self.c = c
         self.gNa = gs[0]
