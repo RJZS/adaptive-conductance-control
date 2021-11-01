@@ -10,7 +10,7 @@ import numpy as np
 class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
     NUM_GATES = 3
     
-    def __init__(self, c, gs, Es):
+    def __init__(self, c, gs, Es, synapses):
         self.c = c
         self.gNa = gs[0]
         self.gK = gs[1]
@@ -19,6 +19,10 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         self.ENa = Es[0]
         self.EK = Es[1]
         self.EL = Es[2]
+        self.Esyn = Es[3]
+        
+        self.syns = synapses
+        self.num_syns = len(synapses)
         
     # Sodium activation
     def gating_m(self, v):
@@ -88,5 +92,12 @@ class Network:
         self.neurons = neurons
         self.syn_connect = syn_connect
         self.res_connect = res_connect
+        
+        max_num_syns = 0
+        for neur in neurons:
+            if neur.num_syns > max_num_syns:
+                max_num_syns = neur.neum_syns
+        self.max_num_syns = max_num_syns
+
         
     

@@ -18,15 +18,20 @@ x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5];
 P_0 = np.eye(9);
 Ψ_0 = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-network = Network();
+network = Network(); # FILL THIS OUT!
 
-num_neurs = 2
+num_neurs = len(network.neurons)
 num_estimators = len(θ̂_0)
-len_neur_state = network.neurons[0].NUM_GATES + 1 # And synapses?!
+len_neur_state = network.neurons[0].NUM_GATES + 1
+max_num_syns = network.max_num_syns
 
-z_0 = np.zeros((len_neur_state*2+num_estimators*2+num_estimators**2,num_neurs))
+# Assuming each neuron initialised the same. If not, could use np.ravel()
+# and np.reshape()
+z_0 = np.zeros(((len_neur_state+max_num_syns)*2+
+                num_estimators*2+num_estimators**2,num_neurs))
 tmp = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0))
 for j in range(num_neurs): z_0[:,j] = tmp
+z_0 = np.ravel(z_0)
 
 # Integration initial conditions and parameters
 dt = 0.01
