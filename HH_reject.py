@@ -16,13 +16,13 @@ from HH_odes import HH_ode, HH_synapse_observer
 
 # True Parameters 
 c = 1.
-g = (120.,36.,0.3, 2) # Na, K, L, syn
+g = (120.,36.,0.3, 2.) # Na, K, L, syn (default is 2)
 E = (55.,-77.,-54.4, -80.)
-Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+Iapp = lambda t : 2 + 8*np.sin(2*np.pi/10*t)
 
 # Observer parameters
-α = 0.2 # Default is 0.5
-γ = 70 # Default is 70
+α = 0.3 # Default is 0.5, I've set to 0.3.
+γ = 100 # Default is 70
 
 # Initial conditions
 x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
@@ -36,7 +36,7 @@ x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 500. # Default is 100.
+Tfinal = 400. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
 controller_on = True
@@ -77,15 +77,16 @@ Isyn_hat = θ̂ [3,:] * ŵ[3,:] * (v - np.divide(θ̂[7,:],θ̂[3,:]))/θ̂[8,:
 # Need to sort plots.
 # Solution?: https://www.futurelearn.com/info/courses/data-visualisation-with-python-matplotlib-and-visual-analysis/0/steps/192875
 plt0 = plt.figure(); plt0ax = plt0.add_axes([0,0,1,1])
-plt0ax.plot(t,v)
-plt0ax.plot(t,v̂,color="red",linestyle="dashed")
-plt0ax.plot(t,v_nosyn)
+j=15000
+plt0ax.plot(t[j:],v[j:])
+plt0ax.plot(t[j:],v̂[j:],color="red",linestyle="dashed")
+plt0ax.plot(t[j:],v_nosyn[j:])
 plt0ax.set_xlabel("t")
 plt0ax.legend([r'$V$', r'$\hat{V}$', r'$V_{nosyn}$'])
 plt0ax.set_title("Membrane potential")
 
 plt9 = plt.figure(); plt9ax = plt9.add_axes([0,0,1,1])
-plt9ax.plot(t,v-v_nosyn)
+plt9ax.plot(t[j:],v[j:]-v_nosyn[j:])
 plt9ax.set_xlabel("t")
 plt9ax.set_title(r'$V - V_{nosyn}$')
 
@@ -142,7 +143,7 @@ plt7ax.set_title(r'$1/c$')
 
 # Synaptic current (ignoring initial transient)
 plt8 = plt.figure(); plt8ax = plt8.add_axes([0,0,1,1])
-start_idx = 7000
+start_idx = 3000
 plt8ax.plot(t[start_idx:],Isyn[start_idx:],label="I_syn",color="black",linestyle="dashed")
 plt8ax.plot(t[start_idx:],Isyn_hat[start_idx:],color="red")
 plt8ax.set_xlabel("t")
@@ -150,7 +151,7 @@ plt8ax.legend(["True", "Estimated"])
 plt8ax.set_title("$I_{syn}$")
 
 plt10 = plt.figure(); plt10ax = plt10.add_axes([0,0,1,1])
-go_from = 3000
+go_from = 1
 
 t_trunc = t[go_from:]
 v_trunc = v[go_from:]
@@ -179,15 +180,15 @@ plt10ax.set_title("Membrane potential")
 
 plt11 = plt.figure(); plt11ax = plt11.add_axes([0,0,1,1])
 
-zoom_idx = 10000
+zoom_idx = 20000
 
-plt11ax.plot(t_trunc[:zoom_idx],v_trunc[:zoom_idx])
-plt11ax.plot(t_trunc[:zoom_idx],v_nosyn_trunc[:zoom_idx])
+plt11ax.plot(t_trunc[zoom_idx:],v_trunc[zoom_idx:])
+plt11ax.plot(t_trunc[zoom_idx:],v_nosyn_trunc[zoom_idx:])
 plt11ax.set_xlabel("t")
 plt11ax.legend([r'$v$', r'$v_{nosyn}$'])
 plt11ax.set_title("Membrane potential (zoomed plot)")
 
 plt12 = plt.figure(); plt12ax = plt12.add_axes([0,0,1,1])
-plt12ax.plot(t_trunc,v_trunc-v_nosyn_trunc)
+plt12ax.plot(t_trunc[zoom_idx:],v_trunc[zoom_idx:]-v_nosyn_trunc[zoom_idx:])
 plt12ax.set_xlabel("t")
 plt12ax.set_title(r'$v - v_{nosyn}$')
