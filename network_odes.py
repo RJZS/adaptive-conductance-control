@@ -17,7 +17,8 @@ def main(t,z,p):
     controller_law = p[5] # Control law to use for the neurons
     
     # Assuming all the neurons are of the same model:
-    len_neur_state = network.neurons[0].NUM_GATES + 1 # Effectively hardcoded below anyway.
+    num_neur_gates = network.neurons[0].NUM_GATES
+    len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
     max_num_syns = network.max_num_syns
     num_neurs = len(network.neurons)
     
@@ -47,6 +48,20 @@ def main(t,z,p):
     Ψs = z_mat[idx_so_far+num_estimators+num_estimators**2:
                idx_so_far+num_estimators*2+num_estimators**2,:]
     
+    # Gating variable dynamics
+    taus = [num_neur_gates, num_neurs]
+    sigmas = [num_neur_gates, num_neurs]
+    for (i, neur) in network.neurons:
+        (taus[0,i],sigmas[0,i]) = neur.gating_m(Vs[i])
+        (taus[1,i],sigmas[1,i]) = neur.gating_h(Vs[i])
+        (taus[2,i],sigmas[2,i]) = neur.gating_n(Vs[i])
+        (taus[3,i],sigmas[3,i]) = neur.gating_s(Vs[i])
+        
+    injected_currents = np.zeros(3)
+    for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
+    
+    # Up to line 274 of HH_odes. Ie θ = gsyn; ϕ = np.divide(-s*(v-Esyn),c);
+        
     dz = -0*z
     return dz
 

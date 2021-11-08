@@ -14,7 +14,7 @@ class Synapse:
 
 # Note that 'gs' is a list which can include both floats and functions!
 class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
-    NUM_GATES = 3
+    NUM_GATES = 4 # Including synapse
     
     def __init__(self, c, gs, synapses):
         self.c = c
