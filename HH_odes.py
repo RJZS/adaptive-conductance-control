@@ -223,14 +223,14 @@ def HH_just_synapse_observer(t,z,p):
     h = z[2]
     n = z[3]
     s = z[4]
-    v_p = z[12+4+2] # Presynaptic neuron
-    m_p = z[12+4+2+1]
-    h_p = z[12+4+2+2]
-    n_p = z[12+4+2+3]
-    v_nosyn = z[12+4+2+4] # Simulate the postsynaptic neuron without the synapse
-    m_nosyn = z[12+4+2+5]
-    h_nosyn = z[12+4+2+6]
-    n_nosyn = z[12+4+2+7]
+    v_p = z[13] # Presynaptic neuron
+    m_p = z[13+1]
+    h_p = z[13+2]
+    n_p = z[13+3]
+    v_nosyn = z[13+4] # Simulate the postsynaptic neuron without the synapse
+    m_nosyn = z[13+5]
+    h_nosyn = z[13+6]
+    n_nosyn = z[13+7]
     
     # Terms for adaptive observer
     v̂ = z[5]
@@ -238,10 +238,10 @@ def HH_just_synapse_observer(t,z,p):
     ĥ = z[7]
     n̂ = z[8]
     s_hat = z[9]
-    θ̂ = z[10:12]
-    P = np.reshape(z[12:12+4],(2,2));    
-    P = (P+np.transpose(P))/2
-    Ψ = z[12+4:12+4+2]
+    θ̂ = z[10]
+    P = z[11]
+    # P = (P+np.transpose(P))/2
+    Ψ = z[12]
     
     # Simulate the presynaptic neuron
     # I_pre = 3 + np.sin(2*np.pi/10*t) # Same as for postsynaptic.
@@ -261,18 +261,18 @@ def HH_just_synapse_observer(t,z,p):
     
     injected_current = Iapp(t)
     if controller_on:
-        Isyn_estimate = - θ̂ [0] * s_hat * (v - Esyn)
-        max_control = 2000
-        if Isyn_estimate > max_control:
-            Isyn_estimate = max_control # Can get a large initial transient.
-        elif Isyn_estimate < -max_control:
-            Isyn_estimate = -max_control
+        Isyn_estimate = - θ̂  * s_hat * (v - Esyn)
+        #max_control = 2000
+        #if Isyn_estimate > max_control:
+        #    Isyn_estimate = max_control # Can get a large initial transient.
+        #elif Isyn_estimate < -max_control:
+        #    Isyn_estimate = -max_control
         # print("t = {}, Isyn_estimate={}".format(t,Isyn_estimate)) For debug.
         injected_current = injected_current - Isyn_estimate
 
     # θ = np.divide(1,c*np.array([gNa, gK, gL, gNa*ENa, gK*EK, gL*EL, 1]))
-    θ = np.array([gsyn, gsyn]);
-    ϕ = np.divide(np.array([-s*v, s*Esyn]),c);
+    θ = gsyn;
+    ϕ = np.divide(-s*(v-Esyn),c);
 
     [dv_beforesyn,dm,dh,dn] = neuron_calcs(v, m, h, n, injected_current)
     dv = dv_beforesyn + np.dot(ϕ,θ)
@@ -287,18 +287,18 @@ def HH_just_synapse_observer(t,z,p):
     (τn̂,σn̂) = gating_n(v);
     (τs_hat,σs_hat) = gating_s(v_p);
 
-    ϕ̂ = np.divide(np.array([-s_hat*v, s_hat*Esyn]),c);
+    ϕ̂ = np.divide(-s_hat*(v-Esyn),c);
 
-    dv̂ = dv_beforesyn + np.dot(ϕ̂,θ̂) + γ*Ψ@P@Ψ.T*(v-v̂)
+    dv̂ = dv_beforesyn + np.dot(ϕ̂,θ̂) + γ*Ψ*P*Ψ*(v-v̂)
     dm̂ = 1/τm̂*(-m̂ + σm̂);
     dĥ = 1/τĥ*(-ĥ + σĥ);
     dn̂ = 1/τn̂*(-n̂ + σn̂);
     ds_hat = 1/τs_hat*(-s_hat + σs_hat);
 
-    dθ̂ = γ*P@Ψ.T*(v-v̂);
-    dΨ = -γ*Ψ + ϕ̂; 
+    dθ̂ = γ*P*Ψ*(v-v̂);
+    dΨ = np.array([-γ*Ψ + ϕ̂]); 
     aux = np.outer(Ψ,Ψ)
-    dP = α*P - P@aux@P;
+    dP = α*P - P*aux*P;
     dP = (dP+np.transpose(dP))/2;
     
     dz = np.concatenate(( [dv,dm,dh,dn,ds],[dv̂,dm̂,dĥ,dn̂,ds_hat],dθ̂.flatten(),

@@ -22,21 +22,21 @@ Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 
 # Observer parameters
 α = 0.2 # Default is 0.5
-γ = 70 # Default is 70
+γ = 5 # Default is 70
 
 # Initial conditions
 x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
 x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5];
-θ̂_0 = [10, 10]; # [gsyn, gsyn]
-P_0 = np.eye(2);
-Ψ_0 = [0, 0];
+θ̂_0 = [10]; # [gsyn]
+P_0 = np.eye(1);
+Ψ_0 = [0];
 x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
 
 #%%
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 100. # Default is 100.
+Tfinal = 200. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
 controller_on = True
@@ -45,7 +45,8 @@ p = (Iapp,c,g,E,(α,γ),controller_on)
 # Integrate
 #prob = ODEProblem(HH_observer,z_0,tspan,p)
 #sol = solve(prob,Tsit5(),reltol=1e-8,abstol=1e-8,saveat=0.1,maxiters=1e6)
-out = solve_ivp(lambda t, z: HH_just_synapse_observer(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6)
+out = solve_ivp(lambda t, z: HH_just_synapse_observer(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 # out = solve_ivp(lambda t, z: HH_ode(t, z, p), tspan, x_0)
 t = out.t
 sol = out.y
@@ -54,9 +55,9 @@ v = sol[0,:];
 w = sol[1:5,:];
 v̂ = sol[5,:];
 ŵ = sol[6:10,:];
-θ̂ = sol[10:12,:];
-v_pre = sol[18,:];
-v_nosyn = sol[22,:];
+θ̂ = sol[10,:];
+v_pre = sol[13,:];
+v_nosyn = sol[17,:];
 
 if save_data == 1:
     np.savetxt("data/HH_voltages.txt",  np.concatenate((t,v,v̂),axis=1), delimiter=" ")
@@ -67,7 +68,7 @@ if save_data == 1:
 # online, so using the parameter estimates for that timestep.
 # Estimating E_syn in the correct way??
 Isyn = g[3] * w[3,:] * (v - E[3])
-Isyn_hat = θ̂ [0,:] * ŵ[3,:] * (v - E[3])
+Isyn_hat = θ̂ [:] * ŵ[3,:] * (v - E[3])
 
 #%% 
 ## Plots
@@ -94,17 +95,10 @@ plt9ax.set_title(r'$V - V_{nosyn}$')
 # gsyn
 plt1 = plt.figure(); plt1ax = plt1.add_axes([0,0,1,1])
 plt1ax.plot([0,Tfinal],[g[3],g[3]],color="black",linestyle="dashed",label="gsyn/c")
-plt1ax.plot(t,θ̂[0,:],color="red")
+plt1ax.plot(t,θ̂[:],color="red")
 plt1ax.set_xlabel("t")
 plt1ax.legend(["True", "Estimated"])
 plt1ax.set_title(r'$\bar{g}_{syn}$')
-
-# gsyn again
-plt4 = plt.figure(); plt4ax = plt4.add_axes([0,0,1,1])
-plt4ax.plot([0,Tfinal],[g[3],g[3]],color="black",linestyle="dashed",label="gsyn*Esyn/c")
-plt4ax.set_xlabel("t")
-plt4ax.plot(t,θ̂[1,:],color="red")
-plt4ax.set_title(r'$g_{syn}$')
 
 # Synaptic current (ignoring initial transient)
 plt8 = plt.figure(); plt8ax = plt8.add_axes([0,0,1,1])
@@ -125,7 +119,7 @@ plt13ax.set_title("$\hat{I}_{syn}-I_{syn}$")
 # %%
 plt10 = plt.figure(); plt10ax = plt10.add_axes([0,0,1,1])
 go_from = 3000
-phase_shift = 260 # Increasing this shifts V 'to the left' relative to V_nosyn
+phase_shift = 1000 # Increasing this shifts V 'to the left' relative to V_nosyn
 
 t_trunc = t[go_from:-phase_shift]
 v_trunc = v[go_from+phase_shift:]
@@ -139,7 +133,7 @@ plt10ax.set_title("Membrane potential (phase-shifted)")
 
 plt11 = plt.figure(); plt11ax = plt11.add_axes([0,0,1,1])
 
-zoom_idx = 4000
+zoom_idx = 6000
 
 plt11ax.plot(t_trunc[:zoom_idx],v_trunc[:zoom_idx])
 plt11ax.plot(t_trunc[:zoom_idx],v_nosyn_trunc[:zoom_idx])
