@@ -11,10 +11,10 @@ from network_and_neuron import Neuron, Network
 def main(t,z,p):
     Iapps = p[0]
     network = p[1]
-    (α,γ) = p[3]
-    to_estimate = p[4] # Which maximal conductances to estimate
-    num_estimators = p[5] # Combine this with prev?
-    controller_law = p[6] # Control law to use for the neurons
+    (α,γ) = p[2]
+    to_estimate = p[3] # Which maximal conductances to estimate
+    num_estimators = p[4] # Combine this with prev?
+    controller_law = p[5] # Control law to use for the neurons
     
     # Assuming all the neurons are of the same model:
     len_neur_state = network.neurons[0].NUM_GATES + 1 # Effectively hardcoded below anyway.
@@ -45,8 +45,8 @@ def main(t,z,p):
         P = (P+np.transpose(P))/2
         Ps[:,:,j] = P
     Ψs = z_mat[idx_so_far+num_estimators+num_estimators**2:
-               idx_so_far+num_estimators*2+num_estimators**2]
+               idx_so_far+num_estimators*2+num_estimators**2,:]
     
-    dz = -z**2
+    dz = -0*z
     return dz
 
