@@ -15,6 +15,8 @@ def main(t,z,p):
     to_estimate = p[3] # Which maximal conductances to estimate
     num_estimators = p[4] # Combine this with prev?
     controller_law = p[5] # Control law to use for the neurons
+    estimate_g_syns = p[6]
+    estimate_g_res = p[7]
     
     # Assuming all the neurons are of the same model:
     num_neur_gates = network.neurons[0].NUM_GATES

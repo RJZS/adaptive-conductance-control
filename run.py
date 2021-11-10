@@ -17,7 +17,9 @@ x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5];
 θ̂_0 = [60, 60, 10, 10]; # [gNa, gK, gL, gsyn]
 P_0 = np.eye(4);
 Ψ_0 = [0, 0, 0, 0];
-to_estimate = [0, 1, 2, 3]
+to_estimate = [0, 1, 2]
+estimate_g_syns = True
+estimate_g_res = False # TODO: Need to write the code for this!!
 
 syn = Synapse(2, 1)
 neur_one = Neuron(1., [120.,36.,0.3, 2.], [syn])
@@ -52,7 +54,8 @@ dt = 0.01
 Tfinal = 1.
 tspan = (0.,Tfinal)
 # controller_on = True
-p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law)
+p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
+     estimate_g_syns,estimate_g_res)
 
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))

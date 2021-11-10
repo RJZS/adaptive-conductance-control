@@ -30,6 +30,10 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         self.syns = synapses
         self.num_syns = len(synapses)
         
+        self.syn_gs = np.zeros(self.num_syns)
+        for (idx, syn) in enumerate(self.syns):
+            self.syn_gs[idx] = syn.g
+        
     # Sodium activation
     def gating_m(self, v):
         Vhalf = -40.;
@@ -92,6 +96,39 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         dn = 1/τn*(-n + σn);
     
         return [dv,dm,dh,dn]
+    
+    # TODO: Include resistive connections.
+    def split_out_terms(self, to_estimate, est_gsyns, v, m, h, n, syn_gates, I):
+        # First deal with intrinsic conductances.
+        gs = [self.gNa, self.gK, self.gL]
+        terms = np.divide(np.array([-m**3*h*(v-self.ENa),-n**4*(v-self.EK),
+                                    -(v-self.EL),I]),self.c)
+        
+        θ_intrins = np.zeros(len(to_estimate))
+        ϕ_intrins = np.zeros(len(to_estimate))
+        
+        for (idx,val) in enumerate(to_estimate):
+            θ_intrins[idx] = gs[val]
+            ϕ_intrins[idx] = terms[val]
+            gs.pop[val]
+            terms.pop[val]
+            
+        # Now look at synaptic terms.
+        syn_terms = np.zeros(self.num_syns)
+        for (idx, syn) in enumerate(self.syns):
+            syn_terms[idx] = - syn_gates[idx] * (v - self.Esyn)
+        
+        if est_gsyns:
+            θ = np.concatenate((θ_intrins, self.g_syns))
+            ϕ = np.concatenate((ϕ_intrins, syn_terms))
+            b = np.dot(gs, terms)
+            return (θ, ϕ, b)
+        else:
+            b = np.dot(
+                    np.concatenate((gs, self.g_syns)),
+                    np.concatenate((terms, syn_terms))
+                )
+            return (θ_intrins, ϕ_intrins, b)
     
 class Network:
     def __init__(self, neurons, res_connect):
