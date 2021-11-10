@@ -62,6 +62,7 @@ def main(t,z,p):
     injected_currents = np.zeros(num_neurs)
     for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
     
+    bs = np.zeros(num_neurs)
     dvs = np.zeros(num_neurs)
     dms = np.zeros(num_neurs); dns = np.zeros(num_neurs); dhs = np.zeros(num_neurs);
     dsyns_mat = np.zeros((max_num_syns, num_neurs))
@@ -69,11 +70,15 @@ def main(t,z,p):
         (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], ms[i], hs[i], ns[i], syns[:,i], injected_currents[i])
         dvs[i] = np.dot(ϕ,θ) + b
+        bs[i] = b # Will reuse this in the adaptive observer.
         
         v_pres = Vs[neur.pre_syns]
         (dms[i], dhs[i], dns[i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], ms[i], hs[i], ns[i], syns[:,i], v_pres)
-    # Up to line 274 of HH_odes. Ie θ = gsyn; ϕ = np.divide(-s*(v-Esyn),c);
+        
+    # Up to line 284 of HH_odes.
+    # Run the adaptive observer. Create a function like 'define_dv_terms'
+    # but for the observer? Indeed could just use the same function but with the observer inputs?
         
     dz = -0*z
     return dz
