@@ -62,16 +62,12 @@ def main(t,z,p):
     injected_currents = np.zeros(num_neurs)
     for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
     
-    θs = np.zeros((num_estimators, num_neurs))
-    ϕs = np.zeros((num_estimators, num_neurs))
-    bs = np.zeros(num_neurs)
     dvs = np.zeros(num_neurs)
     dms = np.zeros(num_neurs); dns = np.zeros(num_neurs); dhs = np.zeros(num_neurs);
     dsyns_mat = np.zeros((max_num_syns, num_neurs))
     for (i, neur) in network.neurons:
         (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], ms[i], hs[i], ns[i], syns[:,i], injected_currents[i])
-        θs[:len(θ),i] = θ; ϕs[:len(ϕ),i] = ϕ; bs[i] = b
         dvs[i] = np.dot(ϕ,θ) + b
         
         v_pres = Vs[neur.pre_syns]
