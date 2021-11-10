@@ -33,6 +33,10 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         self.syn_gs = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
             self.syn_gs[idx] = syn.g
+            
+        self.pre_neurs = np.zeros(self.num_syns)
+        for (idx, syn) in enumerate(self.syns):
+            self.pre_neurs[idx] = syn.pre_neur
         
     # Sodium activation
     def gating_m(self, v):
@@ -97,10 +101,27 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
     
         return [dv,dm,dh,dn]
     
-    # TODO: Include resistive connections.
-    def split_out_terms(self, to_estimate, est_gsyns, v, m, h, n, syn_gates, I):
+    def gate_calcs(self, v, m, h, n, syn_gates, v_pres):
+        (τm,σm) = self.gating_m(v);
+        (τh,σh) = self.gating_h(v);
+        (τn,σn) = self.gating_n(v);
+        dm = 1/τm*(-m + σm);
+        dh = 1/τh*(-h + σh);
+        dn = 1/τn*(-n + σn);
+        
+        dsyns = np.zeros(self.num_syns)
+        for (idx, syn) in enumerate(self.syns):
+            (τs,σs) = self.gating_s(v_pres[idx])
+            dsyns[idx] = 1/τs*(-syn_gates[idx] + σs);
+            
+        return (dm, dh, dn, dsyns)
+    
+    # TODO: Include resistive connections. 
+    # Note this function spits out the length of vectors tailored to the neuron,
+    # not the standardised 'max length' required by the ODE solver.
+    def define_dv_terms(self, to_estimate, est_gsyns, v, m, h, n, syn_gates, I):
         # First deal with intrinsic conductances.
-        gs = [self.gNa, self.gK, self.gL]
+        gs = [self.gNa, self.gK, self.gL, 1]
         terms = np.divide(np.array([-m**3*h*(v-self.ENa),-n**4*(v-self.EK),
                                     -(v-self.EL),I]),self.c)
         
