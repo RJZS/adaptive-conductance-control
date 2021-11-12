@@ -21,12 +21,14 @@ E = (55.,-77.,-54.4, -80.)
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 
 # Observer parameters
-α = 0.2 # Default is 0.5
-γ = 5 # Default is 70
+α = 0.3 # Default is 0.5
+γ = 40 # Default is 70. Something weird happens at 22 (for original observer initial conditions)
+# For newer initial conditions, gamma = 2 and 10 both work but the 'something weird' happens when gamma = 5.
 
 # Initial conditions
 x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
-x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5];
+# x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5];
+x̂_0 = [-40, 0.2, 0.3, 0.1, 0.4];
 θ̂_0 = [10]; # [gsyn]
 P_0 = np.eye(1);
 Ψ_0 = [0];
@@ -36,7 +38,7 @@ x_0_p = [0, 0, 0, 0]; # x_0 for presynaptic neuron
 
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 200. # Default is 100.
+Tfinal = 150. # Default is 100.
 tspan = (0.,Tfinal)
 z_0 = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0, x_0_p, x_0[:4]))
 controller_on = True
