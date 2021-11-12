@@ -62,24 +62,46 @@ def main(t,z,p):
     injected_currents = np.zeros(num_neurs)
     for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
     
+    # Now make one time step. First, initialise the required vectors.
     bs = np.zeros(num_neurs)
-    dvs = np.zeros(num_neurs)
+    dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)
     dms = np.zeros(num_neurs); dns = np.zeros(num_neurs); dhs = np.zeros(num_neurs);
+    dm̂s = np.zeros(num_neurs); dn̂s = np.zeros(num_neurs); dĥs = np.zeros(num_neurs);
     dsyns_mat = np.zeros((max_num_syns, num_neurs))
+    dsyns_hat_mat = np.zeros((max_num_syns, num_neurs))
+    
+    dθ̂s = np.zeros((num_estimators, num_neurs))
+    dΨs = np.zeros((num_estimators, num_neurs))
+    dPs = np.zeros((num_estimators, num_estimators, num_neurs))
     for (i, neur) in network.neurons:
+        # Now, run the true system.
         (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], ms[i], hs[i], ns[i], syns[:,i], injected_currents[i])
         dvs[i] = np.dot(ϕ,θ) + b
         bs[i] = b # Will reuse this in the adaptive observer.
+        # b here includes the input current, which is different from the paper I think
         
         v_pres = Vs[neur.pre_syns]
         (dms[i], dhs[i], dns[i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], ms[i], hs[i], ns[i], syns[:,i], v_pres)
         
-    # Up to line 284 of HH_odes.
-    # Run the adaptive observer. Create a function like 'define_dv_terms'
-    # but for the observer? Indeed could just use the same function but with the observer inputs?
+        # Finally, run the adaptive observer
+        (_, ϕ̂, _) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
+                                         Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], injected_currents[i])
+        dv̂s[i] = np.dot(ϕ̂,θ̂s[:,i]) + b
+        (dm̂s[i], dĥs[i], dn̂s[i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
+            Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], v_pres)
         
-    dz = -0*z
+        dθ̂s[:,i] = γ*Ps[:,:,i]*Ψs[:,i]*(Vs[i]-v̂s[i]);
+        dΨs[:,i] = np.array([-γ*Ψs[:,i] + ϕ̂]); 
+        aux = np.outer(Ψs[:,i],Ψs[:,i])
+        dPs[:,:,i] = α*Ps[:,:,i] - Ps[:,:,i]*aux*Ps[:,:,i];
+        dPs[:,:,i] = (dPs[:,:,i]+np.transpose(dPs[:,:,i]))/2;
+        
+    # Finally, need to flatten and concatenate everything.
+    # dz = np.concatenate(( [dv,dm,dh,dn,ds],[dv̂,dm̂,dĥ,dn̂,ds_hat],dθ̂.flatten(),
+                         # dP.flatten(),dΨ,[dvp,dmp,dhp,dnp],
+                         # [dv_nosyn,dm_nosyn,dh_nosyn,dn_nosyn] ))
+    dz = 0
     return dz
 
