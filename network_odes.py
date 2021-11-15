@@ -74,14 +74,15 @@ def main(t,z,p):
     dΨs = np.zeros((num_estimators, num_neurs))
     dPs = np.zeros((num_estimators, num_estimators, num_neurs))
     for (i, neur) in enumerate(network.neurons):
-        # θ and ϕ all need to be the same length for the matrix algebra
-        # Just ignore the excess terms
+        # Need to 'reduce' terms. This is as vectors/matrices are sized for
+        # the neuron/s with the largest number of synapses.
         num_neur_ests = len(to_estimate)+neur.num_syns
-        θ = np.zeros(num_estimators); ϕ = np.zeros(num_estimators)
-        ϕ̂ = np.zeros(num_estimators)
+        θ̂ = θ̂s[:num_neur_ests,i]
+        P = Ps[:num_neur_ests,:num_neur_ests,i];
+        Ψ = Ψs[:num_neur_ests,i]
         
         # Now, run the true system.
-        (θ[:num_neur_ests], ϕ[:num_neur_ests], b) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
+        (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], ms[i], hs[i], ns[i], syns[:,i], injected_currents[i])
         dvs[i] = np.dot(ϕ,θ) + b
         bs[i] = b # Will reuse this in the adaptive observer.
@@ -92,19 +93,20 @@ def main(t,z,p):
             Vs[i], ms[i], hs[i], ns[i], syns[:,i], v_pres)
         
         # Finally, run the adaptive observer
-        (_, ϕ̂[:num_neur_ests], _) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
+        (_, ϕ̂, _) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], injected_currents[i])
         
         
-        dv̂s[i] = np.dot(ϕ̂,θ̂s[:,i]) + b
+        dv̂s[i] = np.dot(ϕ̂,θ̂) + b
         (dm̂s[i], dĥs[i], dn̂s[i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], v_pres)
         
-        dθ̂s[:,i] = γ*np.matmul(Ps[:,:,i],Ψs[:,i])*(Vs[i]-v̂s[i]);
-        dΨs[:,i] = np.array([-γ*Ψs[:,i] + ϕ̂]); 
-        aux = np.outer(Ψs[:,i],Ψs[:,i])
-        dPs[:,:,i] = α*Ps[:,:,i] - Ps[:,:,i]*aux*Ps[:,:,i];
-        dPs[:,:,i] = (dPs[:,:,i]+np.transpose(dPs[:,:,i]))/2;
+        dθ̂s[:num_neur_ests,i] = γ*np.matmul(P,Ψ)*(Vs[i]-v̂s[i]);
+        dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
+        aux = np.outer(Ψ,Ψ)
+        dP = α*P - np.matmul(P,np.matmul(aux,P));
+        dP = (dP+np.transpose(dP))/2;
+        dPs[:num_neur_ests,:num_neur_ests,i] = dP
         
     # Finally, need to flatten and concatenate everything.
     # Start with the flattening (np.ravel is faster than np.flatten)
