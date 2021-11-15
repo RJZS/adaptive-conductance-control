@@ -14,7 +14,7 @@ class Synapse:
 
 # Note that 'gs' is a list which can include both floats and functions!
 class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
-    NUM_GATES = 4 # Including synapse
+    NUM_GATES = 3
     
     def __init__(self, c, gs, synapses):
         self.c = c
@@ -30,11 +30,11 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         self.syns = synapses
         self.num_syns = len(synapses)
         
-        self.syn_gs = np.zeros(self.num_syns)
+        self.g_syns = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
-            self.syn_gs[idx] = syn.g
+            self.g_syns[idx] = syn.g
             
-        self.pre_neurs = np.zeros(self.num_syns)
+        self.pre_neurs = np.zeros(self.num_syns, dtype=np.int8)
         for (idx, syn) in enumerate(self.syns):
             self.pre_neurs[idx] = syn.pre_neur
         
@@ -121,18 +121,21 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
     # not the standardised 'max length' required by the ODE solver.
     def define_dv_terms(self, to_estimate, est_gsyns, v, m, h, n, syn_gates, I):
         # First deal with intrinsic conductances.
-        gs = [self.gNa, self.gK, self.gL, 1]
+        gs = np.array([self.gNa, self.gK, self.gL, 1])
         terms = np.divide(np.array([-m**3*h*(v-self.ENa),-n**4*(v-self.EK),
                                     -(v-self.EL),I]),self.c)
         
         θ_intrins = np.zeros(len(to_estimate))
         ϕ_intrins = np.zeros(len(to_estimate))
         
+        gs_del_idxs = np.zeros(len(to_estimate), dtype=np.int8)
+        terms_del_idxs = np.zeros(len(to_estimate), dtype=np.int8)
         for (idx,val) in enumerate(to_estimate):
             θ_intrins[idx] = gs[val]
             ϕ_intrins[idx] = terms[val]
-            gs.pop[val]
-            terms.pop[val]
+            gs_del_idxs[idx] = val; terms_del_idxs[idx] = val
+        gs = np.delete(gs, gs_del_idxs)
+        terms = np.delete(terms, terms_del_idxs)
             
         # Now look at synaptic terms.
         syn_terms = np.zeros(self.num_syns)

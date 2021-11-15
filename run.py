@@ -21,9 +21,9 @@ to_estimate = [0, 1, 2]
 estimate_g_syns = True
 estimate_g_res = False # TODO: Need to write the code for this!!
 
-syn = Synapse(2, 1)
-neur_one = Neuron(1., [120.,36.,0.3, 2.], [syn])
-neur_two = Neuron(1., [120.,36.,0.3, 2.], [])
+syn = Synapse(2., 1)
+neur_one = Neuron(1., [120.,36.,0.3], [syn])
+neur_two = Neuron(1., [120.,36.,0.3], [])
 network = Network([neur_one, neur_two], np.zeros((2,2)))
 
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)

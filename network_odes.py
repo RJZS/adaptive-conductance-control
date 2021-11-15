@@ -19,7 +19,7 @@ def main(t,z,p):
     estimate_g_res = p[7]
     
     # Assuming all the neurons are of the same model:
-    num_neur_gates = network.neurons[0].NUM_GATES
+    num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
     len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
     max_num_syns = network.max_num_syns
     num_neurs = len(network.neurons)
@@ -51,9 +51,9 @@ def main(t,z,p):
                idx_so_far+num_estimators*2+num_estimators**2,:]
     
     # Gating variable dynamics
-    taus = [num_neur_gates, num_neurs]
-    sigmas = [num_neur_gates, num_neurs]
-    for (i, neur) in network.neurons:
+    taus = np.zeros((num_neur_gates, num_neurs))
+    sigmas = np.zeros((num_neur_gates, num_neurs))
+    for (i, neur) in enumerate(network.neurons):
         (taus[0,i],sigmas[0,i]) = neur.gating_m(Vs[i])
         (taus[1,i],sigmas[1,i]) = neur.gating_h(Vs[i])
         (taus[2,i],sigmas[2,i]) = neur.gating_n(Vs[i])
@@ -73,35 +73,46 @@ def main(t,z,p):
     dθ̂s = np.zeros((num_estimators, num_neurs))
     dΨs = np.zeros((num_estimators, num_neurs))
     dPs = np.zeros((num_estimators, num_estimators, num_neurs))
-    for (i, neur) in network.neurons:
+    for (i, neur) in enumerate(network.neurons):
+        # θ and ϕ all need to be the same length for the matrix algebra
+        # Just ignore the excess terms
+        num_neur_ests = len(to_estimate)+neur.num_syns
+        θ = np.zeros(num_estimators); ϕ = np.zeros(num_estimators)
+        ϕ̂ = np.zeros(num_estimators)
+        
         # Now, run the true system.
-        (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
+        (θ[:num_neur_ests], ϕ[:num_neur_ests], b) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], ms[i], hs[i], ns[i], syns[:,i], injected_currents[i])
         dvs[i] = np.dot(ϕ,θ) + b
         bs[i] = b # Will reuse this in the adaptive observer.
         # b here includes the input current, which is different from the paper I think
         
-        v_pres = Vs[neur.pre_syns]
+        v_pres = Vs[neur.pre_neurs]
         (dms[i], dhs[i], dns[i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], ms[i], hs[i], ns[i], syns[:,i], v_pres)
         
         # Finally, run the adaptive observer
-        (_, ϕ̂, _) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
+        (_, ϕ̂[:num_neur_ests], _) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], injected_currents[i])
+        
+        
         dv̂s[i] = np.dot(ϕ̂,θ̂s[:,i]) + b
         (dm̂s[i], dĥs[i], dn̂s[i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], v_pres)
         
-        dθ̂s[:,i] = γ*Ps[:,:,i]*Ψs[:,i]*(Vs[i]-v̂s[i]);
+        dθ̂s[:,i] = γ*np.matmul(Ps[:,:,i],Ψs[:,i])*(Vs[i]-v̂s[i]);
         dΨs[:,i] = np.array([-γ*Ψs[:,i] + ϕ̂]); 
         aux = np.outer(Ψs[:,i],Ψs[:,i])
         dPs[:,:,i] = α*Ps[:,:,i] - Ps[:,:,i]*aux*Ps[:,:,i];
         dPs[:,:,i] = (dPs[:,:,i]+np.transpose(dPs[:,:,i]))/2;
         
     # Finally, need to flatten and concatenate everything.
-    # dz = np.concatenate(( [dv,dm,dh,dn,ds],[dv̂,dm̂,dĥ,dn̂,ds_hat],dθ̂.flatten(),
-                         # dP.flatten(),dΨ,[dvp,dmp,dhp,dnp],
-                         # [dv_nosyn,dm_nosyn,dh_nosyn,dn_nosyn] ))
-    dz = 0
+    # Start with the flattening (np.ravel is faster than np.flatten)
+    dsyns_mat = dsyns_mat.ravel(order='F')
+    dsyns_hat_mat = dsyns_hat_mat.ravel(order='F')
+    dθ̂s = dθ̂s.ravel(order='F'); dPs = dPs.ravel(order='F')
+    dΨs = dΨs.ravel(order='F')
+    dz = np.concatenate((dvs, dms, dhs, dns, dsyns_mat,
+                         dv̂s, dm̂s, dĥs, dn̂s, dsyns_hat_mat, dθ̂s, dPs, dΨs))
     return dz
 
