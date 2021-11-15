@@ -50,15 +50,6 @@ def main(t,z,p):
     Ψs = z_mat[idx_so_far+num_estimators+num_estimators**2:
                idx_so_far+num_estimators*2+num_estimators**2,:]
     
-    # Gating variable dynamics
-    taus = np.zeros((num_neur_gates, num_neurs))
-    sigmas = np.zeros((num_neur_gates, num_neurs))
-    for (i, neur) in enumerate(network.neurons):
-        (taus[0,i],sigmas[0,i]) = neur.gating_m(Vs[i])
-        (taus[1,i],sigmas[1,i]) = neur.gating_h(Vs[i])
-        (taus[2,i],sigmas[2,i]) = neur.gating_n(Vs[i])
-        (taus[3,i],sigmas[3,i]) = neur.gating_s(Vs[i])
-        
     injected_currents = np.zeros(num_neurs)
     for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
     
@@ -95,7 +86,6 @@ def main(t,z,p):
         # Finally, run the adaptive observer
         (_, ϕ̂, _) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], injected_currents[i])
-        
         
         dv̂s[i] = np.dot(ϕ̂,θ̂) + b
         (dm̂s[i], dĥs[i], dn̂s[i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(

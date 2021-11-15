@@ -13,7 +13,7 @@ from network_odes import main
 
 # Initial conditions
 x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
-x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5];
+x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5]
 θ̂_0 = [60, 60, 10, 10]; # [gNa, gK, gL, gsyn]
 P_0 = np.eye(4);
 Ψ_0 = [0, 0, 0, 0];
@@ -31,7 +31,7 @@ Iapps = [Iapp, lambda t: 6]
 
 # Observer parameters
 α = 0.3 # Default is 0.5, I've set to 0.3.
-γ = 100 # Default is 70, though Thiago's since lowered to 5.
+γ = 82 # Default is 70, though Thiago's since lowered to 5.
 
 control_law = None
 

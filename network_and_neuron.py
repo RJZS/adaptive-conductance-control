@@ -22,9 +22,9 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         self.gK = gs[1]
         self.gL = gs[2]
         
-        self.ENa = 120
-        self.EK = 36
-        self.EL = 0.3
+        self.ENa = 55
+        self.EK = -77
+        self.EL = -54.4
         self.Esyn = -80
         
         self.syns = synapses
