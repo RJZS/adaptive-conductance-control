@@ -25,7 +25,7 @@ def main(t,z,p):
     num_neurs = len(network.neurons)
     
     # Now break out components of z.
-    z_mat = np.reshape(z, (len(z)//num_neurs, num_neurs))
+    z_mat = np.reshape(z, (len(z)//num_neurs, num_neurs), order='F')
     # True system.
     Vs = z_mat[0,:]
     ms = z_mat[1,:]
@@ -42,7 +42,7 @@ def main(t,z,p):
     θ̂s = z_mat[idx_so_far:idx_so_far+num_estimators,:]
     Ps = np.reshape(z_mat[idx_so_far+num_estimators:idx_so_far+
                           num_estimators+num_estimators**2,:],
-                    (num_estimators,num_estimators,num_neurs));    
+                    (num_estimators,num_estimators,num_neurs), order='F');
     for j in range(num_neurs):
         P = Ps[:,:,j]
         P = (P+np.transpose(P))/2
@@ -98,13 +98,11 @@ def main(t,z,p):
         dP = (dP+np.transpose(dP))/2;
         dPs[:num_neur_ests,:num_neur_ests,i] = dP
         
-    # Finally, need to flatten and concatenate everything.
-    # Start with the flattening (np.ravel is faster than np.flatten)
-    dsyns_mat = dsyns_mat.ravel(order='F')
-    dsyns_hat_mat = dsyns_hat_mat.ravel(order='F')
-    dθ̂s = dθ̂s.ravel(order='F'); dPs = dPs.ravel(order='F')
-    dΨs = dΨs.ravel(order='F')
-    dz = np.concatenate((dvs, dms, dhs, dns, dsyns_mat,
+    # Finally, need to stack and flatten everything.
+    # To stack, need to 'reduce' dP to 2 axes instead of 3
+    dPs = np.reshape(dPs, (num_estimators**2, num_neurs), order='F')
+    dz_mat = np.vstack((dvs, dms, dhs, dns, dsyns_mat,
                          dv̂s, dm̂s, dĥs, dn̂s, dsyns_hat_mat, dθ̂s, dPs, dΨs))
+    dz = np.reshape(dz_mat, (len(z),), order='F')
     return dz
 

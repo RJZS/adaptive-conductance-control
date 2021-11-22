@@ -29,6 +29,19 @@ network = Network([neur_one, neur_two], np.zeros((2,2)))
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 Iapps = [Iapp, lambda t: 6]
 
+## FOR TESTING, REMOVE SYNAPSE:
+x_0 = [0, 0, 0, 0]; # V, m, h, n
+x̂_0 = [-60, 0.5, 0.5, 0.5]
+θ̂_0 = [60, 60, 10]; # [gNa, gK, gL]
+P_0 = np.eye(3);
+Ψ_0 = [0, 0, 0];
+neur_one = Neuron(1., [120.,36.,0.3], [])
+neur_two = Neuron(1., [120.,36.,0.3], [])
+network = Network([neur_one, neur_two], np.zeros((2,2)))
+
+Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+Iapps = [Iapp, lambda t: 6]
+
 # Observer parameters
 α = 0.3 # Default is 0.5, I've set to 0.3.
 γ = 82 # Default is 70, though Thiago's since lowered to 5.
