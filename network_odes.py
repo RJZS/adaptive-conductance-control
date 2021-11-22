@@ -67,7 +67,8 @@ def main(t,z,p):
     for (i, neur) in enumerate(network.neurons):
         # Need to 'reduce' terms. This is as vectors/matrices are sized for
         # the neuron/s with the largest number of synapses.
-        num_neur_ests = len(to_estimate)+neur.num_syns
+        num_neur_ests = len(to_estimate)
+        if estimate_g_syns: num_neur_ests = num_neur_ests + neur.num_syns
         θ̂ = θ̂s[:num_neur_ests,i]
         P = Ps[:num_neur_ests,:num_neur_ests,i];
         Ψ = Ψs[:num_neur_ests,i]
@@ -87,11 +88,11 @@ def main(t,z,p):
         (_, ϕ̂, _) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], injected_currents[i])
         
-        dv̂s[i] = np.dot(ϕ̂,θ̂) + b
+        dv̂s[i] = np.dot(ϕ̂,θ̂) + b + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
         (dm̂s[i], dĥs[i], dn̂s[i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], v_pres)
         
-        dθ̂s[:num_neur_ests,i] = γ*np.matmul(P,Ψ)*(Vs[i]-v̂s[i]);
+        dθ̂s[:num_neur_ests,i] = γ*np.matmul(P,Ψ.T)*(Vs[i]-v̂s[i]);
         dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
         aux = np.outer(Ψ,Ψ)
         dP = α*P - np.matmul(P,np.matmul(aux,P));

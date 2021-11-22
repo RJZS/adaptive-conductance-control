@@ -192,7 +192,7 @@ def HH_synapse_observer(t,z,p):
          s_hat,
          injected_current]);
 
-    dv̂ = np.dot(ϕ̂,θ̂) + γ*Ψ@P@Ψ.T*(v-v̂)
+    dv̂ = np.dot(ϕ̂,θ̂) + γ*(1+Ψ@P@Ψ.T)*(v-v̂)
     dm̂ = 1/τm̂*(-m̂ + σm̂);
     dĥ = 1/τĥ*(-ĥ + σĥ);
     dn̂ = 1/τn̂*(-n̂ + σn̂);
@@ -289,7 +289,7 @@ def HH_just_synapse_observer(t,z,p):
 
     ϕ̂ = np.divide(-s_hat*(v-Esyn),c);
 
-    dv̂ = dv_beforesyn + np.dot(ϕ̂,θ̂) + γ*Ψ*P*Ψ*(v-v̂)
+    dv̂ = dv_beforesyn + np.dot(ϕ̂,θ̂) + γ*(1+Ψ*P*Ψ)*(v-v̂)
     dm̂ = 1/τm̂*(-m̂ + σm̂);
     dĥ = 1/τĥ*(-ĥ + σĥ);
     dn̂ = 1/τn̂*(-n̂ + σn̂);
