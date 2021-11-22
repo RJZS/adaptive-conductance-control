@@ -12,7 +12,7 @@ from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main
 
 # Initial conditions
-x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
+x_0 = [1., 0.1, 0.1, 0.1, 0.1]; # V, m, h, n, s
 x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5]
 θ̂_0 = [60, 60, 10, 10]; # [gNa, gK, gL, gsyn]
 P_0 = np.eye(4);
@@ -31,20 +31,21 @@ Iapps = [Iapp, lambda t: 6]
 
 ## FOR TESTING, REMOVE SYNAPSE:
 x_0 = [0, 0, 0, 0]; # V, m, h, n
-x̂_0 = [-60, 0.5, 0.5, 0.5]
-θ̂_0 = [60, 60, 10]; # [gNa, gK, gL]
-P_0 = np.eye(3);
-Ψ_0 = [0, 0, 0];
+x̂_0 = [-70, 0.5, 0.5, 0.5]
+θ̂_0 = [50, 10]; # [gNa, gK, gL]
+P_0 = np.eye(2);
+Ψ_0 = [0, 0];
 neur_one = Neuron(1., [120.,36.,0.3], [])
 neur_two = Neuron(1., [120.,36.,0.3], [])
 network = Network([neur_one, neur_two], np.zeros((2,2)))
+to_estimate = [1, 2]
 
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 Iapps = [Iapp, lambda t: 6]
 
 # Observer parameters
 α = 0.3 # Default is 0.5, I've set to 0.3.
-γ = 82 # Default is 70, though Thiago's since lowered to 5.
+γ = 10 # Default is 70, though Thiago's since lowered to 5.
 
 control_law = None
 
@@ -59,12 +60,12 @@ z_0 = np.zeros(((len_neur_state+max_num_syns)*2+
                 num_estimators*2+num_estimators**2,num_neurs))
 tmp = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0))
 for j in range(num_neurs): z_0[:,j] = tmp
-z_0 = np.ravel(z_0)
+z_0 = np.ravel(z_0, order='F')
 
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 1.
+Tfinal = 60
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,

@@ -13,7 +13,7 @@ def main(t,z,p):
     network = p[1]
     (α,γ) = p[2]
     to_estimate = p[3] # Which maximal conductances to estimate
-    num_estimators = p[4] # Combine this with prev? But include syns and res...
+    num_estimators = p[4] # Combine this with prev? But includes syns and res...
     controller_law = p[5] # Control law to use for the neurons
     estimate_g_syns = p[6]
     estimate_g_res = p[7]
@@ -40,6 +40,7 @@ def main(t,z,p):
     syns_hat = z_mat[4+max_num_syns+4:4+max_num_syns*2+4,:]
     idx_so_far = 4+max_num_syns*2+4 # Just to make code less ugly
     θ̂s = z_mat[idx_so_far:idx_so_far+num_estimators,:]
+    # print(z_mat[10:14,:])
     Ps = np.reshape(z_mat[idx_so_far+num_estimators:idx_so_far+
                           num_estimators+num_estimators**2,:],
                     (num_estimators,num_estimators,num_neurs), order='F');
@@ -95,7 +96,7 @@ def main(t,z,p):
         dθ̂s[:num_neur_ests,i] = γ*np.matmul(P,Ψ.T)*(Vs[i]-v̂s[i]);
         dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
         aux = np.outer(Ψ,Ψ)
-        dP = α*P - np.matmul(P,np.matmul(aux,P));
+        dP = α*P - P@aux@P;
         dP = (dP+np.transpose(dP))/2;
         dPs[:num_neur_ests,:num_neur_ests,i] = dP
         
