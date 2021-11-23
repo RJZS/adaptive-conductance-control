@@ -22,12 +22,13 @@ from network_odes import main, no_observer
 # Have implemented disturbance rejection, but need to test it.
 # Start as in single-neuron code. Calculate Isyns in this file and compare.
 # Need to generate v_nosyn... Create a separate ODE solver for this.
+
 # Also in a position to compare simulation output with results from HH_reject.py.
 # ie to do the planned 'full test'. <-- THIS WORKS!
 
 # Initial conditions
-x_0 = [1., 0.1, 0.1, 0.1, 0.1]; # V, m, h, n, s
-x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5]
+x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
+x̂_0 = [-40, 0.2, 0.3, 0.1, 0.4]
 θ̂_0 = [60, 60, 10, 10]; # [gNa, gK, gL, gsyn]
 P_0 = np.eye(4);
 Ψ_0 = [0, 0, 0, 0];
@@ -59,7 +60,7 @@ Iapps = [Iapp, lambda t: 6] # Neuron 2 converges even with constant current?
 
 # Observer parameters
 α = 0.3 # Default is 0.5, I've set to 0.3.
-γ = 10 # Default is 70, though Thiago's since lowered to 5.
+γ = 90 # Default is 70, though Thiago's since lowered to 5.
 
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
@@ -94,6 +95,7 @@ out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
 t = out.t
 sol = out.y
 
+# %%
 # For comparison, need to calculate undisturbed neuron. Caution: reusing variable names.
 neur_one = Neuron(1., [120.,36.,0.3], [])
 network = Network([neur_one], np.zeros((1,1)))

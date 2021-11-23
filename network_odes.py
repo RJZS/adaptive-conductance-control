@@ -135,10 +135,7 @@ def no_observer(t,z,p):
     num_neurs = len(network.neurons)
     
     # Now break out components of z.
-    print(max_num_syns)
-    print(z)
     z_mat = np.reshape(z, (len(z)//num_neurs, num_neurs), order='F')
-    # True system.
     Vs = z_mat[0,:]
     ms = z_mat[1,:]
     hs = z_mat[2,:]
@@ -158,6 +155,6 @@ def no_observer(t,z,p):
         (dms[i], dhs[i], dns[i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], ms[i], hs[i], ns[i], syns[:,i], v_pres)
         
-    dz = np.vstack((dvs, dms, dhs, dns, dsyns_mat))
-    print(dz)
+    dz_mat = np.vstack((dvs, dms, dhs, dns, dsyns_mat))
+    dz = np.reshape(dz_mat, (len(z),), order='F')
     return dz
