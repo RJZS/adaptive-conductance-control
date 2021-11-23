@@ -11,6 +11,13 @@ from scipy.integrate import solve_ivp
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main
 
+# TODO:
+# Think about persistent excitation when constant current and NOT estimating c.
+# Implement disturbance rejection control law. Should be easy, see that if block.
+# Deliverable: HCO successfully rejecting disturbance.
+# Code for graph plotting. Don't just plot everything (messy!), maybe have a 
+# parameter which is a list of which to plot.
+
 # Initial conditions
 x_0 = [1., 0.1, 0.1, 0.1, 0.1]; # V, m, h, n, s
 x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5]
@@ -27,21 +34,21 @@ neur_two = Neuron(1., [120.,36.,0.3], [])
 network = Network([neur_one, neur_two], np.zeros((2,2)))
 
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-Iapps = [Iapp, lambda t: 6]
+Iapps = [Iapp, lambda t: 6] # Neuron 2 converges even with constant current?
 
-## FOR TESTING, REMOVE SYNAPSE:
-x_0 = [0, 0, 0, 0]; # V, m, h, n
-x̂_0 = [-70, 0.5, 0.5, 0.5]
-θ̂_0 = [50, 10]; # [gNa, gK, gL]
-P_0 = np.eye(2);
-Ψ_0 = [0, 0];
-neur_one = Neuron(1., [120.,36.,0.3], [])
-neur_two = Neuron(1., [120.,36.,0.3], [])
-network = Network([neur_one, neur_two], np.zeros((2,2)))
-to_estimate = [1, 2]
+# ## FOR TESTING, REMOVE SYNAPSE:
+# x_0 = [0, 0, 0, 0]; # V, m, h, n
+# x̂_0 = [-70, 0.5, 0.5, 0.5]
+# θ̂_0 = [50, 10]; # [gNa, gK, gL]
+# P_0 = np.eye(2);
+# Ψ_0 = [0, 0];
+# neur_one = Neuron(1., [120.,36.,0.3], [])
+# neur_two = Neuron(1., [120.,36.,0.3], [])
+# network = Network([neur_one, neur_two], np.zeros((2,2)))
+# to_estimate = [1, 2]
 
-Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-Iapps = [Iapp, lambda t: 6]
+# Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+# Iapps = [Iapp, lambda t: 6] # Neuron 2 converges even with constant current?
 
 # Observer parameters
 α = 0.3 # Default is 0.5, I've set to 0.3.
