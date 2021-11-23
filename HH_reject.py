@@ -65,7 +65,6 @@ if save_data == 1:
 
 # Calculate real and estimated synaptic current. Remember, the algorithm is
 # online, so using the parameter estimates for that timestep.
-# Estimating E_syn in the correct way??
 Isyn = g[3] * w[3,:] * (v - E[3])
 Isyn_hat = θ̂ [3,:] * ŵ[3,:] * (v - np.divide(θ̂[7,:],θ̂[3,:]))/θ̂[8,:]**2
 
