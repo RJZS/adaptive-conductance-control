@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
 from network_and_neuron import Synapse, Neuron, Network
-from network_odes import main
+from network_odes import main, no_observer
 
 # TODO:
 # Think about persistent excitation when constant current and NOT estimating c.
@@ -21,8 +21,9 @@ from network_odes import main
 # PROGRESS UPDATE:
 # Have implemented disturbance rejection, but need to test it.
 # Start as in single-neuron code. Calculate Isyns in this file and compare.
+# Need to generate v_nosyn... Create a separate ODE solver for this.
 # Also in a position to compare simulation output with results from HH_reject.py.
-# ie to do the planned 'full test'.
+# ie to do the planned 'full test'. <-- THIS WORKS!
 
 # Initial conditions
 x_0 = [1., 0.1, 0.1, 0.1, 0.1]; # V, m, h, n, s
@@ -81,7 +82,7 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 60
+Tfinal = 150
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
@@ -92,3 +93,18 @@ out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
 
 t = out.t
 sol = out.y
+
+# For comparison, need to calculate undisturbed neuron. Caution: reusing variable names.
+neur_one = Neuron(1., [120.,36.,0.3], [])
+network = Network([neur_one], np.zeros((1,1)))
+p = (Iapps, network)
+out_nosyn = solve_ivp(lambda t, z: no_observer(t, z, p), tspan, x_0[:4],rtol=1e-6,atol=1e-6,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+
+t_nosyn = out_nosyn.t
+sol_nosyn = out_nosyn.y
+
+# Test against HH_reject.py.
+# v = sol[0,:]
+# Isyn = syn.g * sol[4,:] * (v - neur_one.Esyn)
+# Isyn_hat = sol[13,:] * sol[9,:] * (v - neur_one.Esyn)

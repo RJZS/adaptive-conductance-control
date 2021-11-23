@@ -154,6 +154,13 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
                 )
             return (θ_intrins, ϕ_intrins, b)
     
+    def calc_dv_no_observer(self, v, m, h, n, syn_gates, I):
+        gs = np.array([self.gNa, self.gK, self.gL, 1])
+        terms = np.divide(np.array([-m**3*h*(v-self.ENa),-n**4*(v-self.EK),
+                                    -(v-self.EL),I]),self.c)
+        dv = np.dot(gs, terms)
+        return dv
+    
 class Network:
     def __init__(self, neurons, res_connect):
         self.neurons = neurons

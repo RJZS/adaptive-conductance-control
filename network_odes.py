@@ -124,3 +124,40 @@ def main(t,z,p):
     dz = np.reshape(dz_mat, (len(z),), order='F')
     return dz
 
+def no_observer(t,z,p):
+    Iapps = p[0]
+    network = p[1]
+    
+    # Assuming all the neurons are of the same model:
+    num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
+    len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
+    max_num_syns = network.max_num_syns
+    num_neurs = len(network.neurons)
+    
+    # Now break out components of z.
+    print(max_num_syns)
+    print(z)
+    z_mat = np.reshape(z, (len(z)//num_neurs, num_neurs), order='F')
+    # True system.
+    Vs = z_mat[0,:]
+    ms = z_mat[1,:]
+    hs = z_mat[2,:]
+    ns = z_mat[3,:]
+    syns = z_mat[4:4+max_num_syns,:]
+    
+    injected_currents = np.zeros(num_neurs)
+    for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
+    
+    dvs = np.zeros(num_neurs)
+    dms = np.zeros(num_neurs); dns = np.zeros(num_neurs); dhs = np.zeros(num_neurs);
+    dsyns_mat = np.zeros((max_num_syns, num_neurs))
+    for (i, neur) in enumerate(network.neurons):
+        dvs[i] = neur.calc_dv_no_observer(Vs[i], ms[i], hs[i], ns[i], syns[:,i], injected_currents[i])
+        
+        v_pres = Vs[neur.pre_neurs]
+        (dms[i], dhs[i], dns[i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
+            Vs[i], ms[i], hs[i], ns[i], syns[:,i], v_pres)
+        
+    dz = np.vstack((dvs, dms, dhs, dns, dsyns_mat))
+    print(dz)
+    return dz
