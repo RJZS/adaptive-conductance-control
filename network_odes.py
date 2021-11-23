@@ -8,13 +8,19 @@ import numpy as np
 
 from network_and_neuron import Neuron, Network
 
+def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
+    Isyn_estimates = np.zeros(num_neurs)
+    for (neur_i, syn_i) in to_reject:
+        Isyn_estimates[neur_i] = Isyn_estimates[neur_i] - g_syns[syn_i,neur_i] * syns_hat[syn_i,neur_i] * (Vs[neur_i] - Esyn)
+    return -Isyn_estimates
+
 def main(t,z,p):
     Iapps = p[0]
     network = p[1]
     (α,γ) = p[2]
     to_estimate = p[3] # Which maximal conductances to estimate
     num_estimators = p[4] # Combine this with prev? But includes syns and res...
-    controller_law = p[5] # Control law to use for the neurons
+    controller_settings = p[5] # Control law to use for the neurons
     estimate_g_syns = p[6]
     estimate_g_res = p[7]
     
@@ -53,6 +59,16 @@ def main(t,z,p):
     
     injected_currents = np.zeros(num_neurs)
     for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
+    # Run controller
+    if controller_settings[0] == "DistRej":
+        if estimate_g_syns:
+            g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
+        else:
+            g_syns = np.zeros((max_num_syns, num_neurs))
+            for (idx, neur) in enumerate(network):
+                g_syns[:neur.num_syns, idx] = neur.g_syns
+        control_currs = disturbance_rejection(controller_settings[1], g_syns, syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
+        injected_currents = injected_currents + control_currs
     
     # Now make one time step. First, initialise the required vectors.
     bs = np.zeros(num_neurs)

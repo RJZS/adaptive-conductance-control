@@ -18,6 +18,12 @@ from network_odes import main
 # Code for graph plotting. Don't just plot everything (messy!), maybe have a 
 # parameter which is a list of which to plot.
 
+# PROGRESS UPDATE:
+# Have implemented disturbance rejection, but need to test it.
+# Start as in single-neuron code. Calculate Isyns in this file and compare.
+# Also in a position to compare simulation output with results from HH_reject.py.
+# ie to do the planned 'full test'.
+
 # Initial conditions
 x_0 = [1., 0.1, 0.1, 0.1, 0.1]; # V, m, h, n, s
 x̂_0 = [-60, 0.5, 0.5, 0.5, 0.5]
@@ -54,7 +60,10 @@ Iapps = [Iapp, lambda t: 6] # Neuron 2 converges even with constant current?
 α = 0.3 # Default is 0.5, I've set to 0.3.
 γ = 10 # Default is 70, though Thiago's since lowered to 5.
 
-control_law = None
+# For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
+# where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
+# and then the index of the synapse in the neuron.
+control_law = ["DistRej", [(0, 0)]]
 
 num_neurs = len(network.neurons)
 num_estimators = len(θ̂_0)
