@@ -159,6 +159,9 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         terms = np.divide(np.array([-m**3*h*(v-self.ENa),-n**4*(v-self.EK),
                                     -(v-self.EL),I]),self.c)
         dv = np.dot(gs, terms)
+        
+        # In numpy, asterisk operator performs elementwise multiplication.
+        dv = dv - self.g_syns * syn_gates * (v - self.Esyn)
         return dv
     
 class Network:
