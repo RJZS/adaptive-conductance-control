@@ -21,11 +21,13 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         self.gNa = gs[0]
         self.gK = gs[1]
         self.gL = gs[2]
+        self.gs = gs # Useful to keep as a list
         
         self.ENa = 55
         self.EK = -77
         self.EL = -54.4
         self.Esyn = -80
+        self.Es = np.array([self.ENa, self.EK, self.EL, self.Esyn]) # Useful.
         
         self.syns = synapses
         self.num_syns = len(synapses)
@@ -161,7 +163,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         dv = np.dot(gs, terms)
         
         # In numpy, asterisk operator performs elementwise multiplication.
-        dv = dv - self.g_syns * syn_gates * (v - self.Esyn)
+        dv = dv - self.g_syns * syn_gates * (v - self.Esyn) # NEED TO DIVIDE BY C??
         return dv
     
 class Network:

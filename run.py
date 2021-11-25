@@ -13,14 +13,16 @@ from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
 # TODO:
-# Think about persistent excitation when constant current and NOT estimating c.
-# See Thiago's message. To do with constant g_L E_L term. What's the connection with c though?
+# Test reference tracking.
+# Try out Numba package. Failing that, look into Cython.
+# Replace neuron model.
 
+# On the backburner:
 # Code for graph plotting. Don't just plot everything (messy!), maybe have a 
 # parameter which is a list of which to plot. Ie an object, where the keys are fig discriptions 
 # and the values are booleans. Then can have each plot within its own 'if' statement.
 
-# Automate running of 'nosyn' simulation (should be called 'nodist').
+# Automate running of 'nosyn' simulation (should be called 'nodist'). Harder than I thought!
 
 
 # Initial conditions
@@ -41,6 +43,9 @@ neur_one = Neuron(1., [120.,36.,0.3], [syn, syn_dist])
 neur_two = Neuron(1., [120.,36.,0.3], [syn2])
 neur_dist = Neuron(1., [120.,36.,0.3], [])
 network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
+
+network2 = Network([neur_one, neur_two], np.zeros((2,2)))
+ref_gs = np.array([[100,36,0.3,2],[140,36,0.3,2]]) # gs of reference network.
 
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 Iapps = [Iapp, lambda t: 6, lambda t: 6] # Neuron 2 converges even with constant current?
@@ -67,6 +72,7 @@ Iapps = [Iapp, lambda t: 6, lambda t: 6] # Neuron 2 converges even with constant
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
 control_law = ["DistRej", [(0, 1)]]#, (0, 1)]]
+control_law = ["RefTrack", ref_gs]
 # control_law = [""]
 
 num_neurs = len(network.neurons)
@@ -101,7 +107,12 @@ t = out.t
 sol = out.y
 
 # %%
-# For comparison, need to calculate undisturbed neuron. Will further automate this, when have HCO dist. rej. working.
+# For comparison, need to calculate undisturbed neuron.
+# Want to further automate this, but actually fairly tricky...
+# def prepare_nodist_sim(neurons, control_law, z_0):
+#     for (neur_i, syn_i) in control_law[1]:
+        
+
 neur_one_nosyn = Neuron(1., [120.,36.,0.3], [syn])
 neur_two_nosyn = Neuron(1., [120.,36.,0.3], [syn2])
 network_nosyn = Network([neur_one_nosyn, neur_two_nosyn], np.zeros((2,2)))
@@ -129,3 +140,10 @@ Isyn_hat2 = sol[15+47,:] * sol[10+47,:] * (v2 - neur_two.Esyn)
 # just not the disturbance one).
 v_nosyn = sol_nosyn[0,:]
 v2_nosyn = sol_nosyn[5,:]
+
+# %%
+# Extract variables and label them
+V_idxs = np.array(list(range(num_neurs)))*(len(sol)/num_neurs)
+V_idxs = V_idxs.astype(int)
+Vs = sol[V_idxs,:]
+

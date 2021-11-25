@@ -14,6 +14,19 @@ def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
         Isyn_estimates[neur_i] = Isyn_estimates[neur_i] - g_syns[syn_i,neur_i] * syns_hat[syn_i,neur_i] * (Vs[neur_i] - Esyn)
     return -Isyn_estimates
 
+def reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
+    adjusting_currents = np.zeros(num_neurs)
+    g_diffs = ref_gs-gs
+    terms = np.zeros((num_neur_gs+network.max_num_syns, num_neurs))
+    Es = network.neurons[0].Es # Same for every neuron, so can pick any.
+    for i in range(num_neurs):
+        terms[:num_neur_gs,i] = np.divide(np.array([-m̂s[i]**3*ĥs[i]*(Vs[i]-Es[0]),-n̂s[i]**4*(Vs[i]-Es[1]),
+                                    -(Vs[i]-Es[2])]),network.neurons[i].c)
+        terms[num_neur_gs:,i] = -syns_hat*(Vs[i] - Es[3])
+        adjusting_currents[i] = np.dot(g_diffs[:,i],terms[:,i]) # diag(A^T B)?
+    return adjusting_currents
+        
+    
 def main(t,z,p):
     Iapps = p[0]
     network = p[1]
@@ -27,6 +40,7 @@ def main(t,z,p):
     # Assuming all the neurons are of the same model:
     num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
     len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
+    num_neur_gs = 3 # sodium, potassium, leak
     max_num_syns = network.max_num_syns
     num_neurs = len(network.neurons)
     
@@ -68,6 +82,25 @@ def main(t,z,p):
             for (idx, neur) in enumerate(network):
                 g_syns[:neur.num_syns, idx] = neur.g_syns
         control_currs = disturbance_rejection(controller_settings[1], g_syns, syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
+        injected_currents = injected_currents + control_currs
+    elif controller_settings[0] == "RefTrack":
+        # If not estimating all the intrinsic gs, will feed controller a mix of true
+        # and estimated gs. Need to generate this list of gs to feed in.
+        neur_gs = np.zeros((num_neur_gs, num_neurs))
+        neur_gs[to_estimate,:] = θ̂s[:len(to_estimate),:]
+        tmp_list = list(range(num_neur_gs))
+        known_g_idxs = np.delete(tmp_list, to_estimate) # Use idxs of true gs where not estimating.
+        neur_gs[known_g_idxs,:] = neur.gs[known_g_idxs,:]
+        # if-else block below is same as for "DistRej" case above.
+        if estimate_g_syns:
+            g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
+        else:
+            g_syns = np.zeros((max_num_syns, num_neurs))
+        for (idx, neur) in enumerate(network):
+            g_syns[:neur.num_syns, idx] = neur.g_syns
+        observer_gs = np.vstack((neur_gs, g_syns))
+        control_currs = reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, observer_gs, 
+                                           controller_settings[1], network, num_neurs, num_neur_gs)
         injected_currents = injected_currents + control_currs
     
     # Now make one time step. First, initialise the required vectors.
