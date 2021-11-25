@@ -62,8 +62,8 @@ estimate_g_res = False # TODO: Need to write the code for this!!
 syn = Synapse(2., 1)
 syn2 = Synapse(2., 0)
 syn_dist = Synapse(2., 2)
-neur_one = Neuron(1., [100.,27.,0.2], [])
-neur_two = Neuron(1., [100.,27.,0.2], [])
+neur_one = Neuron(1., np.array([100.,27.,0.2]), np.array([]))
+neur_two = Neuron(1., np.array([100.,27.,0.2]), np.array([]))
 network = Network([neur_one, neur_two], np.zeros((2,2))) # for ref tracking
 # ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
 ref_gs = np.array([[100,27,0.2],[145,48,0.6]]).T # gs of reference network.
@@ -99,7 +99,7 @@ control_law = ["RefTrack", ref_gs]
 
 num_neurs = len(network.neurons)
 num_estimators = len(θ̂_0)
-len_neur_state = network.neurons[0].NUM_GATES + 1
+len_neur_state = network.neurons[0].num_gates + 1
 max_num_syns = network.max_num_syns
 
 # Assuming each neuron initialised the same. If not, could use np.ravel()
