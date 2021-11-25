@@ -4,19 +4,19 @@ Created on Sat Oct 30 19:16:03 2021
 
 @author: Rafi
 """
-from numba import jit, njit
+# from numba import jit, njit
 import numpy as np
 
 from network_and_neuron import Neuron, Network
 
-@jit
+# @jit
 def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
     Isyn_estimates = np.zeros(num_neurs)
     for (neur_i, syn_i) in to_reject:
         Isyn_estimates[neur_i] = Isyn_estimates[neur_i] - g_syns[syn_i,neur_i] * syns_hat[syn_i,neur_i] * (Vs[neur_i] - Esyn)
     return -Isyn_estimates
 
-@jit
+# @jit
 def reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
     Es = network.neurons[0].Es # Same for every neuron, so can pick any.
     max_num_syns = network.max_num_syns
@@ -26,7 +26,7 @@ def reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, network, num_
     adjusting_currents = reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs)
     return adjusting_currents
 
-@njit
+# @njit
 def reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs):
     adjusting_currents = np.zeros(num_neurs)
     g_diffs = ref_gs-gs
@@ -38,7 +38,7 @@ def reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, Es, num_
         adjusting_currents[i] = np.dot(g_diffs[:,i],terms[:,i]) # diag(A^T B)?
     return adjusting_currents
         
-@jit
+# @jit
 def main(t,z,p):
     Iapps = p[0]
     network = p[1]
@@ -50,7 +50,7 @@ def main(t,z,p):
     estimate_g_res = p[7]
     
     # Assuming all the neurons are of the same model:
-    num_neur_gates = network.neurons[0].num_gates + network.max_num_syns
+    num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
     len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
     num_neur_gs = 3 # sodium, potassium, leak
     max_num_syns = network.max_num_syns
@@ -100,8 +100,14 @@ def main(t,z,p):
         # and estimated gs. Need to generate this list of gs to feed in.
         neur_gs = np.zeros((num_neur_gs, num_neurs))
         neur_gs[to_estimate,:] = θ̂s[:len(to_estimate),:]
-        tmp_list = list(range(num_neur_gs))
-        known_g_idxs = np.delete(tmp_list, to_estimate) # Use idxs of true gs where not estimating.
+        
+        # Use idxs of true gs where not estimating. So need to 'invert' to_estimate.
+        # Ie need an array listing the elements that are NOT in to_estimate.
+        tmp_list = np.array(range(num_neur_gs))
+        tmp_list_mask = np.ones(num_neur_gs, dtype=bool)
+        tmp_list_mask[to_estimate] = False
+        known_g_idxs = tmp_list[tmp_list_mask]
+        
         if known_g_idxs.any(): # Otherwise, neur_gs already fully populated with estimates.
             for (neur_idx, neur) in enumerate(network.neurons):
                 neur_gs[known_g_idxs,neur_idx] = neur.gs[known_g_idxs]
@@ -176,7 +182,7 @@ def no_observer(t,z,p):
     network = p[1]
     
     # Assuming all the neurons are of the same model:
-    num_neur_gates = network.neurons[0].num_gates + network.max_num_syns
+    num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
     len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
     max_num_syns = network.max_num_syns
     num_neurs = len(network.neurons)

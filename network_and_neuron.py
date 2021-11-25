@@ -4,37 +4,19 @@ Created on Sat Oct 30 19:28:00 2021
 
 @author: Rafi
 """
-from typing import List
-from numba import int32, float64
-from numba.experimental import jitclass
-from numba.typed import List as NumbaList
-from numba import typed, typeof
 import numpy as np
 
-synapse_spec = [
-    ('g', float64),
-    ('pre_neur', int32),
-    ]
-@jitclass(synapse_spec)
 class Synapse:
     def __init__(self, g, pre_neur):
         self.g = g
         self.pre_neur = pre_neur # Index of presynaptic neuron
         
-syn_list_example = typed.List(); syn_list_example.append(Synapse(2.,0))
-neuron_spec = [
-    ('c', float64), ('gs',float64[:]), ('gNa',float64), ('gK',float64),
-    ('gL',float64), ('ENa',float64), ('EK',float64), ('EL',float64),
-    ('Esyn',float64), ('Es',float64[:]), ('num_syns',int32List),
-    ('num_gates',float64), ('g_syns',float64[:]), ('pre_neurs',int32[:]),
-    ('syns',typeof(syn_list_example))
-    ]
+
 # Note that 'gs' is a list which can include both floats and functions!
-@jitclass(neuron_spec)
 class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
-    synapses: List[Synapse]
+    NUM_GATES = 3
     
-    def __init__(self, c, gs, synapses: List[Synapse]):
+    def __init__(self, c, gs, synapses):
         self.c = c
         self.gNa = gs[0]
         self.gK = gs[1]
@@ -48,15 +30,13 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         self.Es = np.array([self.ENa, self.EK, self.EL, self.Esyn]) # Useful.
         
         self.syns = synapses
-        # self.num_syns = len(synapses)
-        
-        self.num_gates = 3
+        self.num_syns = len(synapses)
         
         self.g_syns = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
             self.g_syns[idx] = syn.g
             
-        self.pre_neurs = np.zeros(self.num_syns)
+        self.pre_neurs = np.zeros(self.num_syns, dtype=np.int8)
         for (idx, syn) in enumerate(self.syns):
             self.pre_neurs[idx] = syn.pre_neur
         
@@ -156,8 +136,10 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
             θ_intrins[idx] = gs[val]
             ϕ_intrins[idx] = terms[val]
             gs_del_idxs[idx] = val; terms_del_idxs[idx] = val
-        gs = np.delete(gs, gs_del_idxs)
-        terms = np.delete(terms, terms_del_idxs)
+        gs_mask = np.ones(len(gs), dtype=bool); terms_mask = np.ones(len(terms), dtype=bool)
+        gs_mask[gs_del_idxs] = False; terms_mask[terms_del_idxs] = False;
+        gs = gs[gs_mask]
+        terms = terms[terms_mask]
             
         # Now look at synaptic terms.
         syn_terms = np.zeros(self.num_syns)
@@ -182,17 +164,12 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
                                     -(v-self.EL),I]),self.c)
         dv = np.dot(gs, terms)
         
-        # In numpy, asterisk operator performs elementwise multiplication.
-        dv = dv - self.g_syns * syn_gates * (v - self.Esyn) # NEED TO DIVIDE BY C??
+        if syn_gates:
+            # In numpy, asterisk operator performs elementwise multiplication.
+            dv = dv - self.g_syns * syn_gates * (v - self.Esyn) # NEED TO DIVIDE BY C??
         return dv
     
-network_spec = [
-    ('res_connect', float64[:]),
-    ]
-@jitclass
 class Network:
-    neurons: List[Neuron]
-    
     def __init__(self, neurons, res_connect):
         self.neurons = neurons
         self.res_connect = res_connect

@@ -4,7 +4,6 @@ Created on Sat Oct 30 19:13:57 2021
 
 @author: Rafi
 """
-from numba import njit
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
@@ -99,7 +98,7 @@ control_law = ["RefTrack", ref_gs]
 
 num_neurs = len(network.neurons)
 num_estimators = len(θ̂_0)
-len_neur_state = network.neurons[0].num_gates + 1
+len_neur_state = network.neurons[0].NUM_GATES + 1
 max_num_syns = network.max_num_syns
 
 # Assuming each neuron initialised the same. If not, could use np.ravel()
@@ -113,7 +112,7 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 100
+Tfinal = 200
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
@@ -135,11 +134,11 @@ sol = out.y
 #     for (neur_i, syn_i) in control_law[1]:
         
 
-neur_one_nosyn = Neuron(1., [120.,36.,0.3], [syn])
-neur_two_nosyn = Neuron(1., [120.,36.,0.3], [syn2])
+neur_one_nosyn = Neuron(1., [120.,36.,0.3], [])
+neur_two_nosyn = Neuron(1., [120.,36.,0.3], [])
 network_nosyn = Network([neur_one_nosyn, neur_two_nosyn], np.zeros((2,2)))
 p_nosyn = (Iapps, network_nosyn)
-z_0_nosyn = np.concatenate((x_0[:5], x_0[:5]))
+z_0_nosyn = np.concatenate((x_0[:4], x_0[:4]))
 out_nosyn = solve_ivp(lambda t, z: no_observer(t, z, p_nosyn), tspan, z_0_nosyn,rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 
@@ -148,20 +147,20 @@ sol_nosyn = out_nosyn.y
 
 # %%
 # Test HCO disturbance rejection. First compare real and estimated Isyns.
-v = sol[0,:]
-Isyn = syn.g * sol[4,:] * (v - neur_one.Esyn)
-Isyn_hat = sol[15,:] * sol[10,:] * (v - neur_one.Esyn)
-Isyn_dist = syn_dist.g * sol[5,:] * (v - neur_one.Esyn)
-Isyn_dist_hat = sol[16,:] * sol[11,:] * (v - neur_one.Esyn)
+# v = sol[0,:]
+# Isyn = syn.g * sol[4,:] * (v - neur_one.Esyn)
+# Isyn_hat = sol[15,:] * sol[10,:] * (v - neur_one.Esyn)
+# Isyn_dist = syn_dist.g * sol[5,:] * (v - neur_one.Esyn)
+# Isyn_dist_hat = sol[16,:] * sol[11,:] * (v - neur_one.Esyn)
 
-v2 = sol[0+47,:]
-Isyn2 = syn2.g * sol[4+47,:] * (v2 - neur_two.Esyn)
-Isyn_hat2 = sol[15+47,:] * sol[10+47,:] * (v2 - neur_two.Esyn)
+# v2 = sol[0+47,:]
+# Isyn2 = syn2.g * sol[4+47,:] * (v2 - neur_two.Esyn)
+# Isyn_hat2 = sol[15+47,:] * sol[10+47,:] * (v2 - neur_two.Esyn)
 
-# Now compare Vs with V_nosyns (misleading name, as there are synapses,
-# just not the disturbance one).
-v_nosyn = sol_nosyn[0,:]
-v2_nosyn = sol_nosyn[5,:]
+# # Now compare Vs with V_nosyns (misleading name, as there are synapses,
+# # just not the disturbance one).
+# v_nosyn = sol_nosyn[0,:]
+# v2_nosyn = sol_nosyn[5,:]
 
 # %%
 # Extract variables and label them
