@@ -50,7 +50,7 @@ def main(t,z,p):
     estimate_g_res = p[7]
     
     # Assuming all the neurons are of the same model:
-    num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
+    num_neur_gates = network.neurons[0].num_gates + network.max_num_syns
     len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
     num_neur_gs = 3 # sodium, potassium, leak
     max_num_syns = network.max_num_syns
@@ -176,7 +176,7 @@ def no_observer(t,z,p):
     network = p[1]
     
     # Assuming all the neurons are of the same model:
-    num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
+    num_neur_gates = network.neurons[0].num_gates + network.max_num_syns
     len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
     max_num_syns = network.max_num_syns
     num_neurs = len(network.neurons)

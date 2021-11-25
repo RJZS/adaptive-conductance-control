@@ -4,17 +4,30 @@ Created on Sat Oct 30 19:28:00 2021
 
 @author: Rafi
 """
+from typing import List
+from numba import int32, float64
+from numba.experimental import jitclass
+from numba.typed import List as NumbaList
 import numpy as np
 
+synapse_spec = [
+    ('g', float64),
+    ('pre_neur', int32),
+    ]
+@jitclass(synapse_spec)
 class Synapse:
     def __init__(self, g, pre_neur):
         self.g = g
         self.pre_neur = pre_neur # Index of presynaptic neuron
         
-
+neuron_spec = [
+    ('c', float64),
+    ('gs',float64[:]),
+    ]
 # Note that 'gs' is a list which can include both floats and functions!
+@jitclass(neuron_spec)
 class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
-    NUM_GATES = 3
+    synapses: List[Synapse]
     
     def __init__(self, c, gs, synapses):
         self.c = c
@@ -31,6 +44,8 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         
         self.syns = synapses
         self.num_syns = len(synapses)
+        
+        self.num_gates = 3
         
         self.g_syns = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
@@ -166,7 +181,13 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         dv = dv - self.g_syns * syn_gates * (v - self.Esyn) # NEED TO DIVIDE BY C??
         return dv
     
+network_spec = [
+    ('res_connect', float64[:]),
+    ]
+@jitclass
 class Network:
+    neurons: List[Neuron]
+    
     def __init__(self, neurons, res_connect):
         self.neurons = neurons
         self.res_connect = res_connect
