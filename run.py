@@ -13,8 +13,12 @@ from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
 # TODO:
-# Test reference tracking.
-# Try out Numba package. Failing that, look into Cython.
+# Reference tracking seems to work for one neuron, no synapses. But observer estimates of gs do vary!
+# Run the simulation for longer (than 200s) and see if the observer estimates settle.
+# Also try ref track with HCO.
+
+# Try out Numba package, on 'define_dv_terms', then 'gate_calcs'. Failing that, look into Cython.
+
 # Replace neuron model.
 
 # On the backburner:
@@ -133,9 +137,20 @@ sol = out.y
 # def prepare_nodist_sim(neurons, control_law, z_0):
 #     for (neur_i, syn_i) in control_law[1]:
         
+# HCO disturbance rejection
+# neur_one_nosyn = Neuron(1., [120.,36.,0.3], [syn])
+# neur_two_nosyn = Neuron(1., [120.,36.,0.3], [syn2])
+# network_nosyn = Network([neur_one_nosyn, neur_two_nosyn], np.zeros((2,2)))
+# p_nosyn = (Iapps, network_nosyn)
+# z_0_nosyn = np.concatenate((x_0[:5], x_0[:5]))
+# out_nosyn = solve_ivp(lambda t, z: no_observer(t, z, p_nosyn), tspan, z_0_nosyn,rtol=1e-6,atol=1e-6,
+#                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 
-neur_one_nosyn = Neuron(1., [120.,36.,0.3], [])
-neur_two_nosyn = Neuron(1., [120.,36.,0.3], [])
+# t_nosyn = out_nosyn.t
+# sol_nosyn = out_nosyn.y
+
+neur_one_nosyn = Neuron(1., [100.,27.,0.2], np.array([]))
+neur_two_nosyn = Neuron(1., [145.,48.,0.6], np.array([]))
 network_nosyn = Network([neur_one_nosyn, neur_two_nosyn], np.zeros((2,2)))
 p_nosyn = (Iapps, network_nosyn)
 z_0_nosyn = np.concatenate((x_0[:4], x_0[:4]))
@@ -168,3 +183,7 @@ V_idxs = np.array(list(range(num_neurs)))*(len(sol)/num_neurs)
 V_idxs = V_idxs.astype(int)
 Vs = sol[V_idxs,:]
 
+# %%
+# To find peaks.
+# from scipy.signal import find_peaks
+# find_peaks(x) gives the idxs. Then can use np.roll for the phase-shift.
