@@ -4,6 +4,7 @@ Created on Sat Oct 30 19:13:57 2021
 
 @author: Rafi
 """
+from numba import njit
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
@@ -25,13 +26,35 @@ from network_odes import main, no_observer
 # Automate running of 'nosyn' simulation (should be called 'nodist'). Harder than I thought!
 
 
-# Initial conditions
-x_0 = [0, 0, 0, 0, 0, 0]; # V, m, h, n, s1, s2
-x̂_0 = [-40, 0.2, 0.3, 0.1, 0.4, 0.3] # Works for single neuron.
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.15]
-θ̂_0 = [60, 60, 10, 10, 10]; # [gNa, gK, gL, gsyn1, gsyn2]
-P_0 = np.eye(5);
-Ψ_0 = [0, 0, 0, 0, 0];
+# Initial conditions - Disturbance Rejection
+# x_0 = [0, 0, 0, 0, 0, 0]; # V, m, h, n, s1, s2
+# x̂_0 = [-40, 0.2, 0.3, 0.1, 0.4, 0.3] # Works for single neuron.
+# x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.15]
+# θ̂_0 = [60, 60, 10, 10, 10]; # [gNa, gK, gL, gsyn1, gsyn2]
+# P_0 = np.eye(5);
+# Ψ_0 = [0, 0, 0, 0, 0];
+# to_estimate = [0, 1, 2]
+# estimate_g_syns = True
+# estimate_g_res = False # TODO: Need to write the code for this!!
+
+# syn = Synapse(2., 1)
+# syn2 = Synapse(2., 0)
+# syn_dist = Synapse(2., 2)
+# neur_one = Neuron(1., [120.,36.,0.3], [syn, syn_dist])
+# neur_two = Neuron(1., [120.,36.,0.3], [syn2])
+# neur_dist = Neuron(1., [120.,36.,0.3], [])
+# network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
+
+# Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+# Iapps = [Iapp, lambda t: 6, lambda t: 6] # Neuron 2 converges even with constant current?
+
+# Initial conditions - Reference Tracking
+x_0 = [0, 0, 0, 0]; # V, m, h, n
+x̂_0 = [-40, 0.2, 0.3, 0.1] # Works for single neuron.
+x̂_0 = [30, 0.1, 0.2, 0.4]
+θ̂_0 = [60, 60, 10]; # [gNa, gK, gL]
+P_0 = np.eye(3);
+Ψ_0 = [0, 0, 0];
 to_estimate = [0, 1, 2]
 estimate_g_syns = True
 estimate_g_res = False # TODO: Need to write the code for this!!
@@ -39,16 +62,15 @@ estimate_g_res = False # TODO: Need to write the code for this!!
 syn = Synapse(2., 1)
 syn2 = Synapse(2., 0)
 syn_dist = Synapse(2., 2)
-neur_one = Neuron(1., [120.,36.,0.3], [syn, syn_dist])
-neur_two = Neuron(1., [120.,36.,0.3], [syn2])
-neur_dist = Neuron(1., [120.,36.,0.3], [])
-network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
+neur_one = Neuron(1., [100.,27.,0.2], [])
+neur_two = Neuron(1., [100.,27.,0.2], [])
+network = Network([neur_one, neur_two], np.zeros((2,2))) # for ref tracking
+# ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
+ref_gs = np.array([[100,27,0.2],[145,48,0.6]]).T # gs of reference network.
 
-network2 = Network([neur_one, neur_two], np.zeros((2,2)))
-ref_gs = np.array([[100,36,0.3,2],[140,36,0.3,2]]) # gs of reference network.
-
-Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-Iapps = [Iapp, lambda t: 6, lambda t: 6] # Neuron 2 converges even with constant current?
+# Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+Iapp = lambda t : 6 + np.sin(2*np.pi/10*t)
+Iapps = [Iapp, Iapp] # Neuron 2 converges even with constant current?
 
 # ## FOR TESTING, REMOVE SYNAPSE:
 # x_0 = [0, 0, 0, 0]; # V, m, h, n
@@ -71,7 +93,7 @@ Iapps = [Iapp, lambda t: 6, lambda t: 6] # Neuron 2 converges even with constant
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
-control_law = ["DistRej", [(0, 1)]]#, (0, 1)]]
+# control_law = ["DistRej", [(0, 1)]]#, (0, 1)]]
 control_law = ["RefTrack", ref_gs]
 # control_law = [""]
 
@@ -91,7 +113,7 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 400
+Tfinal = 100
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,

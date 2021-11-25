@@ -4,29 +4,41 @@ Created on Sat Oct 30 19:16:03 2021
 
 @author: Rafi
 """
+from numba import jit, njit
 import numpy as np
 
 from network_and_neuron import Neuron, Network
 
+@jit
 def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
     Isyn_estimates = np.zeros(num_neurs)
     for (neur_i, syn_i) in to_reject:
         Isyn_estimates[neur_i] = Isyn_estimates[neur_i] - g_syns[syn_i,neur_i] * syns_hat[syn_i,neur_i] * (Vs[neur_i] - Esyn)
     return -Isyn_estimates
 
+@jit
 def reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
+    Es = network.neurons[0].Es # Same for every neuron, so can pick any.
+    max_num_syns = network.max_num_syns
+    cs = np.zeros(num_neurs)
+    for (idx, neur) in enumerate(network.neurons):
+        cs[idx] = neur.c
+    adjusting_currents = reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs)
+    return adjusting_currents
+
+@njit
+def reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs):
     adjusting_currents = np.zeros(num_neurs)
     g_diffs = ref_gs-gs
-    terms = np.zeros((num_neur_gs+network.max_num_syns, num_neurs))
-    Es = network.neurons[0].Es # Same for every neuron, so can pick any.
+    terms = np.zeros((num_neur_gs+max_num_syns, num_neurs))
     for i in range(num_neurs):
         terms[:num_neur_gs,i] = np.divide(np.array([-m̂s[i]**3*ĥs[i]*(Vs[i]-Es[0]),-n̂s[i]**4*(Vs[i]-Es[1]),
-                                    -(Vs[i]-Es[2])]),network.neurons[i].c)
-        terms[num_neur_gs:,i] = -syns_hat*(Vs[i] - Es[3])
+                                    -(Vs[i]-Es[2])]),cs[i])
+        terms[num_neur_gs:,i] = -syns_hat[:,i]*(Vs[i] - Es[3])
         adjusting_currents[i] = np.dot(g_diffs[:,i],terms[:,i]) # diag(A^T B)?
     return adjusting_currents
         
-    
+@jit
 def main(t,z,p):
     Iapps = p[0]
     network = p[1]
@@ -79,7 +91,7 @@ def main(t,z,p):
             g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
         else:
             g_syns = np.zeros((max_num_syns, num_neurs))
-            for (idx, neur) in enumerate(network):
+            for (idx, neur) in enumerate(network.neurons):
                 g_syns[:neur.num_syns, idx] = neur.g_syns
         control_currs = disturbance_rejection(controller_settings[1], g_syns, syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
         injected_currents = injected_currents + control_currs
@@ -90,13 +102,15 @@ def main(t,z,p):
         neur_gs[to_estimate,:] = θ̂s[:len(to_estimate),:]
         tmp_list = list(range(num_neur_gs))
         known_g_idxs = np.delete(tmp_list, to_estimate) # Use idxs of true gs where not estimating.
-        neur_gs[known_g_idxs,:] = neur.gs[known_g_idxs,:]
+        if known_g_idxs.any(): # Otherwise, neur_gs already fully populated with estimates.
+            for (neur_idx, neur) in enumerate(network.neurons):
+                neur_gs[known_g_idxs,neur_idx] = neur.gs[known_g_idxs]
         # if-else block below is same as for "DistRej" case above.
         if estimate_g_syns:
             g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
         else:
             g_syns = np.zeros((max_num_syns, num_neurs))
-        for (idx, neur) in enumerate(network):
+        for (idx, neur) in enumerate(network.neurons):
             g_syns[:neur.num_syns, idx] = neur.g_syns
         observer_gs = np.vstack((neur_gs, g_syns))
         control_currs = reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, observer_gs, 
