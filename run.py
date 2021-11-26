@@ -58,7 +58,7 @@ x̂_0 = [30, 0.1, 0.2, 0.4]
 θ̂_0 = [60, 60, 10]; # [gNa, gK, gL]
 P_0 = np.eye(3);
 Ψ_0 = [0, 0, 0];
-to_estimate = [0, 1, 2]
+to_estimate = np.array([0, 1, 2])
 estimate_g_syns = True
 estimate_g_res = False # TODO: Need to write the code for this!!
 
@@ -116,7 +116,7 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 200
+Tfinal = 60
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,

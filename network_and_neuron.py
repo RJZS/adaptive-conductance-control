@@ -5,6 +5,7 @@ Created on Sat Oct 30 19:28:00 2021
 @author: Rafi
 """
 import numpy as np
+from numba import njit, f8, i4
 
 class Synapse:
     def __init__(self, g, pre_neur):
@@ -48,8 +49,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         std = 30.;
         Camp = 0.46;
         Cbase = 0.04;
-        τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std**2);
-        σ = np.divide(1, (1+np.exp(-(v-Vhalf)/k)));
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
         return τ, σ 
     
     # Sodium inactivation
@@ -60,8 +60,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         std = 20.;
         Camp = 7.4;
         Cbase = 1.2;
-        τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std**2);
-        σ = np.divide(1, (1+np.exp(-(v-Vhalf)/k)));
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
         return τ, σ
     
     # Potassium activation
@@ -72,8 +71,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         std = 50.;
         Camp = 4.7;
         Cbase = 1.1;
-        τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std**2);
-        σ = np.divide(1, (1+np.exp(-(v-Vhalf)/k)));
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
         return τ, σ
     
     # Synaptic gate
@@ -84,8 +82,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         std = 30.;
         Camp = 0.46;
         Cbase = 0.04;
-        τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std**2);
-        σ = np.divide(1, (1+np.exp(-(v-Vhalf)/k)));
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
         return τ, σ
     
     def neuron_calcs(self, v, m, h, n, I): # What's this function for?
@@ -107,14 +104,14 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         (τm,σm) = self.gating_m(v);
         (τh,σh) = self.gating_h(v);
         (τn,σn) = self.gating_n(v);
-        dm = 1/τm*(-m + σm);
-        dh = 1/τh*(-h + σh);
-        dn = 1/τn*(-n + σn);
+        dm = calc_dgate(τm, m, σm)
+        dh = calc_dgate(τh, h, σh)
+        dn = calc_dgate(τn, n, σn)
         
         dsyns = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
             (τs,σs) = self.gating_s(v_pres[idx])
-            dsyns[idx] = 1/τs*(-syn_gates[idx] + σs);
+            dsyns[idx] = calc_dgate(τs, syn_gates[idx], σs);
             
         return (dm, dh, dn, dsyns)
     
@@ -123,39 +120,23 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
     # not the standardised 'max length' required by the ODE solver.
     def define_dv_terms(self, to_estimate, est_gsyns, v, m, h, n, syn_gates, I):
         # First deal with intrinsic conductances.
-        gs = np.array([self.gNa, self.gK, self.gL, 1])
+        gs = np.array([self.gNa, self.gK, self.gL, 1.])
         terms = np.divide(np.array([-m**3*h*(v-self.ENa),-n**4*(v-self.EK),
                                     -(v-self.EL),I]),self.c)
         
-        θ_intrins = np.zeros(len(to_estimate))
-        ϕ_intrins = np.zeros(len(to_estimate))
+        gs, terms, θ_intrins, ϕ_intrins = calc_intrins_dv_terms(gs, terms, to_estimate)
         
-        gs_del_idxs = np.zeros(len(to_estimate), dtype=np.int8)
-        terms_del_idxs = np.zeros(len(to_estimate), dtype=np.int8)
-        for (idx,val) in enumerate(to_estimate):
-            θ_intrins[idx] = gs[val]
-            ϕ_intrins[idx] = terms[val]
-            gs_del_idxs[idx] = val; terms_del_idxs[idx] = val
-        gs_mask = np.ones(len(gs), dtype=bool); terms_mask = np.ones(len(terms), dtype=bool)
-        gs_mask[gs_del_idxs] = False; terms_mask[terms_del_idxs] = False;
-        gs = gs[gs_mask]
-        terms = terms[terms_mask]
-            
         # Now look at synaptic terms.
         syn_terms = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
             syn_terms[idx] = - syn_gates[idx] * (v - self.Esyn)
         
         if est_gsyns:
-            θ = np.concatenate((θ_intrins, self.g_syns))
-            ϕ = np.concatenate((ϕ_intrins, syn_terms))
-            b = np.dot(gs, terms)
+            θ, ϕ, b = calc_dv_terms_final_step_if_est_gsyns(θ_intrins, 
+                                self.g_syns, ϕ_intrins, syn_terms, gs, terms)
             return (θ, ϕ, b)
         else:
-            b = np.dot(
-                    np.concatenate((gs, self.g_syns)),
-                    np.concatenate((terms, syn_terms))
-                )
+            b = calc_dv_terms_final_step_if_not_est_gsyns(gs, self.g_syns, terms, syn_terms)
             return (θ_intrins, ϕ_intrins, b)
     
     def calc_dv_no_observer(self, v, m, h, n, syn_gates, I):
@@ -166,7 +147,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         
         if syn_gates:
             # In numpy, asterisk operator performs elementwise multiplication.
-            dv = dv - self.g_syns * syn_gates * (v - self.Esyn) # NEED TO DIVIDE BY C??
+            dv = dv - self.g_syns * syn_gates * (v - self.Esyn) # !! NEED TO DIVIDE BY C??
         return dv
     
 class Network:
@@ -179,6 +160,49 @@ class Network:
             if neur.num_syns > max_num_syns:
                 max_num_syns = neur.num_syns
         self.max_num_syns = max_num_syns
-
         
+# Needed to take some functions out of the class, for numba.
+@njit(cache=True)
+def calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k):
+    τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std**2);
+    σ = np.divide(1, (1+np.exp(-(v-Vhalf)/k)));
+    return τ, σ
+
+@njit(cache=True)
+def calc_dgate(τ, x, σ):
+    dx = 1/τ*(-x + σ)
+    return dx
+
+# Providing types as 'typeof' was taking a long time in the profiler.
+@njit((f8[:],f8[:],i4[:]), cache=True)
+def calc_intrins_dv_terms(gs, terms, to_estimate):
+    # First deal with intrinsic conductances.
+    θ_intrins = np.zeros(len(to_estimate))
+    ϕ_intrins = np.zeros(len(to_estimate))
     
+    gs_del_idxs = np.zeros(len(to_estimate), dtype=np.int8)
+    terms_del_idxs = np.zeros(len(to_estimate), dtype=np.int8)
+    for (idx,val) in enumerate(to_estimate):
+        θ_intrins[idx] = gs[val]
+        ϕ_intrins[idx] = terms[val]
+        gs_del_idxs[idx] = val; terms_del_idxs[idx] = val
+    gs_mask = np.ones(len(gs), dtype=np.bool_); terms_mask = np.ones(len(terms), dtype=np.bool_)
+    gs_mask[gs_del_idxs] = False; terms_mask[terms_del_idxs] = False;
+    gs = gs[gs_mask]
+    terms = terms[terms_mask]
+    return (gs, terms, θ_intrins, ϕ_intrins)
+
+@njit(cache=True)
+def calc_dv_terms_final_step_if_est_gsyns(θ_intrins, g_syns, ϕ_intrins, syn_terms, gs, terms):
+    θ = np.concatenate((θ_intrins, g_syns))
+    ϕ = np.concatenate((ϕ_intrins, syn_terms))
+    b = np.dot(gs, terms)
+    return (θ, ϕ, b)
+
+@njit(cache=True)
+def calc_dv_terms_final_step_if_not_est_gsyns(gs, g_syns, terms, syn_terms):
+    b = np.dot(
+                    np.concatenate((gs, g_syns)),
+                    np.concatenate((terms, syn_terms))
+                )
+    return b
