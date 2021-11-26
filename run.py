@@ -17,9 +17,7 @@ from network_odes import main, no_observer
 # Run the simulation for longer (than 200s) and see if the observer estimates settle.
 # Also try ref track with HCO.
 
-# Try out Numba package, on 'define_dv_terms', then 'gate_calcs'. Failing that, look into Cython.
-
-# Replace neuron model.
+# Replace neuron model. Want model from upcoming book. That's 'HCO2' in 'online-learning' repo.
 
 # On the backburner:
 # Code for graph plotting. Don't just plot everything (messy!), maybe have a 
@@ -53,7 +51,7 @@ from network_odes import main, no_observer
 
 # Initial conditions - Reference Tracking
 x_0 = [0, 0, 0, 0]; # V, m, h, n
-x̂_0 = [-40, 0.2, 0.3, 0.1] # Works for single neuron.
+# x̂_0 = [-40, 0.2, 0.3, 0.1] # Works for single neuron.
 x̂_0 = [30, 0.1, 0.2, 0.4]
 θ̂_0 = [60, 60, 10]; # [gNa, gK, gL]
 P_0 = np.eye(3);
@@ -116,7 +114,7 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 60
+Tfinal = 600
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,

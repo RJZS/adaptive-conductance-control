@@ -140,8 +140,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
     
     def calc_dv_no_observer(self, v, m, h, n, syn_gates, I):
         gs = np.array([self.gNa, self.gK, self.gL, 1])
-        terms = np.divide(np.array([-m**3*h*(v-self.ENa),-n**4*(v-self.EK),
-                                    -(v-self.EL),I]),self.c)
+        terms = calc_terms(v, m, h, n, self.ENa, self.EK, self.EL, self.c, I)
         dv = np.dot(gs, terms)
         
         if syn_gates:
