@@ -13,13 +13,17 @@ from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
 # TODO:
-# Reference tracking seems to work for one neuron, no synapses. But observer estimates of gs do vary!
-# Observer estimates don't settle after 600s.
-# Similar with HCO, although in this case there is a very slight phase shift between the system
-# and the reference system, for every other neuron or so. So still have an error after 600s. Try
-# running it for longer.
-
 # Replace neuron model. Want model from upcoming book. That's 'HCO2' in 'online-learning' repo.
+    
+# CURRENT STATUS:
+# Reference tracking seems to work for one neuron, no synapses. But observer estimates of gs do vary!
+# Observer estimates don't settle after 600s. But for the 'spiking HCO', error is within +/- 1 of the 
+# true value (for both 600s and if extend to 1500s)!
+# RefTrack for HCO: Need to apply a phase shift of course. After that, there is still
+# a slight, time-varying phase shift between the system
+# and the reference system, for every other neuron or so. So still have an error after 600s, and even
+# after 1500s (saved figs for this longer data but not the data as not very different from 600s).
+
 
 # On the backburner:
 # Code for graph plotting. Don't just plot everything (messy!), maybe have a 
@@ -117,7 +121,7 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 600
+Tfinal = 1500
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
