@@ -10,7 +10,7 @@ from scipy.integrate import solve_ivp
 import time
 
 from network_and_neuron import Synapse, Neuron, Network
-from network_odes import main, no_observer
+from network_odes import main, hhmodel_main, no_observer
 
 # TODO:
 # Replace neuron model. Want model from upcoming book. That's 'HCO2' in 'online-learning' repo.
@@ -128,7 +128,7 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns,estimate_g_res)
 
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-6,
+out = solve_ivp(lambda t, z: hhmodel_main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 end_time = time.time()
 print("Simulation time: {}s".format(end_time-start_time))
