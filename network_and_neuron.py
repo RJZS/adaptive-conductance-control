@@ -199,11 +199,23 @@ class Neuron:
         σ = mL_inf(v)
         return τ, σ
     
-    # Intracellular calcium
-    def ICa_pump(self, Ca): 0.1*Ca/(Ca+0.0001)
+    # # Intracellular calcium
+    # def ICa_pump(self, Ca): 0.1*Ca/(Ca+0.0001)
+    
+    # Gate for KCa. Instead of modelling [Ca]. Term is g_{KCa} mCa^4 (V - E_{KCa})
+    def gating_mCa(self, v):
+        vh_inf_mL = 55
+        vh_τ_mL = 45
+        k_inf_mL = 3
+        k_τ_mL = 400
+        def mCa_inf(V): 1/(1+np.exp(-(V+vh_inf_mL)/k_inf_mL))
+        def tau_mCa(V): (72*np.exp(-(V+vh_τ_mL)^2/k_τ_mL)+6.)*2
+        τ = tau_mCa(v)
+        σ = mCa_inf(v)
+        return τ, σ
     
     # Synaptic current
-    def gating_syn(self, v):
+    def gating_s(self, v):
         V12syn=-20.0
         ksyn=4.0
         def msyn_inf(V): 1.0 / ( 1.0 + np.exp(-(V-V12syn)/ksyn) )
@@ -228,21 +240,29 @@ class Neuron:
     
     #     return [dv,dm,dh,dn]
     
-    # TODO!
-    def gate_calcs(self, v, m, h, n, syn_gates, v_pres):
+    def gate_calcs(self, v, int_gates, syn_gates, v_pres):
+        dints = np.zeros(self.NUM_GATES)
         (τm,σm) = self.gating_m(v);
         (τh,σh) = self.gating_h(v);
-        (τn,σn) = self.gating_n(v);
-        dm = calc_dgate(τm, m, σm)
-        dh = calc_dgate(τh, h, σh)
-        dn = calc_dgate(τn, n, σn)
+        (τmH,σmH) = self.gating_mH(v);
+        (τmT,σmT) = self.gating_mT(v);
+        (τhT,σhT) = self.gating_hT(v);
+        (τmA,σmA) = self.gating_mA(v);
+        (τhA,σhA) = self.gating_hA(v);
+        (τmKD,σmKD) = self.gating_mKD(v);
+        (τmL,σmL) = self.gating_mL(v);
+        (τCa,σCa) = self.gating_Ca(v);
+        
+        taus = np.array([τm, τh, τmH, τmT, τhT, τmA, τhA, τmKD, τmL, τCa])
+        sigmas = np.array([σm, σh, σmH, σmT, σhT, σmA, σhA, σmKD, σmL, σCa])
+        dints = calc_dgate(taus, int_gates, sigmas)
         
         dsyns = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
             (τs,σs) = self.gating_s(v_pres[idx])
             dsyns[idx] = calc_dgate(τs, syn_gates[idx], σs);
             
-        return (dm, dh, dn, dsyns)
+        return (dints, dsyns)
     
     # TODO: Include resistive connections. 
     # Note this function spits out the length of vectors tailored to the neuron,
