@@ -13,7 +13,7 @@ class Synapse:
         self.pre_neur = pre_neur # Index of presynaptic neuron
 
 # Note that 'gs' is a list which can include both floats and functions!
-class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
+class Neuron:
     NUM_GATES = 10
     
     def __init__(self, c, gs, synapses):
@@ -49,50 +49,135 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         
     # NEED TO CHANGE THE GATES TO MATCH HCO2!!
     # Sodium activation
-    def gating_m(self, v):
-        Vhalf = -40.;
-        k = 9.;              #15 in izhikevich
-        Vmax = -38.;
-        std = 30.;
-        Camp = 0.46;
-        Cbase = 0.04;
-        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-        return τ, σ 
+    # def gating_m(self, v):
+    #     Vhalf = -40.;
+    #     k = 9.;              #15 in izhikevich
+    #     Vmax = -38.;
+    #     std = 30.;
+    #     Camp = 0.46;
+    #     Cbase = 0.04;
+    #     (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
+    #     return τ, σ 
     
-    # Sodium inactivation
-    def gating_h(self, v):
-        Vhalf = -62.;
-        k = -7.;
-        Vmax = -67.;
-        std = 20.;
-        Camp = 7.4;
-        Cbase = 1.2;
-        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-        return τ, σ
+    ## Model gating functions. CURRENTLY TRANSLATING THESE FROM JULIA!
+    # Need to check divisions are doing the right thing, especially if I
+    # decide to vectorise (ie calculate for the whole network at once).
+
+    # Synaptic current
+    V12syn=-20.0;
+    ksyn=4.0
+    def msyn_inf(V): 1.0 / ( 1.0 + np.exp(-(V-V12syn)/ksyn) )
+    # WHAT ABOUT TAU_SYN?
     
-    # Potassium activation
-    def gating_n(self, v):
-        Vhalf = -53.;
-        k = 15.;
-        Vmax = -79.;
-        std = 50.;
-        Camp = 4.7;
-        Cbase = 1.1;
-        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-        return τ, σ
+    # Na-current (m=activation variable, h=inactivation variable)
+    vh_α_m = 40
+    vh_β_m = 65
+    k_α_m = 10
+    k_β_m = 18
+    def alpha_m(V): -0.025*(V+vh_α_m)/(np.exp(-(V+vh_α_m)/k_α_m) - 1.0 )
+    def beta_m(V): np.exp(-(V+vh_β_m)/k_β_m)
+    def m_inf(V): alpha_m(V) / (alpha_m(V) + beta_m(V))
+    def tau_m(V): 1.0 / (alpha_m(V) + beta_m(V))
     
-    # Synaptic gate
-    def gating_s(self, v): # Terms are same as m unless stated.
-        Vhalf = -45.; # From Dethier et al - 2015
-        k = 2.; # From Dethier et al - 2015
-        Vmax = -38.;
-        std = 30.;
-        Camp = 0.46;
-        Cbase = 0.04;
-        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-        return τ, σ
+    ## up to here!
+    vh_α_h = 65
+    vh_β_h = 35
+    k_α_h = 20
+    k_β_h = 10
+    alpha_h(V::Float64,i) = 0.0175*exp(-(V+vh_α_h[i])/k_α_h[i])
+    beta_h(V::Float64,i) = 0.25/(1.0 + exp(-(V+vh_β_h[i])/k_β_h[i]) )
+    h_inf(V::Float64,i) = alpha_h(V,i) / (alpha_h(V,i) + beta_h(V,i))
+    tau_h(V::Float64,i) = 1 / (alpha_h(V,i) + beta_h(V,i))
     
-    # UP TO HERE!!
+    # KD-current (mKD=activation variable)
+    vh_α_mKD = 55
+    vh_β_mKD = 65
+    k_α_mKD = 10
+    k_β_mKD = 80
+    KDshift=10.0
+    alpha_mKD(V::Float64,i) = 0.0025*(V+vh_α_mKD[i])/(1. - exp(-(V+vh_α_mKD[i])/k_α_mKD[i]) )
+    beta_mKD(V::Float64,i) = 0.03125*exp(-(V+vh_β_mKD[i])/k_β_mKD[i])
+    mKD_inf(V::Float64,i) = alpha_mKD(V-KDshift,i) / (alpha_mKD(V-KDshift,i) + beta_mKD(V-KDshift,i))
+    tau_mKD(V::Float64,i) = 1 / (alpha_mKD(V-KDshift,i) + beta_mKD(V-KDshift,i))
+    
+    # H-current (mH=activation variable)
+    w_α_mH = 14.59
+    w_β_mH = 1.87
+    b_α_mH = 0.086
+    b_β_mH = 0.0701
+    alpha_mH(V::Float64,i)= exp(-w_α_mH[i]-(b_α_mH[i]*V))
+    beta_mH(V::Float64,i)= exp(-w_β_mH[i]+(b_β_mH[i]*V))
+    mH_inf(V::Float64,i)= alpha_mH(V,i) /(alpha_mH(V,i) + beta_mH(V,i))
+    tau_mH(V_taumH,i) = 1/(alpha_mH(V_taumH,i) + beta_mH(V_taumH,i))
+    # dmH_inf(V::Float64)=((((0 - (0.086 * 1)) * exp(-14.59 - 0.086*V)) * (exp(-14.59 - 0.086*V) + exp(-1.87 + 0.0701*V)) - exp(-14.59 - 0.086*V) * ((0 - (0.086 * 1)) * exp(-14.59 - 0.086*V) + (0.0701 * 1) * exp(-1.87 + 0.0701*V))) / (exp(-14.59 - 0.086*V) + exp(-1.87 + 0.0701*V)) ^ 2)
+    
+    # A-current (mA=activation variable, hA=inactivation variable)
+    vh_∞_mA = 60
+    vh_τ_mA1 = 35.82
+    vh_τ_mA2 = 79.69
+    k_∞_mA = 8.5
+    k_τ_mA1 = 19.697
+    k_τ_mA2 = -12.7
+    mA_inf(V::Float64,i) = 1/(1+exp(-(V+vh_∞_mA[i])/k_∞_mA[i]))
+    tau_mA_temp(V::Float64,i) = 0.37 + 1/(exp((V+vh_τ_mA1[i])/k_τ_mA1[i])+exp((V+vh_τ_mA2[i])/k_τ_mA2[i]))
+    tau_mA(V::Float64,i) = tau_mA_temp(V,i)
+    
+    vh_∞_hA = 78
+    vh_τ_hA1 = 46.05
+    vh_τ_hA2 = 238.4
+    k_∞_hA = 6
+    k_τ_hA1 = 5
+    k_τ_hA2 = -37.45
+    hA_inf_temp(V::Float64,i) = 1/(1+exp((V+vh_∞_hA[i])/k_∞_hA[i]))
+    hA_inf(V,i) = hA_inf_temp(V,i)
+    function tau_hA(V::Float64,i)
+        if V < -63
+            tau_hA = 1/(exp((V+vh_τ_hA1[i])/k_τ_hA1[i])+exp((V+vh_τ_hA2[i])/k_τ_hA2[i]))
+        else
+            tau_hA = 19
+        end
+        return tau_hA
+    end
+    #tau_hA(V::Float64)=50.
+    
+    # T-type Ca-current (mt=activation variable, ht=inactivation variable)
+    vh_∞_mt = 57
+    vh_τ_mt1 = 131.6
+    vh_τ_mt2 = 16.8
+    k_∞_mt = 6.2
+    k_τ_mt1 = 16.7
+    k_τ_mt2 = 18.2
+    mt_inf(V::Float64,i) = 1/(1+exp(-(V+vh_∞_mt[i])/k_∞_mt[i]))
+    tau_mt(V::Float64,i) = 0.612 + 1/(exp(-(V+vh_τ_mt1[i])/k_τ_mt1[i])+exp((V+vh_τ_mt2[i])/k_τ_mt2[i]))*2
+    
+    vh_∞_ht = 81
+    vh_τ_ht1 = 467
+    vh_τ_ht2 = 21.88
+    k_∞_ht = 4.03
+    k_τ_ht1 = 66.6
+    k_τ_ht2 = 10.2
+    ht_inf(V::Float64,i) = 1/(1+exp((V+vh_∞_ht[i])/k_∞_ht[i]))
+    function tau_ht(V::Float64,i)
+        if V < -80
+            tau_ht = exp((V+vh_τ_ht1[i])/k_τ_ht1[i])*2
+        else
+            tau_ht = (exp(-(V+vh_τ_ht2[i])/k_τ_ht2[i])+28)*2
+        end
+        return tau_ht
+    end
+    
+    # L-type Ca-current (mL=activation variable) (from Drion2011)
+    vh_∞_mL = 55
+    vh_τ_mL = 45
+    k_∞_mL = 3
+    k_τ_mL = 400
+    mL_inf(V::Float64,i) = 1/(1+exp(-(V+vh_∞_mL[i])/k_∞_mL[i]))
+    tau_mL(V::Float64,i) = (72*exp(-(V+vh_τ_mL[i])^2/k_τ_mL[i])+6.)*2
+    
+    # Intracellular calcium
+    ICa_pump(Ca::Float64)=0.1*Ca/(Ca+0.0001)
+    
+    # HAVENT DONE THIS ONE!
     def neuron_calcs(self, v, m, h, n, I): # What's this function for?
         (τm,σm) = self.gating_m(v);
         (τh,σh) = self.gating_h(v);
@@ -126,6 +211,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
     # TODO: Include resistive connections. 
     # Note this function spits out the length of vectors tailored to the neuron,
     # not the standardised 'max length' required by the ODE solver.
+    # NB: Have converted this fn to the new neuron model!
     def define_dv_terms(self, to_estimate, est_gsyns, v, ints, syn_gates, I):
         # First deal with intrinsic conductances.
         gs = np.concatenate((self.gs, [1.]))
