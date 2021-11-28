@@ -33,11 +33,13 @@ def reference_tracking_njit(Vs, ints_hat, syns_hat, gs, ref_gs, Es, num_neurs, n
                                     -ints_hat[0,i]**3*ints_hat[1,i]*(Vs[i]-Es[0]),
                                     -ints_hat[2,i]*(Vs[i]-Es[1]), # I_H
                                     -ints_hat[3,i]**2*ints_hat[4,i]*(Vs[i]-Es[2]), # I_T
-                                    ## UP TO HERE. A current.
-                                    -n̂s[i]**4*(Vs[i]-Es[1]),
-                                    -(Vs[i]-Es[2])
+                                    -ints_hat[5,i]**4*ints_hat[6,i]*(Vs[i]-Es[3]), # I_A
+                                    -ints_hat[7,i]**4*(Vs[i]-Es[3]), # I_KD
+                                    -ints_hat[8,i]*(Vs[i]-Es[2]), # I_L
+                                    -ints_hat[9,i]**4*(Vs[i]-Es[3]), # I_KCa
+                                    -(Vs[i]-Es[4])
                                 ]),cs[i])
-        terms[num_neur_gs:,i] = -syns_hat[:,i]*(Vs[i] - Es[3])
+        terms[num_neur_gs:,i] = -syns_hat[:,i]*(Vs[i] - Es[5])
         adjusting_currents[i] = np.dot(g_diffs[:,i],terms[:,i]) # diag(A^T B)?
     return adjusting_currents
 
@@ -149,11 +151,12 @@ def main(t,z,p):
             g_syns = np.zeros((max_num_syns, num_neurs))
         for (idx, neur) in enumerate(network.neurons):
             g_syns[:neur.num_syns, idx] = neur.g_syns
-        observer_gs = np.vstack((neur_gs, g_syns)) #### UP TO HERE !!!!
-        control_currs = reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, observer_gs, 
+        observer_gs = np.vstack((neur_gs, g_syns))
+        control_currs = reference_tracking(Vs, ints_hat, syns_hat, observer_gs, 
                                            controller_settings[1], network, num_neurs, num_neur_gs)
         injected_currents = injected_currents + control_currs
     
+    #### UP TO HERE !!!!
     # Now make one time step. First, initialise the required vectors.
     bs = np.zeros(num_neurs)
     dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)
