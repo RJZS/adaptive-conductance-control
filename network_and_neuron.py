@@ -63,136 +63,172 @@ class Neuron:
     # Need to check divisions are doing the right thing, especially if I
     # decide to vectorise (ie calculate for the whole network at once).
 
-    # Synaptic current
-    V12syn=-20.0;
-    ksyn=4.0
-    def msyn_inf(V): 1.0 / ( 1.0 + np.exp(-(V-V12syn)/ksyn) )
-    # WHAT ABOUT TAU_SYN?
-    
     # Na-current (m=activation variable, h=inactivation variable)
-    vh_α_m = 40
-    vh_β_m = 65
-    k_α_m = 10
-    k_β_m = 18
-    def alpha_m(V): -0.025*(V+vh_α_m)/(np.exp(-(V+vh_α_m)/k_α_m) - 1.0 )
-    def beta_m(V): np.exp(-(V+vh_β_m)/k_β_m)
-    def m_inf(V): alpha_m(V) / (alpha_m(V) + beta_m(V))
-    def tau_m(V): 1.0 / (alpha_m(V) + beta_m(V))
-    
-    ## up to here!
-    vh_α_h = 65
-    vh_β_h = 35
-    k_α_h = 20
-    k_β_h = 10
-    alpha_h(V::Float64,i) = 0.0175*exp(-(V+vh_α_h[i])/k_α_h[i])
-    beta_h(V::Float64,i) = 0.25/(1.0 + exp(-(V+vh_β_h[i])/k_β_h[i]) )
-    h_inf(V::Float64,i) = alpha_h(V,i) / (alpha_h(V,i) + beta_h(V,i))
-    tau_h(V::Float64,i) = 1 / (alpha_h(V,i) + beta_h(V,i))
+    def gating_m(self, v):
+        vh_α_m = 40.
+        vh_β_m = 65.
+        k_α_m = 10.
+        k_β_m = 18.
+        def alpha_m(V): -0.025*(V+vh_α_m)/(np.exp(-(V+vh_α_m)/k_α_m) - 1.0 )
+        def beta_m(V): np.exp(-(V+vh_β_m)/k_β_m)
+        def m_inf(V): alpha_m(V) / (alpha_m(V) + beta_m(V))
+        def tau_m(V): 1.0 / (alpha_m(V) + beta_m(V))        
+        τ = tau_m(v)
+        σ = m_inf(v)
+        return τ, σ
+        
+    def gating_h(self, v):
+        vh_α_h = 65.
+        vh_β_h = 35.
+        k_α_h = 20.
+        k_β_h = 10.
+        def alpha_h(V): 0.0175*np.exp(-(V+vh_α_h)/k_α_h)
+        def beta_h(V): 0.25/(1.0 + np.exp(-(V+vh_β_h)/k_β_h) )
+        def h_inf(V): alpha_h(V) / (alpha_h(V) + beta_h(V))
+        def tau_h(V): 1. / (alpha_h(V) + beta_h(V))
+        τ = tau_h(v)
+        σ = h_inf(v)
+        return τ, σ
     
     # KD-current (mKD=activation variable)
-    vh_α_mKD = 55
-    vh_β_mKD = 65
-    k_α_mKD = 10
-    k_β_mKD = 80
-    KDshift=10.0
-    alpha_mKD(V::Float64,i) = 0.0025*(V+vh_α_mKD[i])/(1. - exp(-(V+vh_α_mKD[i])/k_α_mKD[i]) )
-    beta_mKD(V::Float64,i) = 0.03125*exp(-(V+vh_β_mKD[i])/k_β_mKD[i])
-    mKD_inf(V::Float64,i) = alpha_mKD(V-KDshift,i) / (alpha_mKD(V-KDshift,i) + beta_mKD(V-KDshift,i))
-    tau_mKD(V::Float64,i) = 1 / (alpha_mKD(V-KDshift,i) + beta_mKD(V-KDshift,i))
+    def gating_mKD(self, v):
+        vh_α_mKD = 55
+        vh_β_mKD = 65
+        k_α_mKD = 10
+        k_β_mKD = 80
+        KDshift=10.0
+        def alpha_mKD(V): 0.0025*(V+vh_α_mKD)/(1. - np.exp(-(V+vh_α_mKD)/k_α_mKD) )
+        def beta_mKD(V): 0.03125*np.exp(-(V+vh_β_mKD)/k_β_mKD)
+        def mKD_inf(V): alpha_mKD(V-KDshift) / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
+        def tau_mKD(V): 1. / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
+        τ = tau_mKD(v)
+        σ = mKD_inf(v)
+        return τ, σ
     
     # H-current (mH=activation variable)
-    w_α_mH = 14.59
-    w_β_mH = 1.87
-    b_α_mH = 0.086
-    b_β_mH = 0.0701
-    alpha_mH(V::Float64,i)= exp(-w_α_mH[i]-(b_α_mH[i]*V))
-    beta_mH(V::Float64,i)= exp(-w_β_mH[i]+(b_β_mH[i]*V))
-    mH_inf(V::Float64,i)= alpha_mH(V,i) /(alpha_mH(V,i) + beta_mH(V,i))
-    tau_mH(V_taumH,i) = 1/(alpha_mH(V_taumH,i) + beta_mH(V_taumH,i))
-    # dmH_inf(V::Float64)=((((0 - (0.086 * 1)) * exp(-14.59 - 0.086*V)) * (exp(-14.59 - 0.086*V) + exp(-1.87 + 0.0701*V)) - exp(-14.59 - 0.086*V) * ((0 - (0.086 * 1)) * exp(-14.59 - 0.086*V) + (0.0701 * 1) * exp(-1.87 + 0.0701*V))) / (exp(-14.59 - 0.086*V) + exp(-1.87 + 0.0701*V)) ^ 2)
+    def gating_mH(self, v):
+        w_α_mH = 14.59
+        w_β_mH = 1.87
+        b_α_mH = 0.086
+        b_β_mH = 0.0701
+        def alpha_mH(V): np.exp(-w_α_mH-(b_α_mH*V))
+        def beta_mH(V): np.exp(-w_β_mH+(b_β_mH*V))
+        def mH_inf(V): alpha_mH(V) /(alpha_mH(V) + beta_mH(V))
+        def tau_mH(V): 1./(alpha_mH(V) + beta_mH(V))
+        # dmH_inf(V::Float64)=((((0 - (0.086 * 1)) * exp(-14.59 - 0.086*V)) * (exp(-14.59 - 0.086*V) + exp(-1.87 + 0.0701*V)) - exp(-14.59 - 0.086*V) * ((0 - (0.086 * 1)) * exp(-14.59 - 0.086*V) + (0.0701 * 1) * exp(-1.87 + 0.0701*V))) / (exp(-14.59 - 0.086*V) + exp(-1.87 + 0.0701*V)) ^ 2)
+        τ = tau_mH(v)
+        σ = mH_inf(v)
+        return τ, σ
     
     # A-current (mA=activation variable, hA=inactivation variable)
-    vh_∞_mA = 60
-    vh_τ_mA1 = 35.82
-    vh_τ_mA2 = 79.69
-    k_∞_mA = 8.5
-    k_τ_mA1 = 19.697
-    k_τ_mA2 = -12.7
-    mA_inf(V::Float64,i) = 1/(1+exp(-(V+vh_∞_mA[i])/k_∞_mA[i]))
-    tau_mA_temp(V::Float64,i) = 0.37 + 1/(exp((V+vh_τ_mA1[i])/k_τ_mA1[i])+exp((V+vh_τ_mA2[i])/k_τ_mA2[i]))
-    tau_mA(V::Float64,i) = tau_mA_temp(V,i)
+    def gating_mA(self, v):
+        vh_inf_mA = 60
+        vh_τ_mA1 = 35.82
+        vh_τ_mA2 = 79.69
+        k_inf_mA = 8.5
+        k_τ_mA1 = 19.697
+        k_τ_mA2 = -12.7
+        def mA_inf(V): 1/(1+np.exp(-(V+vh_inf_mA)/k_inf_mA))
+        def tau_mA_temp(V): 0.37 + 1/(np.exp((V+vh_τ_mA1)/k_τ_mA1)+np.exp((V+vh_τ_mA2)/k_τ_mA2))
+        def tau_mA(V): tau_mA_temp(V)
+        τ = tau_mA(v)
+        σ = mA_inf(v)
+        return τ, σ
     
-    vh_∞_hA = 78
-    vh_τ_hA1 = 46.05
-    vh_τ_hA2 = 238.4
-    k_∞_hA = 6
-    k_τ_hA1 = 5
-    k_τ_hA2 = -37.45
-    hA_inf_temp(V::Float64,i) = 1/(1+exp((V+vh_∞_hA[i])/k_∞_hA[i]))
-    hA_inf(V,i) = hA_inf_temp(V,i)
-    function tau_hA(V::Float64,i)
-        if V < -63
-            tau_hA = 1/(exp((V+vh_τ_hA1[i])/k_τ_hA1[i])+exp((V+vh_τ_hA2[i])/k_τ_hA2[i]))
-        else
-            tau_hA = 19
-        end
-        return tau_hA
-    end
-    #tau_hA(V::Float64)=50.
+    def gating_hA(self, v):
+        vh_inf_hA = 78
+        vh_τ_hA1 = 46.05
+        vh_τ_hA2 = 238.4
+        k_inf_hA = 6
+        k_τ_hA1 = 5
+        k_τ_hA2 = -37.45
+        def hA_inf_temp(V): 1/(1+np.exp((V+vh_inf_hA)/k_inf_hA))
+        def hA_inf(V): hA_inf_temp(V)
+        def tau_hA(V):
+            if V < -63:
+                tau_hA = 1/(np.exp((V+vh_τ_hA1)/k_τ_hA1)+np.exp((V+vh_τ_hA2)/k_τ_hA2))
+            else:
+                tau_hA = 19
+            return tau_hA
+        #tau_hA(V::Float64)=50.
+        τ = tau_hA(v)
+        σ = hA_inf(v)
+        return τ, σ
     
     # T-type Ca-current (mt=activation variable, ht=inactivation variable)
-    vh_∞_mt = 57
-    vh_τ_mt1 = 131.6
-    vh_τ_mt2 = 16.8
-    k_∞_mt = 6.2
-    k_τ_mt1 = 16.7
-    k_τ_mt2 = 18.2
-    mt_inf(V::Float64,i) = 1/(1+exp(-(V+vh_∞_mt[i])/k_∞_mt[i]))
-    tau_mt(V::Float64,i) = 0.612 + 1/(exp(-(V+vh_τ_mt1[i])/k_τ_mt1[i])+exp((V+vh_τ_mt2[i])/k_τ_mt2[i]))*2
-    
-    vh_∞_ht = 81
-    vh_τ_ht1 = 467
-    vh_τ_ht2 = 21.88
-    k_∞_ht = 4.03
-    k_τ_ht1 = 66.6
-    k_τ_ht2 = 10.2
-    ht_inf(V::Float64,i) = 1/(1+exp((V+vh_∞_ht[i])/k_∞_ht[i]))
-    function tau_ht(V::Float64,i)
-        if V < -80
-            tau_ht = exp((V+vh_τ_ht1[i])/k_τ_ht1[i])*2
-        else
-            tau_ht = (exp(-(V+vh_τ_ht2[i])/k_τ_ht2[i])+28)*2
-        end
-        return tau_ht
-    end
+    def gating_mT(self, v):
+        vh_inf_mt = 57
+        vh_τ_mt1 = 131.6
+        vh_τ_mt2 = 16.8
+        k_inf_mt = 6.2
+        k_τ_mt1 = 16.7
+        k_τ_mt2 = 18.2
+        def mT_inf(V): 1/(1+np.exp(-(V+vh_inf_mt)/k_inf_mt))
+        def tau_mT(V): 0.612 + 1/(np.exp(-(V+vh_τ_mt1)/k_τ_mt1)+np.exp((V+vh_τ_mt2)/k_τ_mt2))*2
+        τ = tau_mT(v)
+        σ = mT_inf(v)
+        return τ, σ
+        
+    def gating_hT(self, v):
+        vh_inf_ht = 81
+        vh_τ_ht1 = 467
+        vh_τ_ht2 = 21.88
+        k_inf_ht = 4.03
+        k_τ_ht1 = 66.6
+        k_τ_ht2 = 10.2
+        def hT_inf(V): 1/(1+np.exp((V+vh_inf_ht)/k_inf_ht))
+        def tau_hT(V):
+            if V < -80:
+                tau_ht = np.exp((V+vh_τ_ht1)/k_τ_ht1)*2
+            else:
+                tau_ht = (np.exp(-(V+vh_τ_ht2)/k_τ_ht2)+28)*2
+            return tau_ht
+        τ = tau_hT(v)
+        σ = hT_inf(v)
+        return τ, σ
     
     # L-type Ca-current (mL=activation variable) (from Drion2011)
-    vh_∞_mL = 55
-    vh_τ_mL = 45
-    k_∞_mL = 3
-    k_τ_mL = 400
-    mL_inf(V::Float64,i) = 1/(1+exp(-(V+vh_∞_mL[i])/k_∞_mL[i]))
-    tau_mL(V::Float64,i) = (72*exp(-(V+vh_τ_mL[i])^2/k_τ_mL[i])+6.)*2
+    def gating_mL(self, v):
+        vh_inf_mL = 55
+        vh_τ_mL = 45
+        k_inf_mL = 3
+        k_τ_mL = 400
+        def mL_inf(V): 1/(1+np.exp(-(V+vh_inf_mL)/k_inf_mL))
+        def tau_mL(V): (72*np.exp(-(V+vh_τ_mL)^2/k_τ_mL)+6.)*2
+        τ = tau_mL(v)
+        σ = mL_inf(v)
+        return τ, σ
     
     # Intracellular calcium
-    ICa_pump(Ca::Float64)=0.1*Ca/(Ca+0.0001)
+    def ICa_pump(self, Ca): 0.1*Ca/(Ca+0.0001)
     
-    # HAVENT DONE THIS ONE!
-    def neuron_calcs(self, v, m, h, n, I): # What's this function for?
-        (τm,σm) = self.gating_m(v);
-        (τh,σh) = self.gating_h(v);
-        (τn,σn) = self.gating_n(v);
+    # Synaptic current
+    def gating_syn(self, v):
+        V12syn=-20.0
+        ksyn=4.0
+        def msyn_inf(V): 1.0 / ( 1.0 + np.exp(-(V-V12syn)/ksyn) )
+        tausyn = 20.0
+        τ = tausyn(v)
+        σ = msyn_inf(v)
+        return τ, σ
     
-        g = [self.gNa, self.gK, self.gL]
-        phi = [-m**3*h*(v-self.ENa),-n**4*(v-self.EK),-(v-self.EL)];
+    # What's this function for? Not used?
+    # def neuron_calcs(self, v, m, h, n, I):
+    #     (τm,σm) = self.gating_m(v);
+    #     (τh,σh) = self.gating_h(v);
+    #     (τn,σn) = self.gating_n(v);
     
-        dv = 1/self.c * (np.dot(phi,g) + I);
-        dm = 1/τm*(-m + σm);
-        dh = 1/τh*(-h + σh);
-        dn = 1/τn*(-n + σn);
+    #     g = [self.gNa, self.gK, self.gL]
+    #     phi = [-m**3*h*(v-self.ENa),-n**4*(v-self.EK),-(v-self.EL)];
     
-        return [dv,dm,dh,dn]
+    #     dv = 1/self.c * (np.dot(phi,g) + I);
+    #     dm = 1/τm*(-m + σm);
+    #     dh = 1/τh*(-h + σh);
+    #     dn = 1/τn*(-n + σn);
     
+    #     return [dv,dm,dh,dn]
+    
+    # TODO!
     def gate_calcs(self, v, m, h, n, syn_gates, v_pres):
         (τm,σm) = self.gating_m(v);
         (τh,σh) = self.gating_h(v);
