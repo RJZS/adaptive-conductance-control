@@ -19,15 +19,22 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
     def __init__(self, c, gs, synapses):
         self.c = c
         self.gNa = gs[0]
-        self.gK = gs[1]
-        self.gL = gs[2]
+        self.gH = gs[1]
+        self.gT = gs[2]
+        self.gA = gs[3]
+        self.gKD = gs[4]
+        self.gL = gs[5]
+        self.gKCA = gs[6]
+        self.gleak = gs[7]
         self.gs = gs # Useful to keep as a list
         
-        self.ENa = 55
-        self.EK = -77
-        self.EL = -54.4
-        self.Esyn = -80
-        self.Es = np.array([self.ENa, self.EK, self.EL, self.Esyn]) # Useful.
+        self.ENa = 45
+        self.EH = -43
+        self.ECa = 120
+        self.EK = -90
+        self.Eleak = -55
+        self.Esyn = -80 # TODO: NEED TO CHECK THIS VALUE IN THIAGO's HCO2!!!
+        self.Es = np.array([self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.Esyn]) # Useful.
         
         self.syns = synapses
         self.num_syns = len(synapses)
@@ -40,6 +47,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         for (idx, syn) in enumerate(self.syns):
             self.pre_neurs[idx] = syn.pre_neur
         
+    # NEED TO CHANGE THE GATES TO MATCH HCO2!!
     # Sodium activation
     def gating_m(self, v):
         Vhalf = -40.;
@@ -84,6 +92,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
         return τ, σ
     
+    # UP TO HERE!!
     def neuron_calcs(self, v, m, h, n, I): # What's this function for?
         (τm,σm) = self.gating_m(v);
         (τh,σh) = self.gating_h(v);
