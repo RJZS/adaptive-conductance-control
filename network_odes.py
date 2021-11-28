@@ -77,6 +77,7 @@ def main(t,z,p):
     num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
     len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
     num_neur_gs = 8 # Na, H, T, A, KD, L, KCa, leak
+    num_int_gates = 10 # m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
     max_num_syns = network.max_num_syns
     num_neurs = len(network.neurons)
     
@@ -156,12 +157,11 @@ def main(t,z,p):
                                            controller_settings[1], network, num_neurs, num_neur_gs)
         injected_currents = injected_currents + control_currs
     
-    #### UP TO HERE !!!!
     # Now make one time step. First, initialise the required vectors.
     bs = np.zeros(num_neurs)
     dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)
-    dms = np.zeros(num_neurs); dns = np.zeros(num_neurs); dhs = np.zeros(num_neurs);
-    dm̂s = np.zeros(num_neurs); dn̂s = np.zeros(num_neurs); dĥs = np.zeros(num_neurs);
+    dints = np.zeros((num_int_gates, num_neurs))
+    dints_hat = np.zeros((num_int_gates, num_neurs))
     dsyns_mat = np.zeros((max_num_syns, num_neurs))
     dsyns_hat_mat = np.zeros((max_num_syns, num_neurs))
     
@@ -176,25 +176,25 @@ def main(t,z,p):
         θ̂ = θ̂s[:num_neur_ests,i]
         P = Ps[:num_neur_ests,:num_neur_ests,i];
         Ψ = Ψs[:num_neur_ests,i]
-        
+
         # Now, run the true system.
         (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
-                                         Vs[i], ms[i], hs[i], ns[i], syns[:,i], injected_currents[i])
+                                         Vs[i], ints[:,i], syns[:,i], injected_currents[i])
         dvs[i] = np.dot(ϕ,θ) + b
         bs[i] = b # Will reuse this in the adaptive observer.
         # b here includes the input current, which is different from the paper I think
         
         v_pres = Vs[neur.pre_neurs]
-        (dms[i], dhs[i], dns[i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
-            Vs[i], ms[i], hs[i], ns[i], syns[:,i], v_pres)
+        (dints[:,i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
+            Vs[i], ints[:,i], syns[:,i], v_pres)
         
         # Finally, run the adaptive observer
         (_, ϕ̂, _) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
-                                         Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], injected_currents[i])
+                                         Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i])
         
         dv̂s[i] = np.dot(ϕ̂,θ̂) + b + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
-        (dm̂s[i], dĥs[i], dn̂s[i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
-            Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], v_pres)
+        (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
+            Vs[i], ints_hat[:,i], syns_hat[:,i], v_pres)
         
         dθ̂s[:num_neur_ests,i] = γ*np.matmul(P,Ψ.T)*(Vs[i]-v̂s[i]);
         dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
@@ -206,8 +206,8 @@ def main(t,z,p):
     # Finally, need to stack and flatten everything.
     # To stack, need to 'reduce' dP to 2 axes instead of 3
     dPs = np.reshape(dPs, (num_estimators**2, num_neurs), order='F')
-    dz_mat = np.vstack((dvs, dms, dhs, dns, dsyns_mat,
-                         dv̂s, dm̂s, dĥs, dn̂s, dsyns_hat_mat, dθ̂s, dPs, dΨs))
+    dz_mat = np.vstack((dvs, dints, dsyns_mat,
+                         dv̂s, dints_hat, dsyns_hat_mat, dθ̂s, dPs, dΨs))
     dz = np.reshape(dz_mat, (len(z),), order='F')
     return dz
 
