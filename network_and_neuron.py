@@ -26,14 +26,14 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
         self.gL = gs[5]
         self.gKCA = gs[6]
         self.gleak = gs[7]
-        self.gs = gs # Useful to keep as a list
+        self.gs = gs # Useful to keep as a list.
         
         self.ENa = 45
         self.EH = -43
         self.ECa = 120
         self.EK = -90
         self.Eleak = -55
-        self.Esyn = -80 # TODO: NEED TO CHECK THIS VALUE IN THIAGO's HCO2!!!
+        self.Esyn = -90 # Thiago's HCO2 sets to the same as EK.
         self.Es = np.array([self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.Esyn]) # Useful.
         
         self.syns = synapses
@@ -126,10 +126,10 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
     # TODO: Include resistive connections. 
     # Note this function spits out the length of vectors tailored to the neuron,
     # not the standardised 'max length' required by the ODE solver.
-    def define_dv_terms(self, to_estimate, est_gsyns, v, m, h, n, syn_gates, I):
+    def define_dv_terms(self, to_estimate, est_gsyns, v, ints, syn_gates, I):
         # First deal with intrinsic conductances.
-        gs = np.array([self.gNa, self.gK, self.gL, 1.])
-        terms = hhmodel_calc_terms(v, m, h, n, self.ENa, self.EK, self.EL, self.c, I)
+        gs = np.concatenate((self.gs, [1.]))
+        terms = calc_terms(v, ints, self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.c, I)
         
         gs, terms, θ_intrins, ϕ_intrins = calc_intrins_dv_terms(gs, terms, to_estimate)
         
@@ -146,6 +146,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
             b = calc_dv_terms_final_step_if_not_est_gsyns(gs, self.g_syns, terms, syn_terms)
             return (θ_intrins, ϕ_intrins, b)
     
+    # HAVEN'T YET UPDATED FOR NEW MODEL!!
     def calc_dv_no_observer(self, v, m, h, n, syn_gates, I):
         gs = np.array([self.gNa, self.gK, self.gL, 1])
         terms = hhmodel_calc_terms(v, m, h, n, self.ENa, self.EK, self.EL, self.c, I)
@@ -324,7 +325,7 @@ def calc_terms(v, ints, ENa, EH, ECa, EK, Eleak, c, I):
                 -ints[7]**4*(v-EK), # I_KD
                 -ints[8]*(v-ECa), # I_L
                 -ints[9]**4*(v-EK), # I_KCa
-                -(Vs[i]-Eleak)
+                -(v-Eleak)
             ]),c)
 
 @njit(cache=True)
