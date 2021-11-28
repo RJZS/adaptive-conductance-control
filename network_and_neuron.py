@@ -28,12 +28,12 @@ class Neuron:
         self.gleak = gs[7]
         self.gs = gs # Useful to keep as a list.
         
-        self.ENa = 45
-        self.EH = -43
-        self.ECa = 120
-        self.EK = -90
-        self.Eleak = -55
-        self.Esyn = -90 # Thiago's HCO2 sets to the same as EK.
+        self.ENa = 45.
+        self.EH = -43.
+        self.ECa = 120.
+        self.EK = -90.
+        self.Eleak = -55.
+        self.Esyn = -90. # Thiago's HCO2 sets to the same as EK.
         self.Es = np.array([self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.Esyn]) # Useful.
         
         self.syns = synapses
@@ -69,10 +69,10 @@ class Neuron:
         vh_β_m = 65.
         k_α_m = 10.
         k_β_m = 18.
-        def alpha_m(V): -0.025*(V+vh_α_m)/(np.exp(-(V+vh_α_m)/k_α_m) - 1.0 )
-        def beta_m(V): np.exp(-(V+vh_β_m)/k_β_m)
-        def m_inf(V): alpha_m(V) / (alpha_m(V) + beta_m(V))
-        def tau_m(V): 1.0 / (alpha_m(V) + beta_m(V))        
+        def alpha_m(V): return -0.025*(V+vh_α_m)/(np.exp(-(V+vh_α_m)/k_α_m) - 1.0 )
+        def beta_m(V): return np.exp(-(V+vh_β_m)/k_β_m)
+        def m_inf(V): return alpha_m(V) / (alpha_m(V) + beta_m(V))
+        def tau_m(V): return 1.0 / (alpha_m(V) + beta_m(V))        
         τ = tau_m(v)
         σ = m_inf(v)
         return τ, σ
@@ -82,10 +82,10 @@ class Neuron:
         vh_β_h = 35.
         k_α_h = 20.
         k_β_h = 10.
-        def alpha_h(V): 0.0175*np.exp(-(V+vh_α_h)/k_α_h)
-        def beta_h(V): 0.25/(1.0 + np.exp(-(V+vh_β_h)/k_β_h) )
-        def h_inf(V): alpha_h(V) / (alpha_h(V) + beta_h(V))
-        def tau_h(V): 1. / (alpha_h(V) + beta_h(V))
+        def alpha_h(V): return 0.0175*np.exp(-(V+vh_α_h)/k_α_h)
+        def beta_h(V): return 0.25/(1.0 + np.exp(-(V+vh_β_h)/k_β_h) )
+        def h_inf(V): return alpha_h(V) / (alpha_h(V) + beta_h(V))
+        def tau_h(V): return 1. / (alpha_h(V) + beta_h(V))
         τ = tau_h(v)
         σ = h_inf(v)
         return τ, σ
@@ -97,10 +97,10 @@ class Neuron:
         k_α_mKD = 10
         k_β_mKD = 80
         KDshift=10.0
-        def alpha_mKD(V): 0.0025*(V+vh_α_mKD)/(1. - np.exp(-(V+vh_α_mKD)/k_α_mKD) )
-        def beta_mKD(V): 0.03125*np.exp(-(V+vh_β_mKD)/k_β_mKD)
-        def mKD_inf(V): alpha_mKD(V-KDshift) / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
-        def tau_mKD(V): 1. / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
+        def alpha_mKD(V): return 0.0025*(V+vh_α_mKD)/(1. - np.exp(-(V+vh_α_mKD)/k_α_mKD) )
+        def beta_mKD(V): return 0.03125*np.exp(-(V+vh_β_mKD)/k_β_mKD)
+        def mKD_inf(V): return alpha_mKD(V-KDshift) / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
+        def tau_mKD(V): return 1. / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
         τ = tau_mKD(v)
         σ = mKD_inf(v)
         return τ, σ
@@ -111,10 +111,10 @@ class Neuron:
         w_β_mH = 1.87
         b_α_mH = 0.086
         b_β_mH = 0.0701
-        def alpha_mH(V): np.exp(-w_α_mH-(b_α_mH*V))
-        def beta_mH(V): np.exp(-w_β_mH+(b_β_mH*V))
-        def mH_inf(V): alpha_mH(V) /(alpha_mH(V) + beta_mH(V))
-        def tau_mH(V): 1./(alpha_mH(V) + beta_mH(V))
+        def alpha_mH(V): return np.exp(-w_α_mH-(b_α_mH*V))
+        def beta_mH(V): return np.exp(-w_β_mH+(b_β_mH*V))
+        def mH_inf(V): return alpha_mH(V) /(alpha_mH(V) + beta_mH(V))
+        def tau_mH(V): return 1./(alpha_mH(V) + beta_mH(V))
         # dmH_inf(V::Float64)=((((0 - (0.086 * 1)) * exp(-14.59 - 0.086*V)) * (exp(-14.59 - 0.086*V) + exp(-1.87 + 0.0701*V)) - exp(-14.59 - 0.086*V) * ((0 - (0.086 * 1)) * exp(-14.59 - 0.086*V) + (0.0701 * 1) * exp(-1.87 + 0.0701*V))) / (exp(-14.59 - 0.086*V) + exp(-1.87 + 0.0701*V)) ^ 2)
         τ = tau_mH(v)
         σ = mH_inf(v)
@@ -128,9 +128,9 @@ class Neuron:
         k_inf_mA = 8.5
         k_τ_mA1 = 19.697
         k_τ_mA2 = -12.7
-        def mA_inf(V): 1/(1+np.exp(-(V+vh_inf_mA)/k_inf_mA))
-        def tau_mA_temp(V): 0.37 + 1/(np.exp((V+vh_τ_mA1)/k_τ_mA1)+np.exp((V+vh_τ_mA2)/k_τ_mA2))
-        def tau_mA(V): tau_mA_temp(V)
+        def mA_inf(V): return 1/(1+np.exp(-(V+vh_inf_mA)/k_inf_mA))
+        def tau_mA_temp(V): return 0.37 + 1/(np.exp((V+vh_τ_mA1)/k_τ_mA1)+np.exp((V+vh_τ_mA2)/k_τ_mA2))
+        def tau_mA(V): return tau_mA_temp(V)
         τ = tau_mA(v)
         σ = mA_inf(v)
         return τ, σ
@@ -142,8 +142,8 @@ class Neuron:
         k_inf_hA = 6
         k_τ_hA1 = 5
         k_τ_hA2 = -37.45
-        def hA_inf_temp(V): 1/(1+np.exp((V+vh_inf_hA)/k_inf_hA))
-        def hA_inf(V): hA_inf_temp(V)
+        def hA_inf_temp(V): return 1/(1+np.exp((V+vh_inf_hA)/k_inf_hA))
+        def hA_inf(V): return hA_inf_temp(V)
         def tau_hA(V):
             if V < -63:
                 tau_hA = 1/(np.exp((V+vh_τ_hA1)/k_τ_hA1)+np.exp((V+vh_τ_hA2)/k_τ_hA2))
@@ -163,8 +163,8 @@ class Neuron:
         k_inf_mt = 6.2
         k_τ_mt1 = 16.7
         k_τ_mt2 = 18.2
-        def mT_inf(V): 1/(1+np.exp(-(V+vh_inf_mt)/k_inf_mt))
-        def tau_mT(V): 0.612 + 1/(np.exp(-(V+vh_τ_mt1)/k_τ_mt1)+np.exp((V+vh_τ_mt2)/k_τ_mt2))*2
+        def mT_inf(V): return 1/(1+np.exp(-(V+vh_inf_mt)/k_inf_mt))
+        def tau_mT(V): return 0.612 + 1/(np.exp(-(V+vh_τ_mt1)/k_τ_mt1)+np.exp((V+vh_τ_mt2)/k_τ_mt2))*2
         τ = tau_mT(v)
         σ = mT_inf(v)
         return τ, σ
@@ -176,7 +176,7 @@ class Neuron:
         k_inf_ht = 4.03
         k_τ_ht1 = 66.6
         k_τ_ht2 = 10.2
-        def hT_inf(V): 1/(1+np.exp((V+vh_inf_ht)/k_inf_ht))
+        def hT_inf(V): return 1/(1+np.exp((V+vh_inf_ht)/k_inf_ht))
         def tau_hT(V):
             if V < -80:
                 tau_ht = np.exp((V+vh_τ_ht1)/k_τ_ht1)*2
@@ -193,8 +193,8 @@ class Neuron:
         vh_τ_mL = 45
         k_inf_mL = 3
         k_τ_mL = 400
-        def mL_inf(V): 1/(1+np.exp(-(V+vh_inf_mL)/k_inf_mL))
-        def tau_mL(V): (72*np.exp(-(V+vh_τ_mL)^2/k_τ_mL)+6.)*2
+        def mL_inf(V): return 1/(1+np.exp(-(V+vh_inf_mL)/k_inf_mL))
+        def tau_mL(V): return (72*np.exp(-(V+vh_τ_mL)**2/k_τ_mL)+6.)*2
         τ = tau_mL(v)
         σ = mL_inf(v)
         return τ, σ
@@ -208,8 +208,8 @@ class Neuron:
         vh_τ_mL = 45
         k_inf_mL = 3
         k_τ_mL = 400
-        def mCa_inf(V): 1/(1+np.exp(-(V+vh_inf_mL)/k_inf_mL))
-        def tau_mCa(V): (72*np.exp(-(V+vh_τ_mL)^2/k_τ_mL)+6.)*2
+        def mCa_inf(V): return 1/(1+np.exp(-(V+vh_inf_mL)/k_inf_mL))
+        def tau_mCa(V): return (72*np.exp(-(V+vh_τ_mL)**2/k_τ_mL)+6.)*2
         τ = tau_mCa(v)
         σ = mCa_inf(v)
         return τ, σ
@@ -218,9 +218,9 @@ class Neuron:
     def gating_s(self, v):
         V12syn=-20.0
         ksyn=4.0
-        def msyn_inf(V): 1.0 / ( 1.0 + np.exp(-(V-V12syn)/ksyn) )
+        def msyn_inf(V): return 1.0 / ( 1.0 + np.exp(-(V-V12syn)/ksyn) )
         tausyn = 20.0
-        τ = tausyn(v)
+        τ = tausyn
         σ = msyn_inf(v)
         return τ, σ
     
@@ -251,7 +251,7 @@ class Neuron:
         (τhA,σhA) = self.gating_hA(v);
         (τmKD,σmKD) = self.gating_mKD(v);
         (τmL,σmL) = self.gating_mL(v);
-        (τCa,σCa) = self.gating_Ca(v);
+        (τCa,σCa) = self.gating_mCa(v);
         
         taus = np.array([τm, τh, τmH, τmT, τhT, τmA, τhA, τmKD, τmL, τCa])
         sigmas = np.array([σm, σh, σmH, σmT, σhT, σmA, σhA, σmKD, σmL, σCa])
@@ -288,10 +288,9 @@ class Neuron:
             b = calc_dv_terms_final_step_if_not_est_gsyns(gs, self.g_syns, terms, syn_terms)
             return (θ_intrins, ϕ_intrins, b)
     
-    # HAVEN'T YET UPDATED FOR NEW MODEL!!
-    def calc_dv_no_observer(self, v, m, h, n, syn_gates, I):
-        gs = np.array([self.gNa, self.gK, self.gL, 1])
-        terms = hhmodel_calc_terms(v, m, h, n, self.ENa, self.EK, self.EL, self.c, I)
+    def calc_dv_no_observer(self, v, ints, syn_gates, I):
+        gs = np.concatenate((self.gs, [1.]))
+        terms = calc_terms(v, ints, self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.c, I)
         dv = np.dot(gs, terms)
         
         if syn_gates:
@@ -467,8 +466,10 @@ def calc_terms(v, ints, ENa, EH, ECa, EK, Eleak, c, I):
                 -ints[7]**4*(v-EK), # I_KD
                 -ints[8]*(v-ECa), # I_L
                 -ints[9]**4*(v-EK), # I_KCa
-                -(v-Eleak)
+                -(v-Eleak),
+                I
             ]),c)
+    return terms
 
 @njit(cache=True)
 def hhmodel_calc_terms(v, m, h, n, ENa, EK, EL, c, I):

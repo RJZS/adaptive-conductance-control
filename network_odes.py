@@ -99,9 +99,6 @@ def main(t,z,p):
     syns = z_mat[11:11+max_num_syns,:]
     # Terms for adaptive observer
     v̂s = z_mat[11+max_num_syns,:]
-    m̂s = z_mat[11+max_num_syns+1,:] # Can remove
-    ĥs = z_mat[11+max_num_syns+2,:] # ""
-    n̂s = z_mat[11+max_num_syns+3,:] # ""
     ints_hat = z_mat[11+max_num_syns+1:11+max_num_syns+11,:] # All the intrinsic gate estimates.
     syns_hat = z_mat[11+max_num_syns+11:11+max_num_syns*2+11,:]
     idx_so_far = 11+max_num_syns*2+11 # Just to make code less ugly
@@ -350,6 +347,40 @@ def hhmodel_main(t,z,p):
     return dz
 
 def no_observer(t,z,p):
+    Iapps = p[0]
+    network = p[1]
+    
+    # Assuming all the neurons are of the same model:
+    num_int_gates = network.neurons[0].NUM_GATES
+    num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
+    len_neur_state = num_neur_gates + 1
+    max_num_syns = network.max_num_syns
+    num_neurs = len(network.neurons)
+    
+    # Now break out components of z.
+    z_mat = np.reshape(z, (len(z)//num_neurs, num_neurs), order='F')
+    Vs = z_mat[0,:]
+    ints = z_mat[1:11,:]
+    syns = z_mat[11:11+max_num_syns,:]
+    
+    injected_currents = np.zeros(num_neurs)
+    for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
+    
+    dvs = np.zeros(num_neurs)
+    dints = np.zeros((num_int_gates, num_neurs))
+    dsyns_mat = np.zeros((max_num_syns, num_neurs))
+    for (i, neur) in enumerate(network.neurons):
+        dvs[i] = neur.calc_dv_no_observer(Vs[i], ints[:,i], syns[:,i], injected_currents[i])
+        
+        v_pres = Vs[neur.pre_neurs]
+        (dints[:,i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
+            Vs[i], dints[:,i], syns[:,i], v_pres)
+        
+    dz_mat = np.vstack((dvs, dints, dsyns_mat))
+    dz = np.reshape(dz_mat, (len(z),), order='F')
+    return dz
+
+def hhmodel_no_observer(t,z,p):
     Iapps = p[0]
     network = p[1]
     

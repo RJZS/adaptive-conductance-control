@@ -9,12 +9,9 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 import time
 
-from network_and_neuron import Synapse, Neuron, HHModelNeuron, Network
-from network_odes import main, hhmodel_main, no_observer
+from network_and_neuron import Synapse, Neuron, Network
+from network_odes import main, no_observer
 
-# TODO:
-# Replace neuron model. Want model from upcoming book. That's 'HCO2' in 'online-learning' repo.
-    
 # CURRENT STATUS:
 # Reference tracking seems to work for one neuron, no synapses. But observer estimates of gs do vary!
 # Observer estimates don't settle after 600s. But for the 'spiking HCO', error is within +/- 1 of the 
@@ -56,29 +53,32 @@ from network_odes import main, hhmodel_main, no_observer
 # Iapps = [Iapp, lambda t: 6, lambda t: 6] # Neuron 2 converges even with constant current?
 
 # Initial conditions - Reference Tracking
-x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
+x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s
 # x̂_0 = [-40, 0.2, 0.3, 0.1] # Works for single neuron.
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.5]
-θ̂_0 = [60, 60, 10, 10]; # [gNa, gK, gL, gs]
+x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
+θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and gsyn
 P_0 = np.eye(4);
-Ψ_0 = [0, 0, 0, 0];
-to_estimate = np.array([0, 1, 2])
+Ψ_0 = [0,0,0,0];
+to_estimate = np.array([0, 4, 7])
 estimate_g_syns = True
 estimate_g_res = False # TODO: Need to write the code for this!!
 
 syn = Synapse(2., 1)
 syn2 = Synapse(2., 0)
 syn_dist = Synapse(2., 2)
-neur_one = HHModelNeuron(1., np.array([130.,43.,0.4]), np.array([syn]))
-neur_two = HHModelNeuron(1., np.array([100.,27.,0.2]), np.array([syn2]))
+# Remember, order of currents is Na, H, T, A, KD, L, KCA, leak
+neur_one = Neuron(1., np.array([130.,0,0,0,43.,0,0,0.4]), np.array([syn]))
+neur_two = Neuron(1., np.array([100.,0,0,0,27.,0,0,0.2]), np.array([syn2]))
 network = Network([neur_one, neur_two], np.zeros((2,2))) # for ref tracking
 # ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
-ref_gs = np.array([[110,35,0.2,2.5],[145,48,0.6,1.]]).T # gs of reference network.
+ref_gs = np.array([[110,0,0,0,35,0,0,0.2,2.5],
+                   [145,0,0,0,48,0,0,0.6,1.]]).T # gs of reference network.
 # orig_gs = np.array([ [130.,43.,0.4,2.], [100.,27.,0.2,2.] ]).T # gs of network, for the csv
 
 # Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 Iapp = lambda t : 6 + np.sin(2*np.pi/10*t)
 Iapps = [Iapp, Iapp] # Neuron 2 converges even with constant current?
+Iapps = [2., 2.]
 
 # ## FOR TESTING, REMOVE SYNAPSE:
 # x_0 = [0, 0, 0, 0]; # V, m, h, n
@@ -121,14 +121,15 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 1500
+Tfinal = 25
+
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns,estimate_g_res)
 
 start_time = time.time()
-out = solve_ivp(lambda t, z: hhmodel_main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-6,
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 end_time = time.time()
 print("Simulation time: {}s".format(end_time-start_time))
@@ -157,8 +158,8 @@ sol = out.y
 syn_ref = Synapse(2.5, 1)
 syn2_ref = Synapse(1., 0)
 
-neur_one_ref = HHModelNeuron(1., [110.,35.,0.2], np.array([syn_ref]))
-neur_two_ref = HHModelNeuron(1., [145.,48.,0.6], np.array([syn2_ref]))
+neur_one_ref = Neuron(1., [110.,35.,0.2], np.array([syn_ref]))
+neur_two_ref = Neuron(1., [145.,48.,0.6], np.array([syn2_ref]))
 network_ref = Network([neur_one_ref, neur_two_ref], np.zeros((2,2)))
 p_ref = (Iapps, network_ref)
 z_0_ref = np.concatenate((x_0, x_0))
