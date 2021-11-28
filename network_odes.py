@@ -15,16 +15,42 @@ def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
         Isyn_estimates[neur_i] = Isyn_estimates[neur_i] - g_syns[syn_i,neur_i] * syns_hat[syn_i,neur_i] * (Vs[neur_i] - Esyn)
     return -Isyn_estimates
 
-def reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
+def reference_tracking(Vs, ints_hat, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
     Es = network.neurons[0].Es # Same for every neuron, so can pick any.
     max_num_syns = network.max_num_syns
     cs = np.zeros(num_neurs)
     for (idx, neur) in enumerate(network.neurons):
         cs[idx] = neur.c
-    adjusting_currents = reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs)
+    adjusting_currents = reference_tracking_njit(Vs, ints_hat, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs)
     return adjusting_currents
 
-def reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs):
+def reference_tracking_njit(Vs, ints_hat, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs):
+    adjusting_currents = np.zeros(num_neurs)
+    g_diffs = ref_gs-gs
+    terms = np.zeros((num_neur_gs+max_num_syns, num_neurs))
+    for i in range(num_neurs):
+        terms[:num_neur_gs,i] = np.divide(np.array([
+                                    -ints_hat[0,i]**3*ints_hat[1,i]*(Vs[i]-Es[0]),
+                                    -ints_hat[2,i]*(Vs[i]-Es[1]), # I_H
+                                    -ints_hat[3,i]**2*ints_hat[4,i]*(Vs[i]-Es[2]), # I_T
+                                    ## UP TO HERE. A current.
+                                    -n̂s[i]**4*(Vs[i]-Es[1]),
+                                    -(Vs[i]-Es[2])
+                                ]),cs[i])
+        terms[num_neur_gs:,i] = -syns_hat[:,i]*(Vs[i] - Es[3])
+        adjusting_currents[i] = np.dot(g_diffs[:,i],terms[:,i]) # diag(A^T B)?
+    return adjusting_currents
+
+def hhmodel_reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
+    Es = network.neurons[0].Es # Same for every neuron, so can pick any.
+    max_num_syns = network.max_num_syns
+    cs = np.zeros(num_neurs)
+    for (idx, neur) in enumerate(network.neurons):
+        cs[idx] = neur.c
+    adjusting_currents = hhmodel_reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs)
+    return adjusting_currents
+
+def hhmodel_reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs):
     adjusting_currents = np.zeros(num_neurs)
     g_diffs = ref_gs-gs
     terms = np.zeros((num_neur_gs+max_num_syns, num_neurs))
@@ -66,14 +92,16 @@ def main(t,z,p):
     mKDs = z_mat[8,:]
     mLs = z_mat[9,:]
     mCas = z_mat[10,:]
-    syns = z_mat[10:10+max_num_syns,:]
+    ints = z_mat[1:11,:] # All the intrinsic gates.
+    syns = z_mat[11:11+max_num_syns,:]
     # Terms for adaptive observer
-    v̂s = z_mat[10+max_num_syns,:]
-    m̂s = z_mat[10+max_num_syns+1,:]
-    ĥs = z_mat[10+max_num_syns+2,:]
-    n̂s = z_mat[10+max_num_syns+3,:]
-    syns_hat = z_mat[10+max_num_syns+10:10+max_num_syns*2+10,:]
-    idx_so_far = 10+max_num_syns*2+10 # Just to make code less ugly
+    v̂s = z_mat[11+max_num_syns,:]
+    m̂s = z_mat[11+max_num_syns+1,:] # Can remove
+    ĥs = z_mat[11+max_num_syns+2,:] # ""
+    n̂s = z_mat[11+max_num_syns+3,:] # ""
+    ints_hat = z_mat[11+max_num_syns+1:11+max_num_syns+11,:] # All the intrinsic gate estimates.
+    syns_hat = z_mat[11+max_num_syns+11:11+max_num_syns*2+11,:]
+    idx_so_far = 11+max_num_syns*2+11 # Just to make code less ugly
     θ̂s = z_mat[idx_so_far:idx_so_far+num_estimators,:]
     # print(z_mat[10:14,:])
     Ps = np.reshape(z_mat[idx_so_far+num_estimators:idx_so_far+
@@ -260,7 +288,7 @@ def hhmodel_main(t,z,p):
         for (idx, neur) in enumerate(network.neurons):
             g_syns[:neur.num_syns, idx] = neur.g_syns
         observer_gs = np.vstack((neur_gs, g_syns))
-        control_currs = reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, observer_gs, 
+        control_currs = hhmodel_reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, observer_gs, 
                                            controller_settings[1], network, num_neurs, num_neur_gs)
         injected_currents = injected_currents + control_currs
     
