@@ -121,7 +121,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
     def define_dv_terms(self, to_estimate, est_gsyns, v, m, h, n, syn_gates, I):
         # First deal with intrinsic conductances.
         gs = np.array([self.gNa, self.gK, self.gL, 1.])
-        terms = calc_terms(v, m, h, n, self.ENa, self.EK, self.EL, self.c, I)
+        terms = hhmodel_calc_terms(v, m, h, n, self.ENa, self.EK, self.EL, self.c, I)
         
         gs, terms, θ_intrins, ϕ_intrins = calc_intrins_dv_terms(gs, terms, to_estimate)
         
@@ -140,7 +140,7 @@ class Neuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics
     
     def calc_dv_no_observer(self, v, m, h, n, syn_gates, I):
         gs = np.array([self.gNa, self.gK, self.gL, 1])
-        terms = calc_terms(v, m, h, n, self.ENa, self.EK, self.EL, self.c, I)
+        terms = hhmodel_calc_terms(v, m, h, n, self.ENa, self.EK, self.EL, self.c, I)
         dv = np.dot(gs, terms)
         
         if syn_gates:
@@ -172,7 +172,20 @@ def calc_dgate(τ, x, σ):
     return dx
 
 @njit(cache=True)
-def calc_terms(v, m, h, n, ENa, EK, EL, c, I):
+def calc_terms(v, ints, ENa, EH, ECa, EK, Eleak, c, I):
+    terms = np.divide(np.array([
+                -ints[0]**3*ints[1]*(v-ENa), # I_Na
+                -ints[2]*(v-EH), # I_H
+                -ints[3]**2*ints[4]*(v-ECa), # I_T
+                -ints[5]**4*ints[6]*(v-EK), # I_A
+                -ints[7]**4*(v-EK), # I_KD
+                -ints[8]*(v-ECa), # I_L
+                -ints[9]**4*(v-EK), # I_KCa
+                -(Vs[i]-Eleak)
+            ]),c)
+
+@njit(cache=True)
+def hhmodel_calc_terms(v, m, h, n, ENa, EK, EL, c, I):
     terms = np.divide(np.array([-m**3*h*(v-ENa),-n**4*(v-EK),
                                     -(v-EL),I]),c)
     return terms
