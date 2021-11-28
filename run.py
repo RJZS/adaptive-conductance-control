@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 import time
 
-from network_and_neuron import Synapse, Neuron, Network
+from network_and_neuron import Synapse, Neuron, HHModelNeuron, Network
 from network_odes import main, hhmodel_main, no_observer
 
 # TODO:
@@ -69,8 +69,8 @@ estimate_g_res = False # TODO: Need to write the code for this!!
 syn = Synapse(2., 1)
 syn2 = Synapse(2., 0)
 syn_dist = Synapse(2., 2)
-neur_one = Neuron(1., np.array([130.,43.,0.4]), np.array([syn]))
-neur_two = Neuron(1., np.array([100.,27.,0.2]), np.array([syn2]))
+neur_one = HHModelNeuron(1., np.array([130.,43.,0.4]), np.array([syn]))
+neur_two = HHModelNeuron(1., np.array([100.,27.,0.2]), np.array([syn2]))
 network = Network([neur_one, neur_two], np.zeros((2,2))) # for ref tracking
 # ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
 ref_gs = np.array([[110,35,0.2,2.5],[145,48,0.6,1.]]).T # gs of reference network.
@@ -157,8 +157,8 @@ sol = out.y
 syn_ref = Synapse(2.5, 1)
 syn2_ref = Synapse(1., 0)
 
-neur_one_ref = Neuron(1., [110.,35.,0.2], np.array([syn_ref]))
-neur_two_ref = Neuron(1., [145.,48.,0.6], np.array([syn2_ref]))
+neur_one_ref = HHModelNeuron(1., [110.,35.,0.2], np.array([syn_ref]))
+neur_two_ref = HHModelNeuron(1., [145.,48.,0.6], np.array([syn2_ref]))
 network_ref = Network([neur_one_ref, neur_two_ref], np.zeros((2,2)))
 p_ref = (Iapps, network_ref)
 z_0_ref = np.concatenate((x_0, x_0))

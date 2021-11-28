@@ -7,7 +7,7 @@ Created on Sat Oct 30 19:16:03 2021
 # from numba import jit, njit
 import numpy as np
 
-from network_and_neuron import Neuron, Network
+from network_and_neuron import Neuron, HHModelNeuron, Network
 
 def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
     Isyn_estimates = np.zeros(num_neurs)
