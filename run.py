@@ -185,36 +185,36 @@ sol_nodist = out_nodist.y
 # %% 
 # Playing with model to find bursting behaviour.
 
-syn = Synapse(2., 1)
-syn2 = Synapse(2., 0)
+syn = Synapse(15., 1)
+syn2 = Synapse(15., 0)
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-def Irb(t):
+def Irb(t): # For rebound burster
     if t < 10 or t > 40:
         return 0
     else:
         return -10
     
-Iconst = 10.
-Iapps = [Irb, lambda t: 6, lambda t: 6]
-Tfinal = 140
+Iconst = lambda t: -0.1
+Iapps = [Iconst, Iconst, lambda t: 6]
+Tfinal = 1000 # In HCO2 it's 15000. Will probably reduce all the taus, or some of them anyway.
 
 tspan = (0.,Tfinal)
 
-neur_one_play = Neuron(1., [120.,0,5.,0,36.,0,0,0.03], [])
-
+# neur_one_play = Neuron(1., [120.,0,5.,0,36.,0,0,0.03], []) # For rebound burster.
 # neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
 
-# # Only one neur
+x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1
+neur_one_play = Neuron(1., [300.,0.1,5.,2.,120.,1.,2.,0.1], [syn])
+neur_two_play = Neuron(1., [300.,0.1,5.,2.,120.,1.,2.,0.1], [syn2])
+
+# # Rebound burster
 # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
-network_play = Network([neur_one_play], np.zeros((1,1)))
+network_play = Network([neur_one_play, neur_two_play], np.zeros((2,2)))
 p_play = (Iapps, network_play)
-z_0_nodist = np.concatenate((x_0[:12], x_0[:12]))
-z_0_nodist[0] = 20
-z_0_nodist[12] = -20
-z_0_play = x_0[:11]
+
+z_0_play = np.concatenate((x_0, x_0))
 z_0_play[0] = -60
-# z_0_nodist = x_0[:11] # Only one neur
-out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play,rtol=1e-6,atol=1e-6,
+out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 
 t_play = out_play.t
