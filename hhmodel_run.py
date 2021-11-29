@@ -9,9 +9,12 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 import time
 
-from network_and_neuron import Synapse, Neuron, Network
-from network_odes import main, no_observer
+from network_and_neuron import Synapse, Neuron, HHModelNeuron, Network
+from network_odes import hhmodel_main, hhmodel_no_observer
 
+# TODO:
+# Replace neuron model. Want model from upcoming book. That's 'HCO2' in 'online-learning' repo.
+    
 # CURRENT STATUS:
 # Reference tracking seems to work for one neuron, no synapses. But observer estimates of gs do vary!
 # Observer estimates don't settle after 600s. But for the 'spiking HCO', error is within +/- 1 of the 
@@ -21,70 +24,61 @@ from network_odes import main, no_observer
 # and the reference system, for every other neuron or so. So still have an error after 600s, and even
 # after 1500s (saved figs for this longer data but not the data as not very different from 600s).
 
-# FULL MODEL WORKS!!
-    
+
 # On the backburner:
 # Code for graph plotting. Don't just plot everything (messy!), maybe have a 
 # parameter which is a list of which to plot. Ie an object, where the keys are fig discriptions 
 # and the values are booleans. Then can have each plot within its own 'if' statement.
 
 # Automate running of 'nosyn' simulation (should be called 'nodist'). Harder than I thought!
-# At least can automate addition of synaptic terms to initialisation, as know number of syns!
-# (So have to move network definition above initialisation).
 
 
 # Initial conditions - Disturbance Rejection
-x_0 = [0,0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5, 0.5]
-θ̂_0 = [60, 60, 10, 10, 10]; # Estimating gNa, gKD, gleak and the 2 gsyns
-P_0 = np.eye(5);
-Ψ_0 = [0,0,0,0,0];
-to_estimate = np.array([0, 4, 7])
-estimate_g_syns = True
-estimate_g_res = False # TODO: Need to write the code for this!!
-
-syn = Synapse(2., 1)
-syn2 = Synapse(2., 0)
-syn_dist = Synapse(2., 2)
-neur_one = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn, syn_dist])
-neur_two = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
-neur_dist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
-network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
-
-# # Just one neuron and one disturbance.
-# neur_one = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn])
-# neur_two = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
-# network = Network([neur_one, neur_two], np.zeros((2,2)))
-
-Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-Iapps = [Iapp, lambda t: 6, lambda t: 6]
-
-# Initial conditions - Reference Tracking
-# x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s
-# x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
-# θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and gsyn
-# P_0 = np.eye(4);
-# Ψ_0 = [0,0,0,0];
-# to_estimate = np.array([0, 4, 7])
+# x_0 = [0, 0, 0, 0, 0, 0]; # V, m, h, n, s1, s2
+# x̂_0 = [-40, 0.2, 0.3, 0.1, 0.4, 0.3] # Works for single neuron.
+# x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.15]
+# θ̂_0 = [60, 60, 10, 10, 10]; # [gNa, gK, gL, gsyn1, gsyn2]
+# P_0 = np.eye(5);
+# Ψ_0 = [0, 0, 0, 0, 0];
+# to_estimate = [0, 1, 2]
 # estimate_g_syns = True
 # estimate_g_res = False # TODO: Need to write the code for this!!
 
 # syn = Synapse(2., 1)
 # syn2 = Synapse(2., 0)
 # syn_dist = Synapse(2., 2)
-# # Remember, order of currents is Na, H, T, A, KD, L, KCA, leak
-# neur_one = Neuron(1., np.array([130.,0,0,0,43.,0,0,0.4]), np.array([syn]))
-# neur_two = Neuron(1., np.array([100.,0,0,0,27.,0,0,0.2]), np.array([syn2]))
-# network = Network([neur_one, neur_two], np.zeros((2,2))) # for ref tracking
-# # ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
-# ref_gs = np.array([[110,0,0,0,35,0,0,0.2,2.5],
-#                    [145,0,0,0,48,0,0,0.6,1.]]).T # gs of reference network.
-# # orig_gs = np.array([ [130.,43.,0.4,2.], [100.,27.,0.2,2.] ]).T # gs of network, for the csv
+# neur_one = Neuron(1., [120.,36.,0.3], [syn, syn_dist])
+# neur_two = Neuron(1., [120.,36.,0.3], [syn2])
+# neur_dist = Neuron(1., [120.,36.,0.3], [])
+# network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
 
-# # Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-# Iapp = lambda t : 6 + np.sin(2*np.pi/10*t)
-# Iapps = [Iapp, Iapp] # Neuron 2 converges even with constant current?
-# Iapps = [2., 2.]
+# Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+# Iapps = [Iapp, lambda t: 6, lambda t: 6]
+
+# Initial conditions - Reference Tracking
+x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
+# x̂_0 = [-40, 0.2, 0.3, 0.1] # Works for single neuron.
+x̂_0 = [30, 0.1, 0.2, 0.4, 0.5]
+θ̂_0 = [60, 60, 10, 10]; # [gNa, gK, gL, gs]
+P_0 = np.eye(4);
+Ψ_0 = [0, 0, 0, 0];
+to_estimate = np.array([0, 1, 2])
+estimate_g_syns = True
+estimate_g_res = False # TODO: Need to write the code for this!!
+
+syn = Synapse(2., 1)
+syn2 = Synapse(2., 0)
+syn_dist = Synapse(2., 2)
+neur_one = HHModelNeuron(1., np.array([130.,43.,0.4]), np.array([syn]))
+neur_two = HHModelNeuron(1., np.array([100.,27.,0.2]), np.array([syn2]))
+network = Network([neur_one, neur_two], np.zeros((2,2))) # for ref tracking
+# ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
+ref_gs = np.array([[110,35,0.2,2.5],[145,48,0.6,1.]]).T # gs of reference network.
+# orig_gs = np.array([ [130.,43.,0.4,2.], [100.,27.,0.2,2.] ]).T # gs of network, for the csv
+
+# Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+Iapp = lambda t : 6 + np.sin(2*np.pi/10*t)
+Iapps = [Iapp, Iapp] # Neuron 2 converges even with constant current?
 
 # ## FOR TESTING, REMOVE SYNAPSE:
 # x_0 = [0, 0, 0, 0]; # V, m, h, n
@@ -107,8 +101,8 @@ Iapps = [Iapp, lambda t: 6, lambda t: 6]
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
-control_law = ["DistRej", [(0, 1)]]#, (0, 1)]]
-# control_law = ["RefTrack", ref_gs]
+# control_law = ["DistRej", [(0, 1)]]#, (0, 1)]]
+control_law = ["RefTrack", ref_gs]
 # control_law = [""]
 
 num_neurs = len(network.neurons)
@@ -127,15 +121,14 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 250
-
+Tfinal = 200
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns,estimate_g_res)
 
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-6,
+out = solve_ivp(lambda t, z: hhmodel_main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 end_time = time.time()
 print("Simulation time: {}s".format(end_time-start_time))
@@ -150,33 +143,27 @@ sol = out.y
 #     for (neur_i, syn_i) in control_law[1]:
         
 # HCO disturbance rejection
-neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn])
-neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
-
-# # Only one neur
-# neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
-network_nodist = Network([neur_one_nodist, neur_two_nodist], np.zeros((2,2)))
-p_nodist = (Iapps, network_nodist)
-z_0_nodist = np.concatenate((x_0[:12], x_0[:12]))
-z_0_nodist[0] = 20
-z_0_nodist[12] = -20
-# z_0_nodist = x_0[:11] # Only one neur
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-6,atol=1e-6,
+neur_one_nosyn = HHModelNeuron(1., [120.,36.,0.3], [syn])
+neur_two_nosyn = HHModelNeuron(1., [120.,36.,0.3], [syn2])
+network_nosyn = Network([neur_one_nosyn, neur_two_nosyn], np.zeros((2,2)))
+p_nosyn = (Iapps, network_nosyn)
+z_0_nosyn = np.concatenate((x_0[:5], x_0[:5]))
+out_nosyn = solve_ivp(lambda t, z: hhmodel_no_observer(t, z, p_nosyn), tspan, z_0_nosyn,rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 
-t_nodist = out_nodist.t
-sol_nodist = out_nodist.y
+t_nosyn = out_nosyn.t
+sol_nosyn = out_nosyn.y
 
 # Reference Tracking
 # syn_ref = Synapse(2.5, 1)
 # syn2_ref = Synapse(1., 0)
 
-# neur_one_ref = Neuron(1., np.array([110.,0,0,0,35.,0,0,0.2]), np.array([syn_ref]))
-# neur_two_ref = Neuron(1., np.array([145.,0,0,0,48.,0,0,0.6]), np.array([syn2_ref]))
-# network_ref = Network([neur_one, neur_two], np.zeros((2,2)))
+# neur_one_ref = HHModelNeuron(1., [110.,35.,0.2], np.array([syn_ref]))
+# neur_two_ref = HHModelNeuron(1., [145.,48.,0.6], np.array([syn2_ref]))
+# network_ref = Network([neur_one_ref, neur_two_ref], np.zeros((2,2)))
 # p_ref = (Iapps, network_ref)
 # z_0_ref = np.concatenate((x_0, x_0))
-# out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
+# out_ref = solve_ivp(lambda t, z: hhmodel_no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
 #                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 
 # t_ref = out_ref.t
@@ -184,20 +171,20 @@ sol_nodist = out_nodist.y
 
 # %%
 # Test HCO disturbance rejection. First compare real and estimated Isyns.
-v = sol[0,:]
-Isyn = syn.g * sol[11,:] * (v - neur_one.Esyn)
-Isyn_hat = sol[29,:] * sol[24,:] * (v - neur_one.Esyn)
-Isyn_dist = syn_dist.g * sol[12,:] * (v - neur_one.Esyn)
-Isyn_dist_hat = sol[30,:] * sol[25,:] * (v - neur_one.Esyn)
+# v = sol[0,:]
+# Isyn = syn.g * sol[4,:] * (v - neur_one.Esyn)
+# Isyn_hat = sol[15,:] * sol[10,:] * (v - neur_one.Esyn)
+# Isyn_dist = syn_dist.g * sol[5,:] * (v - neur_one.Esyn)
+# Isyn_dist_hat = sol[16,:] * sol[11,:] * (v - neur_one.Esyn)
 
-v2 = sol[0+61,:]
-Isyn2 = syn2.g * sol[11+61,:] * (v2 - neur_two.Esyn)
-Isyn_hat2 = sol[29+61,:] * sol[24+61,:] * (v2 - neur_two.Esyn)
+# v2 = sol[0+47,:]
+# Isyn2 = syn2.g * sol[4+47,:] * (v2 - neur_two.Esyn)
+# Isyn_hat2 = sol[15+47,:] * sol[10+47,:] * (v2 - neur_two.Esyn)
 
-# Now compare Vs with V_nosyns (misleading name, as there are synapses,
-# just not the disturbance one).
-v_nodist = sol_nodist[0,:]
-v2_nodist = sol_nodist[12,:]
+# # Now compare Vs with V_nosyns (misleading name, as there are synapses,
+# # just not the disturbance one).
+# v_nosyn = sol_nosyn[0,:]
+# v2_nosyn = sol_nosyn[5,:]
 
 # %%
 # Extract variables and label them
