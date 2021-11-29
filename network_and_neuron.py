@@ -35,7 +35,8 @@ class Neuron:
         self.Eleak = -55.
         self.Esyn = -90. # Thiago's HCO2 sets to the same as EK.
         
-        # self.EK = -77 # For rebound burster
+        self.EK = -77 # For rebound burster
+        self.Esyn = -120 # Needs to be below EK I think for rebound bursting...
         self.Es = np.array([self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.Esyn]) # Useful.
         
         self.syns = synapses
@@ -65,47 +66,47 @@ class Neuron:
     # Need to check divisions are doing the right thing, especially if I
     # decide to vectorise (ie calculate for the whole network at once).
 
-    # Na-current (m=activation variable, h=inactivation variable)
-    def gating_m(self, v):
-        vh_α_m = 40.
-        vh_β_m = 65.
-        k_α_m = 10.
-        k_β_m = 18.
-        def alpha_m(V): return -0.025*(V+vh_α_m)/(np.exp(-(V+vh_α_m)/k_α_m) - 1.0 )
-        def beta_m(V): return np.exp(-(V+vh_β_m)/k_β_m)
-        def m_inf(V): return alpha_m(V) / (alpha_m(V) + beta_m(V))
-        def tau_m(V): return 1.0 / (alpha_m(V) + beta_m(V))        
-        τ = tau_m(v)
-        σ = m_inf(v)
-        return τ, σ
+    # # Na-current (m=activation variable, h=inactivation variable)
+    # def gating_m(self, v):
+    #     vh_α_m = 40.
+    #     vh_β_m = 65.
+    #     k_α_m = 10.
+    #     k_β_m = 18.
+    #     def alpha_m(V): return -0.025*(V+vh_α_m)/(np.exp(-(V+vh_α_m)/k_α_m) - 1.0 )
+    #     def beta_m(V): return np.exp(-(V+vh_β_m)/k_β_m)
+    #     def m_inf(V): return alpha_m(V) / (alpha_m(V) + beta_m(V))
+    #     def tau_m(V): return 1.0 / (alpha_m(V) + beta_m(V))        
+    #     τ = tau_m(v)
+    #     σ = m_inf(v)
+    #     return τ, σ
         
-    def gating_h(self, v):
-        vh_α_h = 65.
-        vh_β_h = 35.
-        k_α_h = 20.
-        k_β_h = 10.
-        def alpha_h(V): return 0.0175*np.exp(-(V+vh_α_h)/k_α_h)
-        def beta_h(V): return 0.25/(1.0 + np.exp(-(V+vh_β_h)/k_β_h) )
-        def h_inf(V): return alpha_h(V) / (alpha_h(V) + beta_h(V))
-        def tau_h(V): return 1. / (alpha_h(V) + beta_h(V))
-        τ = tau_h(v)
-        σ = h_inf(v)
-        return τ, σ
+    # def gating_h(self, v):
+    #     vh_α_h = 65.
+    #     vh_β_h = 35.
+    #     k_α_h = 20.
+    #     k_β_h = 10.
+    #     def alpha_h(V): return 0.0175*np.exp(-(V+vh_α_h)/k_α_h)
+    #     def beta_h(V): return 0.25/(1.0 + np.exp(-(V+vh_β_h)/k_β_h) )
+    #     def h_inf(V): return alpha_h(V) / (alpha_h(V) + beta_h(V))
+    #     def tau_h(V): return 1. / (alpha_h(V) + beta_h(V))
+    #     τ = tau_h(v)
+    #     σ = h_inf(v)
+    #     return τ, σ
     
-    # KD-current (mKD=activation variable)
-    def gating_mKD(self, v):
-        vh_α_mKD = 55
-        vh_β_mKD = 65
-        k_α_mKD = 10
-        k_β_mKD = 80
-        KDshift=10.0
-        def alpha_mKD(V): return 0.0025*(V+vh_α_mKD)/(1. - np.exp(-(V+vh_α_mKD)/k_α_mKD) )
-        def beta_mKD(V): return 0.03125*np.exp(-(V+vh_β_mKD)/k_β_mKD)
-        def mKD_inf(V): return alpha_mKD(V-KDshift) / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
-        def tau_mKD(V): return 1. / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
-        τ = tau_mKD(v)
-        σ = mKD_inf(v)
-        return τ, σ
+    # # KD-current (mKD=activation variable)
+    # def gating_mKD(self, v):
+    #     vh_α_mKD = 55
+    #     vh_β_mKD = 65
+    #     k_α_mKD = 10
+    #     k_β_mKD = 80
+    #     KDshift=10.0
+    #     def alpha_mKD(V): return 0.0025*(V+vh_α_mKD)/(1. - np.exp(-(V+vh_α_mKD)/k_α_mKD) )
+    #     def beta_mKD(V): return 0.03125*np.exp(-(V+vh_β_mKD)/k_β_mKD)
+    #     def mKD_inf(V): return alpha_mKD(V-KDshift) / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
+    #     def tau_mKD(V): return 1. / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
+    #     τ = tau_mKD(v)
+    #     σ = mKD_inf(v)
+    #     return τ, σ
     
     # H-current (mH=activation variable)
     def gating_mH(self, v):
@@ -157,37 +158,37 @@ class Neuron:
         σ = hA_inf(v)
         return τ, σ
     
-    # T-type Ca-current (mt=activation variable, ht=inactivation variable)
-    def gating_mT(self, v):
-        vh_inf_mt = 57
-        vh_τ_mt1 = 131.6
-        vh_τ_mt2 = 16.8
-        k_inf_mt = 6.2
-        k_τ_mt1 = 16.7
-        k_τ_mt2 = 18.2
-        def mT_inf(V): return 1/(1+np.exp(-(V+vh_inf_mt)/k_inf_mt))
-        def tau_mT(V): return 0.612 + 1/(np.exp(-(V+vh_τ_mt1)/k_τ_mt1)+np.exp((V+vh_τ_mt2)/k_τ_mt2))*2
-        τ = tau_mT(v)
-        σ = mT_inf(v)
-        return τ, σ
+    # # T-type Ca-current (mt=activation variable, ht=inactivation variable)
+    # def gating_mT(self, v):
+    #     vh_inf_mt = 57
+    #     vh_τ_mt1 = 131.6
+    #     vh_τ_mt2 = 16.8
+    #     k_inf_mt = 6.2
+    #     k_τ_mt1 = 16.7
+    #     k_τ_mt2 = 18.2
+    #     def mT_inf(V): return 1/(1+np.exp(-(V+vh_inf_mt)/k_inf_mt))
+    #     def tau_mT(V): return 0.612 + 1/(np.exp(-(V+vh_τ_mt1)/k_τ_mt1)+np.exp((V+vh_τ_mt2)/k_τ_mt2))*2
+    #     τ = tau_mT(v)
+    #     σ = mT_inf(v)
+    #     return τ, σ
         
-    def gating_hT(self, v):
-        vh_inf_ht = 81
-        vh_τ_ht1 = 467
-        vh_τ_ht2 = 21.88
-        k_inf_ht = 4.03
-        k_τ_ht1 = 66.6
-        k_τ_ht2 = 10.2
-        def hT_inf(V): return 1/(1+np.exp((V+vh_inf_ht)/k_inf_ht))
-        def tau_hT(V):
-            if V < -80:
-                tau_ht = np.exp((V+vh_τ_ht1)/k_τ_ht1)*2
-            else:
-                tau_ht = (np.exp(-(V+vh_τ_ht2)/k_τ_ht2)+28)*2
-            return tau_ht
-        τ = tau_hT(v)
-        σ = hT_inf(v)
-        return τ, σ
+    # def gating_hT(self, v):
+    #     vh_inf_ht = 81
+    #     vh_τ_ht1 = 467
+    #     vh_τ_ht2 = 21.88
+    #     k_inf_ht = 4.03
+    #     k_τ_ht1 = 66.6
+    #     k_τ_ht2 = 10.2
+    #     def hT_inf(V): return 1/(1+np.exp((V+vh_inf_ht)/k_inf_ht))
+    #     def tau_hT(V):
+    #         if V < -80:
+    #             tau_ht = np.exp((V+vh_τ_ht1)/k_τ_ht1)*2
+    #         else:
+    #             tau_ht = (np.exp(-(V+vh_τ_ht2)/k_τ_ht2)+28)*2
+    #         return tau_ht
+    #     τ = tau_hT(v)
+    #     σ = hT_inf(v)
+    #     return τ, σ
     
     # L-type Ca-current (mL=activation variable) (from Drion2011)
     def gating_mL(self, v):
@@ -216,15 +217,15 @@ class Neuron:
         σ = mCa_inf(v)
         return τ, σ
     
-    # Synaptic current
-    def gating_s(self, v):
-        V12syn=-20.0
-        ksyn=4.0
-        def msyn_inf(V): return 1.0 / ( 1.0 + np.exp(-(V-V12syn)/ksyn) )
-        tausyn = 20.0
-        τ = tausyn
-        σ = msyn_inf(v)
-        return τ, σ
+    # # Synaptic current
+    # def gating_s(self, v):
+    #     V12syn=-20.0
+    #     ksyn=4.0
+    #     def msyn_inf(V): return 1.0 / ( 1.0 + np.exp(-(V-V12syn)/ksyn) )
+    #     tausyn = 20.0
+    #     τ = tausyn
+    #     σ = msyn_inf(v)
+    #     return τ, σ
     
     # What's this function for? Not used?
     # def neuron_calcs(self, v, m, h, n, I):
@@ -243,86 +244,86 @@ class Neuron:
     #     return [dv,dm,dh,dn]
     
     # ------ FOR REBOUND BURSTER ------
-    # def gating_m(self, v):
-    #     Vhalf = -40.;
-    #     k = 9.;              #15 in izhikevich
-    #     Vmax = -38.;
-    #     std = 30.;
-    #     Camp = 0.46;
-    #     Cbase = 0.04;
-    #     (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-    #     return τ, σ 
+    def gating_m(self, v):
+        Vhalf = -40.;
+        k = 9.;              #15 in izhikevich
+        Vmax = -38.;
+        std = 30.;
+        Camp = 0.46;
+        Cbase = 0.04;
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
+        return τ, σ 
     
-    # # Sodium inactivation
-    # def gating_h(self, v):
-    #     Vhalf = -62.;
-    #     k = -7.;
-    #     Vmax = -67.;
-    #     std = 20.;
-    #     Camp = 7.4;
-    #     Cbase = 1.2;
-    #     (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-    #     return τ, σ
+    # Sodium inactivation
+    def gating_h(self, v):
+        Vhalf = -62.;
+        k = -7.;
+        Vmax = -67.;
+        std = 20.;
+        Camp = 7.4;
+        Cbase = 1.2;
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
+        return τ, σ
     
-    # # Potassium activation
-    # def gating_mKD(self, v):
-    #     Vhalf = -53.;
-    #     k = 15.;
-    #     Vmax = -79.;
-    #     std = 50.;
-    #     Camp = 4.7;
-    #     Cbase = 1.1;
-    #     (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-    #     return τ, σ
+    # Potassium activation
+    def gating_mKD(self, v):
+        Vhalf = -53.;
+        k = 15.;
+        Vmax = -79.;
+        std = 50.;
+        Camp = 4.7;
+        Cbase = 1.1;
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
+        return τ, σ
     
-    # # Synaptic gate
-    # def gating_s(self, v): # Terms are same as m unless stated.
-    #     Vhalf = -45.; # From Dethier et al - 2015
-    #     k = 2.; # From Dethier et al - 2015
-    #     Vmax = -38.;
-    #     std = 30.;
-    #     Camp = 0.46;
-    #     Cbase = 0.04;
-    #     (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-    #     return τ, σ   
+    # Synaptic gate
+    def gating_s(self, v): # Terms are same as m unless stated.
+        Vhalf = -45.; # From Dethier et al - 2015
+        k = 2.; # From Dethier et al - 2015
+        Vmax = -38.;
+        std = 30.;
+        Camp = 0.46;
+        Cbase = 0.04;
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
+        return τ, σ   
     
-    # # Replace gating variables for mT. This is Ca current from Thiago's 'HCO'.
-    # # mCa activation
-    # def thiago_gam(v,c,vhalf,sig): return c/(1+np.exp((v+vhalf)/sig))
-    # def thiago_tau(v,c1,c2,vhalf,sig): return c1 + c2/(1+np.exp((v+vhalf)/sig))
+    # Replace gating variables for mT. This is Ca current from Thiago's 'HCO'.
+    # mCa activation
+    def thiago_gam(v,c,vhalf,sig): return c/(1+np.exp((v+vhalf)/sig))
+    def thiago_tau(v,c1,c2,vhalf,sig): return c1 + c2/(1+np.exp((v+vhalf)/sig))
     
-    # # this is HCO_knietics.jl... so what's the one right above?
-    # def t_σ(self, v,r,k): 
-    #     return 1/(1+np.exp(-(v-r)/k))
+    # this is HCO_knietics.jl... so what's the one right above?
+    def t_σ(self, v,r,k): 
+        return 1/(1+np.exp(-(v-r)/k))
         
-    # def t_τ(self, v,c1,c2,r,k):
-    #     return c1 + c2*self.t_σ(v,r,k)
+    def t_τ(self, v,c1,c2,r,k):
+        return c1 + c2*self.t_σ(v,r,k)
     
-    # def gating_mT(self, v):
-    #     rCa_m = -67.1;          
-    #     kCa_m = 7.2;
-    #     σCa_m = self.t_σ(v,rCa_m,kCa_m)
+    def gating_mT(self, v):
+        rCa_m = -67.1;          
+        kCa_m = 7.2;
+        σCa_m = self.t_σ(v,rCa_m,kCa_m)
         
-    #     # mCa time constant
-    #     c1Ca_m = 43.4;
-    #     c2Ca_m = -42.6;
-    #     rτCa_m = -68.1;
-    #     kτCa_m = 20.5;
-    #     τCa_m = self.t_τ(v,c1Ca_m,c2Ca_m,rτCa_m,kτCa_m)
-    #     return τCa_m, σCa_m
+        # mCa time constant
+        c1Ca_m = 43.4;
+        c2Ca_m = -42.6;
+        rτCa_m = -68.1;
+        kτCa_m = 20.5;
+        τCa_m = self.t_τ(v,c1Ca_m,c2Ca_m,rτCa_m,kτCa_m)
+        return τCa_m, σCa_m
         
-    # def gating_hT(self, v):
-    #     rCa_h = -100 # -82.1;
-    #     kCa_h = -2.2 # -5.5;
-    #     σCa_h = self.t_σ(v,rCa_h,kCa_h)
+    def gating_hT(self, v):
+        rCa_h = -100 # -82.1;
+        kCa_h = -2.2 # -5.5;
+        σCa_h = self.t_σ(v,rCa_h,kCa_h)
         
-    #     # hCa time constant
-    #     c1Ca_h = 40 #140;
-    #     c2Ca_h = -35 # -100;
-    #     rτCa_h = -55;
-    #     kτCa_h = 16.9;
-    #     τCa_h = self.t_τ(v,c1Ca_h,c2Ca_h,rτCa_h,kτCa_h)
-    #     return τCa_h, σCa_h
+        # hCa time constant
+        c1Ca_h = 40 #140;
+        c2Ca_h = -35 # -100;
+        rτCa_h = -55;
+        kτCa_h = 16.9;
+        τCa_h = self.t_τ(v,c1Ca_h,c2Ca_h,rτCa_h,kτCa_h)
+        return τCa_h, σCa_h
     
     # ------ END OF CODE FOR REBOUND BURSTER ------
     

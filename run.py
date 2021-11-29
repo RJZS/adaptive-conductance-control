@@ -21,7 +21,8 @@ from network_odes import main, no_observer
 # and the reference system, for every other neuron or so. So still have an error after 600s, and even
 # after 1500s (saved figs for this longer data but not the data as not very different from 600s).
 
-# FULL MODEL WORKS!!
+# FULL MODEL WORKS!! Can't get it to burst. Maybe because of Ca? Need to think about how to model
+# m_Ca!
     
 # On the backburner:
 # Code for graph plotting. Don't just plot everything (messy!), maybe have a 
@@ -192,11 +193,11 @@ def Irb(t): # For rebound burster
     if t < 10 or t > 40:
         return 0
     else:
-        return -10
+        return -6
     
-Iconst = lambda t: -0.1
-Iapps = [Iconst, Iconst, lambda t: 6]
-Tfinal = 1000 # In HCO2 it's 15000. Will probably reduce all the taus, or some of them anyway.
+Iconst = lambda t: 0. #-0.1 in HCO2
+Iapps = [Irb, Iconst, lambda t: 6]
+Tfinal = 300 # In HCO2 it's 15000. Will probably reduce all the taus, or some of them anyway.
 
 tspan = (0.,Tfinal)
 
@@ -204,8 +205,8 @@ tspan = (0.,Tfinal)
 # neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
 
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1
-neur_one_play = Neuron(1., [300.,0.1,5.,2.,120.,1.,2.,0.1], [syn])
-neur_two_play = Neuron(1., [300.,0.1,5.,2.,120.,1.,2.,0.1], [syn2])
+neur_one_play = Neuron(1., [120.,0,5.,0,36.,0,0,0.03], [syn])
+neur_two_play = Neuron(1., [120.,0,5.,0,36.,0,0,0.03], [syn2])
 
 # # Rebound burster
 # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
@@ -213,6 +214,7 @@ network_play = Network([neur_one_play, neur_two_play], np.zeros((2,2)))
 p_play = (Iapps, network_play)
 
 z_0_play = np.concatenate((x_0, x_0))
+# z_0_play = x_0
 z_0_play[0] = -60
 out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
