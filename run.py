@@ -182,6 +182,45 @@ sol_nodist = out_nodist.y
 # t_ref = out_ref.t
 # sol_ref = out_ref.y
 
+# %% 
+# Playing with model to find bursting behaviour.
+
+syn = Synapse(2., 1)
+syn2 = Synapse(2., 0)
+Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+def Irb(t):
+    if t < 10 or t > 40:
+        return 0
+    else:
+        return -10
+    
+Iconst = 10.
+Iapps = [Irb, lambda t: 6, lambda t: 6]
+Tfinal = 140
+
+tspan = (0.,Tfinal)
+
+neur_one_play = Neuron(1., [120.,0,5.,0,36.,0,0,0.03], [])
+
+# neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
+
+# # Only one neur
+# neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
+network_play = Network([neur_one_play], np.zeros((1,1)))
+p_play = (Iapps, network_play)
+z_0_nodist = np.concatenate((x_0[:12], x_0[:12]))
+z_0_nodist[0] = 20
+z_0_nodist[12] = -20
+z_0_play = x_0[:11]
+z_0_play[0] = -60
+# z_0_nodist = x_0[:11] # Only one neur
+out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play,rtol=1e-6,atol=1e-6,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+
+t_play = out_play.t
+sol_play = out_play.y
+
+
 # %%
 # Test HCO disturbance rejection. First compare real and estimated Isyns.
 v = sol[0,:]
