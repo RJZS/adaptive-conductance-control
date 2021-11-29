@@ -34,6 +34,12 @@ class Neuron:
         self.EK = -90.
         self.Eleak = -55.
         self.Esyn = -90. # Thiago's HCO2 sets to the same as EK.
+        
+        # Values for testnig
+        self.ENa = 55
+        self.EK = -77
+        self.EL = -54.4
+        self.Esyn = -80
         self.Es = np.array([self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.Esyn]) # Useful.
         
         self.syns = synapses
@@ -64,46 +70,46 @@ class Neuron:
     # decide to vectorise (ie calculate for the whole network at once).
 
     # Na-current (m=activation variable, h=inactivation variable)
-    def gating_m(self, v):
-        vh_α_m = 40.
-        vh_β_m = 65.
-        k_α_m = 10.
-        k_β_m = 18.
-        def alpha_m(V): return -0.025*(V+vh_α_m)/(np.exp(-(V+vh_α_m)/k_α_m) - 1.0 )
-        def beta_m(V): return np.exp(-(V+vh_β_m)/k_β_m)
-        def m_inf(V): return alpha_m(V) / (alpha_m(V) + beta_m(V))
-        def tau_m(V): return 1.0 / (alpha_m(V) + beta_m(V))        
-        τ = tau_m(v)
-        σ = m_inf(v)
-        return τ, σ
+    # def gating_m(self, v):
+    #     vh_α_m = 40.
+    #     vh_β_m = 65.
+    #     k_α_m = 10.
+    #     k_β_m = 18.
+    #     def alpha_m(V): return -0.025*(V+vh_α_m)/(np.exp(-(V+vh_α_m)/k_α_m) - 1.0 )
+    #     def beta_m(V): return np.exp(-(V+vh_β_m)/k_β_m)
+    #     def m_inf(V): return alpha_m(V) / (alpha_m(V) + beta_m(V))
+    #     def tau_m(V): return 1.0 / (alpha_m(V) + beta_m(V))        
+    #     τ = tau_m(v)
+    #     σ = m_inf(v)
+    #     return τ, σ
         
-    def gating_h(self, v):
-        vh_α_h = 65.
-        vh_β_h = 35.
-        k_α_h = 20.
-        k_β_h = 10.
-        def alpha_h(V): return 0.0175*np.exp(-(V+vh_α_h)/k_α_h)
-        def beta_h(V): return 0.25/(1.0 + np.exp(-(V+vh_β_h)/k_β_h) )
-        def h_inf(V): return alpha_h(V) / (alpha_h(V) + beta_h(V))
-        def tau_h(V): return 1. / (alpha_h(V) + beta_h(V))
-        τ = tau_h(v)
-        σ = h_inf(v)
-        return τ, σ
+    # def gating_h(self, v):
+    #     vh_α_h = 65.
+    #     vh_β_h = 35.
+    #     k_α_h = 20.
+    #     k_β_h = 10.
+    #     def alpha_h(V): return 0.0175*np.exp(-(V+vh_α_h)/k_α_h)
+    #     def beta_h(V): return 0.25/(1.0 + np.exp(-(V+vh_β_h)/k_β_h) )
+    #     def h_inf(V): return alpha_h(V) / (alpha_h(V) + beta_h(V))
+    #     def tau_h(V): return 1. / (alpha_h(V) + beta_h(V))
+    #     τ = tau_h(v)
+    #     σ = h_inf(v)
+    #     return τ, σ
     
     # KD-current (mKD=activation variable)
-    def gating_mKD(self, v):
-        vh_α_mKD = 55
-        vh_β_mKD = 65
-        k_α_mKD = 10
-        k_β_mKD = 80
-        KDshift=10.0
-        def alpha_mKD(V): return 0.0025*(V+vh_α_mKD)/(1. - np.exp(-(V+vh_α_mKD)/k_α_mKD) )
-        def beta_mKD(V): return 0.03125*np.exp(-(V+vh_β_mKD)/k_β_mKD)
-        def mKD_inf(V): return alpha_mKD(V-KDshift) / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
-        def tau_mKD(V): return 1. / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
-        τ = tau_mKD(v)
-        σ = mKD_inf(v)
-        return τ, σ
+    # def gating_mKD(self, v):
+    #     vh_α_mKD = 55
+    #     vh_β_mKD = 65
+    #     k_α_mKD = 10
+    #     k_β_mKD = 80
+    #     KDshift=10.0
+    #     def alpha_mKD(V): return 0.0025*(V+vh_α_mKD)/(1. - np.exp(-(V+vh_α_mKD)/k_α_mKD) )
+    #     def beta_mKD(V): return 0.03125*np.exp(-(V+vh_β_mKD)/k_β_mKD)
+    #     def mKD_inf(V): return alpha_mKD(V-KDshift) / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
+    #     def tau_mKD(V): return 1. / (alpha_mKD(V-KDshift) + beta_mKD(V-KDshift))
+    #     τ = tau_mKD(v)
+    #     σ = mKD_inf(v)
+    #     return τ, σ
     
     # H-current (mH=activation variable)
     def gating_mH(self, v):
@@ -215,14 +221,14 @@ class Neuron:
         return τ, σ
     
     # Synaptic current
-    def gating_s(self, v):
-        V12syn=-20.0
-        ksyn=4.0
-        def msyn_inf(V): return 1.0 / ( 1.0 + np.exp(-(V-V12syn)/ksyn) )
-        tausyn = 20.0
-        τ = tausyn
-        σ = msyn_inf(v)
-        return τ, σ
+    # def gating_s(self, v):
+    #     V12syn=-20.0
+    #     ksyn=4.0
+    #     def msyn_inf(V): return 1.0 / ( 1.0 + np.exp(-(V-V12syn)/ksyn) )
+    #     tausyn = 20.0
+    #     τ = tausyn
+    #     σ = msyn_inf(v)
+    #     return τ, σ
     
     # What's this function for? Not used?
     # def neuron_calcs(self, v, m, h, n, I):
@@ -239,6 +245,49 @@ class Neuron:
     #     dn = 1/τn*(-n + σn);
     
     #     return [dv,dm,dh,dn]
+    
+    def gating_m(self, v):
+        Vhalf = -40.;
+        k = 9.;              #15 in izhikevich
+        Vmax = -38.;
+        std = 30.;
+        Camp = 0.46;
+        Cbase = 0.04;
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
+        return τ, σ 
+    
+    # Sodium inactivation
+    def gating_h(self, v):
+        Vhalf = -62.;
+        k = -7.;
+        Vmax = -67.;
+        std = 20.;
+        Camp = 7.4;
+        Cbase = 1.2;
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
+        return τ, σ
+    
+    # Potassium activation
+    def gating_mKD(self, v):
+        Vhalf = -53.;
+        k = 15.;
+        Vmax = -79.;
+        std = 50.;
+        Camp = 4.7;
+        Cbase = 1.1;
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
+        return τ, σ
+    
+    # Synaptic gate
+    def gating_s(self, v): # Terms are same as m unless stated.
+        Vhalf = -45.; # From Dethier et al - 2015
+        k = 2.; # From Dethier et al - 2015
+        Vmax = -38.;
+        std = 30.;
+        Camp = 0.46;
+        Cbase = 0.04;
+        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
+        return τ, σ    
     
     def gate_calcs(self, v, int_gates, syn_gates, v_pres):
         dints = np.zeros(self.NUM_GATES)
@@ -267,7 +316,6 @@ class Neuron:
     # TODO: Include resistive connections. 
     # Note this function spits out the length of vectors tailored to the neuron,
     # not the standardised 'max length' required by the ODE solver.
-    # NB: Have converted this fn to the new neuron model!
     def define_dv_terms(self, to_estimate, est_gsyns, v, ints, syn_gates, I):
         # First deal with intrinsic conductances.
         gs = np.concatenate((self.gs, [1.]))

@@ -28,37 +28,16 @@ from network_odes import main, no_observer
 # and the values are booleans. Then can have each plot within its own 'if' statement.
 
 # Automate running of 'nosyn' simulation (should be called 'nodist'). Harder than I thought!
+# At least can automate addition of synaptic terms to initialisation, as know number of syns!
+# (So have to move network definition above initialisation).
 
 
 # Initial conditions - Disturbance Rejection
-# x_0 = [0, 0, 0, 0, 0, 0]; # V, m, h, n, s1, s2
-# x̂_0 = [-40, 0.2, 0.3, 0.1, 0.4, 0.3] # Works for single neuron.
-# x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.15]
-# θ̂_0 = [60, 60, 10, 10, 10]; # [gNa, gK, gL, gsyn1, gsyn2]
-# P_0 = np.eye(5);
-# Ψ_0 = [0, 0, 0, 0, 0];
-# to_estimate = [0, 1, 2]
-# estimate_g_syns = True
-# estimate_g_res = False # TODO: Need to write the code for this!!
-
-# syn = Synapse(2., 1)
-# syn2 = Synapse(2., 0)
-# syn_dist = Synapse(2., 2)
-# neur_one = Neuron(1., [120.,36.,0.3], [syn, syn_dist])
-# neur_two = Neuron(1., [120.,36.,0.3], [syn2])
-# neur_dist = Neuron(1., [120.,36.,0.3], [])
-# network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
-
-# Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-# Iapps = [Iapp, lambda t: 6, lambda t: 6] # Neuron 2 converges even with constant current?
-
-# Initial conditions - Reference Tracking
-x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s
-# x̂_0 = [-40, 0.2, 0.3, 0.1] # Works for single neuron.
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
-θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and gsyn
-P_0 = np.eye(4);
-Ψ_0 = [0,0,0,0];
+x_0 = [0,0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
+x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5, 0.45]
+θ̂_0 = [60, 60, 10, 10, 10]; # Estimating gNa, gKD, gleak and the 2 gsyns
+P_0 = np.eye(5);
+Ψ_0 = [0,0,0,0,0];
 to_estimate = np.array([0, 4, 7])
 estimate_g_syns = True
 estimate_g_res = False # TODO: Need to write the code for this!!
@@ -66,19 +45,40 @@ estimate_g_res = False # TODO: Need to write the code for this!!
 syn = Synapse(2., 1)
 syn2 = Synapse(2., 0)
 syn_dist = Synapse(2., 2)
-# Remember, order of currents is Na, H, T, A, KD, L, KCA, leak
-neur_one = Neuron(1., np.array([130.,0,0,0,43.,0,0,0.4]), np.array([syn]))
-neur_two = Neuron(1., np.array([100.,0,0,0,27.,0,0,0.2]), np.array([syn2]))
-network = Network([neur_one, neur_two], np.zeros((2,2))) # for ref tracking
-# ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
-ref_gs = np.array([[110,0,0,0,35,0,0,0.2,2.5],
-                   [145,0,0,0,48,0,0,0.6,1.]]).T # gs of reference network.
-# orig_gs = np.array([ [130.,43.,0.4,2.], [100.,27.,0.2,2.] ]).T # gs of network, for the csv
+neur_one = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn, syn_dist])
+neur_two = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
+neur_dist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
+network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
 
-# Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-Iapp = lambda t : 6 + np.sin(2*np.pi/10*t)
-Iapps = [Iapp, Iapp] # Neuron 2 converges even with constant current?
-Iapps = [2., 2.]
+Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+Iapps = [Iapp, lambda t: 6, lambda t: 6]
+
+# Initial conditions - Reference Tracking
+# x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s
+# x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
+# θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and gsyn
+# P_0 = np.eye(4);
+# Ψ_0 = [0,0,0,0];
+# to_estimate = np.array([0, 4, 7])
+# estimate_g_syns = True
+# estimate_g_res = False # TODO: Need to write the code for this!!
+
+# syn = Synapse(2., 1)
+# syn2 = Synapse(2., 0)
+# syn_dist = Synapse(2., 2)
+# # Remember, order of currents is Na, H, T, A, KD, L, KCA, leak
+# neur_one = Neuron(1., np.array([130.,0,0,0,43.,0,0,0.4]), np.array([syn]))
+# neur_two = Neuron(1., np.array([100.,0,0,0,27.,0,0,0.2]), np.array([syn2]))
+# network = Network([neur_one, neur_two], np.zeros((2,2))) # for ref tracking
+# # ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
+# ref_gs = np.array([[110,0,0,0,35,0,0,0.2,2.5],
+#                    [145,0,0,0,48,0,0,0.6,1.]]).T # gs of reference network.
+# # orig_gs = np.array([ [130.,43.,0.4,2.], [100.,27.,0.2,2.] ]).T # gs of network, for the csv
+
+# # Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+# Iapp = lambda t : 6 + np.sin(2*np.pi/10*t)
+# Iapps = [Iapp, Iapp] # Neuron 2 converges even with constant current?
+# Iapps = [2., 2.]
 
 # ## FOR TESTING, REMOVE SYNAPSE:
 # x_0 = [0, 0, 0, 0]; # V, m, h, n
@@ -101,8 +101,8 @@ Iapps = [2., 2.]
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
-# control_law = ["DistRej", [(0, 1)]]#, (0, 1)]]
-control_law = ["RefTrack", ref_gs]
+control_law = ["DistRej", [(0, 1)]]#, (0, 1)]]
+# control_law = ["RefTrack", ref_gs]
 # control_law = [""]
 
 num_neurs = len(network.neurons)
@@ -121,7 +121,7 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 25
+Tfinal = 200
 
 tspan = (0.,Tfinal)
 # controller_on = True
@@ -158,9 +158,9 @@ sol = out.y
 syn_ref = Synapse(2.5, 1)
 syn2_ref = Synapse(1., 0)
 
-neur_one_ref = Neuron(1., [110.,35.,0.2], np.array([syn_ref]))
-neur_two_ref = Neuron(1., [145.,48.,0.6], np.array([syn2_ref]))
-network_ref = Network([neur_one_ref, neur_two_ref], np.zeros((2,2)))
+neur_one_ref = Neuron(1., np.array([110.,0,0,0,35.,0,0,0.2]), np.array([syn_ref]))
+neur_two_ref = Neuron(1., np.array([145.,0,0,0,48.,0,0,0.6]), np.array([syn2_ref]))
+network_ref = Network([neur_one, neur_two], np.zeros((2,2)))
 p_ref = (Iapps, network_ref)
 z_0_ref = np.concatenate((x_0, x_0))
 out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
