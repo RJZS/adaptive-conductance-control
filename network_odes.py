@@ -374,7 +374,7 @@ def no_observer(t,z,p):
         
         v_pres = Vs[neur.pre_neurs]
         (dints[:,i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
-            Vs[i], dints[:,i], syns[:,i], v_pres)
+            Vs[i], ints[:,i], syns[:,i], v_pres)
         
     dz_mat = np.vstack((dvs, dints, dsyns_mat))
     dz = np.reshape(dz_mat, (len(z),), order='F')
