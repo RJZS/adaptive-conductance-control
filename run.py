@@ -35,22 +35,26 @@ from network_odes import main, no_observer
 
 
 # Initial conditions - Disturbance Rejection
-x_0 = [0,0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5, 0.5]
-θ̂_0 = [60, 60, 10, 10, 10]; # Estimating gNa, gKD, gleak and the 2 gsyns
-P_0 = np.eye(5);
-Ψ_0 = [0,0,0,0,0];
+x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1
+x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
+θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and 1 gsyn
+P_0 = np.eye(4);
+Ψ_0 = [0,0,0,0];
 to_estimate = np.array([0, 4, 7])
 estimate_g_syns = True
 estimate_g_res = False # TODO: Need to write the code for this!!
 
 syn = Synapse(2., 1)
-syn2 = Synapse(2., 0)
+syn2 = Synapse(15., 0)
 syn_dist = Synapse(2., 2)
 neur_one = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn, syn_dist])
 neur_two = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
 neur_dist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
 network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
+
+neur_one_drion = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0.055]), [syn])
+neur_dist = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0.055]), [])
+network = Network([neur_one_drion, neur_dist], np.zeros((2,2)))
 
 # # Just one neuron and one disturbance.
 # neur_one = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn])
@@ -58,7 +62,8 @@ network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
 # network = Network([neur_one, neur_two], np.zeros((2,2)))
 
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-Iapps = [Iapp, lambda t: 6, lambda t: 6]
+Iconst = lambda t: -2
+Iapps = [Iconst, Iconst, lambda t: 6]
 
 # Initial conditions - Reference Tracking
 # x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s
@@ -108,7 +113,7 @@ Iapps = [Iapp, lambda t: 6, lambda t: 6]
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
-control_law = ["DistRej", [(0, 1)]]#, (0, 1)]]
+control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 # control_law = ["RefTrack", ref_gs]
 # control_law = [""]
 
@@ -128,7 +133,7 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 250
+Tfinal = 1000
 
 tspan = (0.,Tfinal)
 # controller_on = True
@@ -186,8 +191,8 @@ sol_nodist = out_nodist.y
 # %% 
 # Playing with model to find bursting behaviour.
 
-syn = Synapse(15., 1)
-syn2 = Synapse(15., 0)
+syn = Synapse(2., 1)
+syn2 = Synapse(2., 0)
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 def Irb(t): # For rebound burster
     if t < 10 or t > 40:
@@ -197,24 +202,24 @@ def Irb(t): # For rebound burster
     
 Iconst = lambda t: -2 #-0.1 in HCO2
 Iapps = [Iconst, Iconst, lambda t: 6]
-Tfinal = 2000 # In HCO2 it's 15000. Will probably reduce all the taus, or some of them anyway.
+Tfinal = 500 # In HCO2 it's 15000. Will probably reduce all the taus, or some of them anyway.
 
 tspan = (0.,Tfinal)
 
 # neur_one_play = Neuron(1., [120.,0,5.,0,36.,0,0,0.03], []) # For rebound burster.
 # neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
 
-x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
-neur_one_play = Neuron(1., [120.,0.02,0.2,0,30.,0,4.,0.055], [])  # gNa, gH, gT, gA, gKD, gL, gKCa, gl
-# neur_two_play = Neuron(1., [120.,0.02,0.5,0,30.,0,0,0.055], [syn2])
+x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s
+neur_one_play = Neuron(1., [120.,0.02,0.2,0,30.,0,4.,0.055], [syn])  # gNa, gH, gT, gA, gKD, gL, gKCa, gl
+neur_two_play = Neuron(1., [120.,0.02,0.5,0,30.,0,0,0.055], [syn2])
 
 # # Rebound burster
 # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
-network_play = Network([neur_one_play], np.zeros((1,1)))
+network_play = Network([neur_one_play, neur_two_play], np.zeros((2,2)))
 p_play = (Iapps, network_play)
 
 z_0_play = np.concatenate((x_0, x_0))
-z_0_play = x_0
+# z_0_play = x_0
 z_0_play[0] = -60
 out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
