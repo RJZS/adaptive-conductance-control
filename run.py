@@ -197,20 +197,20 @@ def Irb(t): # For rebound burster
     
 Iconst = lambda t: 0. #-0.1 in HCO2
 Iapps = [Irb, Iconst, lambda t: 6]
-Tfinal = 300 # In HCO2 it's 15000. Will probably reduce all the taus, or some of them anyway.
+Tfinal = 150 # In HCO2 it's 15000. Will probably reduce all the taus, or some of them anyway.
 
 tspan = (0.,Tfinal)
 
 # neur_one_play = Neuron(1., [120.,0,5.,0,36.,0,0,0.03], []) # For rebound burster.
 # neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
 
-x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1
-neur_one_play = Neuron(1., [120.,0,5.,0,36.,0,0,0.03], [syn])
-neur_two_play = Neuron(1., [120.,0,5.,0,36.,0,0,0.03], [syn2])
+x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
+neur_one_play = Neuron(1., [120.,0.02,0.5,0,30.,0,0,0.055], [])
+# neur_two_play = Neuron(1., [120.,0.02,0.5,0,30.,0,0,0.055], [syn2])
 
 # # Rebound burster
 # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
-network_play = Network([neur_one_play, neur_two_play], np.zeros((2,2)))
+network_play = Network([neur_one_play], np.zeros((1,1)))
 p_play = (Iapps, network_play)
 
 z_0_play = np.concatenate((x_0, x_0))
