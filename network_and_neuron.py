@@ -130,20 +130,20 @@ class Neuron:
     #     σ = mH_inf(v)
     #     return τ, σ
     
-    # # A-current (mA=activation variable, hA=inactivation variable)
-    # def gating_mA(self, v):
-    #     vh_inf_mA = 60
-    #     vh_τ_mA1 = 35.82
-    #     vh_τ_mA2 = 79.69
-    #     k_inf_mA = 8.5
-    #     k_τ_mA1 = 19.697
-    #     k_τ_mA2 = -12.7
-    #     def mA_inf(V): return 1/(1+np.exp(-(V+vh_inf_mA)/k_inf_mA))
-    #     def tau_mA_temp(V): return 0.37 + 1/(np.exp((V+vh_τ_mA1)/k_τ_mA1)+np.exp((V+vh_τ_mA2)/k_τ_mA2))
-    #     def tau_mA(V): return tau_mA_temp(V)
-    #     τ = tau_mA(v)
-    #     σ = mA_inf(v)
-    #     return τ, σ
+     # A-current (mA=activation variable, hA=inactivation variable)
+    def gating_mA(self, v):
+         vh_inf_mA = 60
+         vh_τ_mA1 = 35.82
+         vh_τ_mA2 = 79.69
+         k_inf_mA = 8.5
+         k_τ_mA1 = 19.697
+         k_τ_mA2 = -12.7
+         def mA_inf(V): return 1/(1+np.exp(-(V+vh_inf_mA)/k_inf_mA))
+         def tau_mA_temp(V): return 0.37 + 1/(np.exp((V+vh_τ_mA1)/k_τ_mA1)+np.exp((V+vh_τ_mA2)/k_τ_mA2))
+         def tau_mA(V): return tau_mA_temp(V)
+         τ = tau_mA(v)
+         σ = mA_inf(v)
+         return τ, σ
     
     def gating_hA(self, v):
         vh_inf_hA = 78
