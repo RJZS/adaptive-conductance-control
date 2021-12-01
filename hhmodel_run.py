@@ -200,8 +200,11 @@ peaks = find_peaks(sol[0,:])
 ref_peaks = find_peaks(sol_ref[0,:])
 
 #shift = 19588 - 17479
-shift = 58606 - 59606
+# shift = 58606 - 59606
+shift = 199606 - 197606
 
-period = 58606 - 55606
-ref_period = 59606 - 56606
+# period = 58606 - 55606
+# ref_period = 59606 - 56606
+period = 199606 - 196606
+ref_period = 197606 - 194606
 # For HCO_RT it's about 1105, ie np.roll(x, 1105). Remember the spike is every other local max.
