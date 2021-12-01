@@ -63,7 +63,7 @@ x̂_0 = [30, 0.1, 0.2, 0.4, 0.5]
 P_0 = np.eye(4);
 Ψ_0 = [0, 0, 0, 0];
 to_estimate = np.array([0, 1, 2])
-estimate_g_syns = True
+estimate_g_syns = False
 estimate_g_res = False # TODO: Need to write the code for this!!
 
 syn = Synapse(2., 1)
@@ -121,7 +121,7 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 200
+Tfinal = 2000
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
@@ -142,32 +142,32 @@ sol = out.y
 # def prepare_nodist_sim(neurons, control_law, z_0):
 #     for (neur_i, syn_i) in control_law[1]:
         
-# HCO disturbance rejection
-neur_one_nosyn = HHModelNeuron(1., [120.,36.,0.3], [syn])
-neur_two_nosyn = HHModelNeuron(1., [120.,36.,0.3], [syn2])
-network_nosyn = Network([neur_one_nosyn, neur_two_nosyn], np.zeros((2,2)))
-p_nosyn = (Iapps, network_nosyn)
-z_0_nosyn = np.concatenate((x_0[:5], x_0[:5]))
-out_nosyn = solve_ivp(lambda t, z: hhmodel_no_observer(t, z, p_nosyn), tspan, z_0_nosyn,rtol=1e-6,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
-
-t_nosyn = out_nosyn.t
-sol_nosyn = out_nosyn.y
-
-# Reference Tracking
-# syn_ref = Synapse(2.5, 1)
-# syn2_ref = Synapse(1., 0)
-
-# neur_one_ref = HHModelNeuron(1., [110.,35.,0.2], np.array([syn_ref]))
-# neur_two_ref = HHModelNeuron(1., [145.,48.,0.6], np.array([syn2_ref]))
-# network_ref = Network([neur_one_ref, neur_two_ref], np.zeros((2,2)))
-# p_ref = (Iapps, network_ref)
-# z_0_ref = np.concatenate((x_0, x_0))
-# out_ref = solve_ivp(lambda t, z: hhmodel_no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
+# # HCO disturbance rejection
+# neur_one_nosyn = HHModelNeuron(1., [120.,36.,0.3], [syn])
+# neur_two_nosyn = HHModelNeuron(1., [120.,36.,0.3], [syn2])
+# network_nosyn = Network([neur_one_nosyn, neur_two_nosyn], np.zeros((2,2)))
+# p_nosyn = (Iapps, network_nosyn)
+# z_0_nosyn = np.concatenate((x_0[:5], x_0[:5]))
+# out_nosyn = solve_ivp(lambda t, z: hhmodel_no_observer(t, z, p_nosyn), tspan, z_0_nosyn,rtol=1e-6,atol=1e-6,
 #                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 
-# t_ref = out_ref.t
-# sol_ref = out_ref.y
+# t_nosyn = out_nosyn.t
+# sol_nosyn = out_nosyn.y
+
+# Reference Tracking
+syn_ref = Synapse(2.5, 1)
+syn2_ref = Synapse(1., 0)
+
+neur_one_ref = HHModelNeuron(1., [110.,35.,0.2], np.array([syn_ref]))
+neur_two_ref = HHModelNeuron(1., [145.,48.,0.6], np.array([syn2_ref]))
+network_ref = Network([neur_one_ref, neur_two_ref], np.zeros((2,2)))
+p_ref = (Iapps, network_ref)
+z_0_ref = np.concatenate((x_0, x_0))
+out_ref = solve_ivp(lambda t, z: hhmodel_no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+
+t_ref = out_ref.t
+sol_ref = out_ref.y
 
 # %%
 # Test HCO disturbance rejection. First compare real and estimated Isyns.
@@ -194,7 +194,14 @@ Vs = sol[V_idxs,:]
 
 # %%
 # To find peaks.
-# from scipy.signal import find_peaks
+from scipy.signal import find_peaks
 # find_peaks(x) gives the idxs. Then can use np.roll for the phase-shift.
+peaks = find_peaks(sol[0,:])
+ref_peaks = find_peaks(sol_ref[0,:])
 
+#shift = 19588 - 17479
+shift = 58606 - 59606
+
+period = 58606 - 55606
+ref_period = 59606 - 56606
 # For HCO_RT it's about 1105, ie np.roll(x, 1105). Remember the spike is every other local max.

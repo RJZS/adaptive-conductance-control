@@ -276,6 +276,7 @@ def hhmodel_main(t,z,p):
         tmp_list_mask = np.ones(num_neur_gs, dtype=bool)
         tmp_list_mask[to_estimate] = False
         known_g_idxs = tmp_list[tmp_list_mask]
+        # known_g_idxs = np.array(range(num_neur_gs)) # Switch off observer for debugging.
         
         if known_g_idxs.any(): # Otherwise, neur_gs already fully populated with estimates.
             for (neur_idx, neur) in enumerate(network.neurons):
