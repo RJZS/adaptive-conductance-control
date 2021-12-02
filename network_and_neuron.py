@@ -153,18 +153,18 @@ class Neuron:
     # Intracellular calcium. USING THIS?
     def ICa_pump(self, Ca): 0.1*Ca/(Ca+0.0001)
     
-    # Gate for KCa. Instead of modelling [Ca]. Term is g_{KCa} mCa^4 (V - E_{KCa})
-    # THIS IS FROM THIAGO'S HCO2, what's the equivalent in notebook?
-    def gating_mCa(self, v):
-        vh_inf_mL = 55
-        vh_τ_mL = 45
-        k_inf_mL = 3
-        k_τ_mL = 400
-        def mCa_inf(V): return 1/(1+np.exp(-(V+vh_inf_mL)/k_inf_mL))
-        def tau_mCa(V): return (72*np.exp(-(V+vh_τ_mL)**2/k_τ_mL)+6.)*2
-        τ = tau_mCa(v)
-        σ = mCa_inf(v)
-        return τ, σ
+    # # Gate for KCa. Instead of modelling [Ca]. Term is g_{KCa} mCa^4 (V - E_{KCa})
+    # # This is from Thiago's HCO2.
+    # def gating_mCa(self, v):
+    #     vh_inf_mL = 55
+    #     vh_τ_mL = 45
+    #     k_inf_mL = 3
+    #     k_τ_mL = 400
+    #     def mCa_inf(V): return 1/(1+np.exp(-(V+vh_inf_mL)/k_inf_mL))
+    #     def tau_mCa(V): return (72*np.exp(-(V+vh_τ_mL)**2/k_τ_mL)+6.)*2
+    #     τ = tau_mCa(v)
+    #     σ = mCa_inf(v)
+    #     return τ, σ
     
     # Kir-current (mKIR=activation variable). Modelled as instantaneous.
     def mKir_inf(V): return 1/(1+np.exp((V+97.9+10)/9.7)) # Activation function
@@ -324,11 +324,15 @@ class Neuron:
         (τhA,σhA) = self.gating_hA(v);
         (τmKD,σmKD) = self.gating_mKD(v);
         (τmL,σmL) = self.gating_mL(v);
-        (τCa,σCa) = self.gating_mCa(v);
+        # (τCa,σCa) = self.gating_mCa(v);
         
-        taus = np.array([τm, τh, τmH, τmT, τhT, τmA, τhA, τmKD, τmL, τCa])
-        sigmas = np.array([σm, σh, σmH, σmT, σhT, σmA, σhA, σmKD, σmL, σCa])
+        taus = np.array([τm, τh, τmH, τmT, τhT, τmA, τhA, τmKD, τmL])
+        sigmas = np.array([σm, σh, σmH, σmT, σhT, σmA, σhA, σmKD, σmL])
         dints = calc_dgate(taus, int_gates, sigmas)
+        
+        gL_for_Ca=0.4
+        dCa = (-0.1*gL_for_Ca*int_gates[8]*(v-self.ECa)-0.01*int_gates[9])/4
+        dints = np.concatenate((dints, dCa))
         
         dsyns = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
@@ -539,7 +543,7 @@ def calc_terms(v, ints, mKir, ENa, EH, ECa, EK, Eleak, c, I):
                 -ints[5]**3*ints[6]*(v-EK), # I_A
                 -ints[7]**4*(v-EK), # I_KD
                 -ints[8]*(v-ECa), # I_L
-                -ints[9]**4*(v-EK), # I_KCa
+                -(ints[9]/15+ints[9])**4*(v-EK), # I_KCa
                 -mKir*(v-EK), # I_Kir
                 -(v-Eleak),
                 I

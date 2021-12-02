@@ -38,7 +38,7 @@ def reference_tracking_njit(Vs, ints_hat, mKirs, syns_hat, gs, ref_gs, Es, num_n
                                     -ints_hat[5,i]**3*ints_hat[6,i]*(Vs[i]-Es[3]), # I_A
                                     -ints_hat[7,i]**4*(Vs[i]-Es[3]), # I_KD
                                     -ints_hat[8,i]*(Vs[i]-Es[2]), # I_L
-                                    -ints_hat[9,i]**4*(Vs[i]-Es[3]), # I_KCa
+                                    -(ints[9,i]/15+ints[9,i])**4*(Vs[i]-Es[3]), # I_KCa
                                     -mKirs[i]*(Vs[i]-Es[3]), # I_Kir
                                     -(Vs[i]-Es[4])
                                 ]),cs[i])
