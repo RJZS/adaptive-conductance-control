@@ -19,12 +19,14 @@ def reference_tracking(Vs, ints_hat, syns_hat, gs, ref_gs, network, num_neurs, n
     Es = network.neurons[0].Es # Same for every neuron, so can pick any.
     max_num_syns = network.max_num_syns
     cs = np.zeros(num_neurs)
+    mKirs = np.zeros(num_neurs) # Will need values of this instantaneous gate.
     for (idx, neur) in enumerate(network.neurons):
         cs[idx] = neur.c
-    adjusting_currents = reference_tracking_njit(Vs, ints_hat, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs)
+        mKirs[idx] = neur.mKir_inf(Vs[idx]) # No estimates. Know v, and know function.
+    adjusting_currents = reference_tracking_njit(Vs, ints_hat, mKirs, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs)
     return adjusting_currents
 
-def reference_tracking_njit(Vs, ints_hat, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs):
+def reference_tracking_njit(Vs, ints_hat, mKirs, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs):
     adjusting_currents = np.zeros(num_neurs)
     g_diffs = ref_gs-gs
     terms = np.zeros((num_neur_gs+max_num_syns, num_neurs))
@@ -37,6 +39,7 @@ def reference_tracking_njit(Vs, ints_hat, syns_hat, gs, ref_gs, Es, num_neurs, n
                                     -ints_hat[7,i]**4*(Vs[i]-Es[3]), # I_KD
                                     -ints_hat[8,i]*(Vs[i]-Es[2]), # I_L
                                     -ints_hat[9,i]**4*(Vs[i]-Es[3]), # I_KCa
+                                    -mKirs[i]*(Vs[i]-Es[3]), # I_Kir
                                     -(Vs[i]-Es[4])
                                 ]),cs[i])
         terms[num_neur_gs:,i] = -syns_hat[:,i]*(Vs[i] - Es[5])

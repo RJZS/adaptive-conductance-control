@@ -40,20 +40,20 @@ x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
 θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and 1 gsyn
 P_0 = np.eye(4);
 Ψ_0 = [0,0,0,0];
-to_estimate = np.array([0, 4, 7])
+to_estimate = np.array([0, 4, 8])
 estimate_g_syns = True
 estimate_g_res = False # TODO: Need to write the code for this!!
 
 syn = Synapse(2., 1)
 syn2 = Synapse(15., 0)
 syn_dist = Synapse(2., 2)
-neur_one = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn, syn_dist])
-neur_two = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
-neur_dist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
+neur_one = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn, syn_dist])
+neur_two = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn2])
+neur_dist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [])
 network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
 
-neur_one_drion = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0.055]), [syn])
-neur_dist = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0.055]), [])
+neur_one_drion = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0,0.055]), [syn])
+neur_dist = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0,0.055]), [])
 network = Network([neur_one_drion, neur_dist], np.zeros((2,2)))
 
 # # Just one neuron and one disturbance.
@@ -156,8 +156,8 @@ sol = out.y
 #     for (neur_i, syn_i) in control_law[1]:
         
 # HCO disturbance rejection
-neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn])
-neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
+neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn])
+neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn2])
 
 # # Only one neur
 # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
@@ -210,8 +210,8 @@ tspan = (0.,Tfinal)
 # neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
 
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s
-neur_one_play = Neuron(1., [120.,0.02,0.2,0,30.,0,4.,0.055], [syn])  # gNa, gH, gT, gA, gKD, gL, gKCa, gl
-neur_two_play = Neuron(1., [120.,0.02,0.5,0,30.,0,0,0.055], [syn2])
+neur_one_play = Neuron(1., [120.,0.02,0.2,0,30.,0,4.,0,0.055], [syn])  # gNa, gH, gT, gA, gKD, gL, gKCa, gl
+neur_two_play = Neuron(1., [120.,0.02,0.5,0,30.,0,0,0,0.055], [syn2])
 
 # # Rebound burster
 # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])

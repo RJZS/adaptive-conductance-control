@@ -25,24 +25,27 @@ class Neuron:
         self.gKD = gs[4]
         self.gL = gs[5]
         self.gKCA = gs[6]
-        self.gleak = gs[7]
+        self.gKir = gs[7]
+        self.gleak = gs[8]
         self.gs = gs # Useful to keep as a list.
         
+        # Es from upcoming book (notebook 2-3)
         self.ENa = 45.
         self.EH = -43.
         self.ECa = 120.
         self.EK = -90.
         self.Eleak = -55.
-        self.Esyn = -90. # Thiago's HCO2 sets to the same as EK.
         
-        self.EK = -77 # For rebound burster
+        # self.Esyn = -90. # Thiago's HCO2 sets to the same as EK.
+        
+        # self.EK = -77 # For rebound burster
         self.Esyn = -120 # Needs to be below EK I think for rebound bursting...
         
-        # Drion plos 18
-        self.ENa = 50.
-        self.EK = -85.
-        self.ECa = 120.
-        self.EH = -20.
+        # # Drion plos 18
+        # self.ENa = 50.
+        # self.EK = -85.
+        # self.ECa = 120.
+        # self.EH = -20.
 
         self.Es = np.array([self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.Esyn]) # Useful.
         
@@ -162,6 +165,9 @@ class Neuron:
         τ = tau_mCa(v)
         σ = mCa_inf(v)
         return τ, σ
+    
+    # Kir-current (mKIR=activation variable). Modelled as instantaneous.
+    def mKir_inf(V): return 1/(1+np.exp((V+97.9+10)/9.7)) # Activation function
     
     # # Synaptic current
     # def gating_s(self, v):
@@ -337,7 +343,9 @@ class Neuron:
     def define_dv_terms(self, to_estimate, est_gsyns, v, ints, syn_gates, I):
         # First deal with intrinsic conductances.
         gs = np.concatenate((self.gs, [1.]))
-        terms = calc_terms(v, ints, self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.c, I)
+        
+        mKir = self.mKir_inf(v) # Gate modelled as instantaneous.
+        terms = calc_terms(v, ints, mKir, self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.c, I)
         
         gs, terms, θ_intrins, ϕ_intrins = calc_intrins_dv_terms(gs, terms, to_estimate)
         
@@ -523,7 +531,7 @@ def calc_dgate(τ, x, σ):
     return dx
 
 @njit(cache=True)
-def calc_terms(v, ints, ENa, EH, ECa, EK, Eleak, c, I):
+def calc_terms(v, ints, mKir, ENa, EH, ECa, EK, Eleak, c, I):
     terms = np.divide(np.array([
                 -ints[0]**3*ints[1]*(v-ENa), # I_Na
                 -ints[2]*(v-EH), # I_H
@@ -532,6 +540,7 @@ def calc_terms(v, ints, ENa, EH, ECa, EK, Eleak, c, I):
                 -ints[7]**4*(v-EK), # I_KD
                 -ints[8]*(v-ECa), # I_L
                 -ints[9]**4*(v-EK), # I_KCa
+                -mKir*(v-EK), # I_Kir
                 -(v-Eleak),
                 I
             ]),c)
@@ -544,7 +553,7 @@ def hhmodel_calc_terms(v, m, h, n, ENa, EK, EL, c, I):
     return terms
 
 # Providing types as 'typeof' was taking a long time in the profiler.
-@njit((f8[:],f8[:],i4[:]), cache=True) # COMMENTED THIS ONE OUT!!
+@njit((f8[:],f8[:],i4[:]), cache=True) # Sometimes need to comment this line out, as doesn't work.
 def calc_intrins_dv_terms(gs, terms, to_estimate):
     # First deal with intrinsic conductances.
     θ_intrins = np.zeros(len(to_estimate))
