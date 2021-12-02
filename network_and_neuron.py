@@ -553,7 +553,7 @@ def hhmodel_calc_terms(v, m, h, n, ENa, EK, EL, c, I):
     return terms
 
 # Providing types as 'typeof' was taking a long time in the profiler.
-@njit((f8[:],f8[:],i4[:]), cache=True) # Sometimes need to comment this line out, as doesn't work.
+# @njit((f8[:],f8[:],i4[:]), cache=True) # Sometimes need to comment this line out, as doesn't work.
 def calc_intrins_dv_terms(gs, terms, to_estimate):
     # First deal with intrinsic conductances.
     θ_intrins = np.zeros(len(to_estimate))

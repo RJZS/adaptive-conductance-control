@@ -58,6 +58,7 @@ def hhmodel_reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, netwo
 def hhmodel_reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs):
     adjusting_currents = np.zeros(num_neurs)
     g_diffs = ref_gs-gs
+    # g_diffs[0] = 0 # For debugging. No Na ref.
     terms = np.zeros((num_neur_gs+max_num_syns, num_neurs))
     for i in range(num_neurs):
         terms[:num_neur_gs,i] = np.divide(np.array([-m̂s[i]**3*ĥs[i]*(Vs[i]-Es[0]),-n̂s[i]**4*(Vs[i]-Es[1]),
@@ -335,7 +336,7 @@ def hhmodel_main(t,z,p):
         (dm̂s[i], dĥs[i], dn̂s[i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], v_pres)
         
-        dθ̂s[:num_neur_ests,i] = γ*np.matmul(P,Ψ.T)*(Vs[i]-v̂s[i]);
+        dθ̂s[:num_neur_ests,i] = γ*P@Ψ.T*(Vs[i]-v̂s[i]);
         dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
         aux = np.outer(Ψ,Ψ)
         dP = α*P - P@aux@P;
