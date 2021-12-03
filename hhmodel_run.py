@@ -266,7 +266,7 @@ g_ests = sol[10:14,:]
 error = sol[0,:] - sol_nd[0,:]
 
 DR_oneneur_data = np.vstack((t, v, v_nd, g_ests, Id, Id_hat, error))
-np.savetxt("../reports/ifac-data/DR_oneneur_data.txt",DR_oneneur_data,delimiter=",")
+np.savetxt("../reports/ifac-data/DR_oneneur_data.txt",DR_oneneur_data,delimiter=' ')
 
 # # Write data to .txt
 # from numpy import savetxt
