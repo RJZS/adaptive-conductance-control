@@ -49,6 +49,8 @@ class Neuron:
 
         self.Es = np.array([self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.Esyn]) # Useful.
         
+        self.gL_for_Ca=0.4
+        
         self.syns = synapses
         self.num_syns = len(synapses)
         
@@ -145,7 +147,7 @@ class Neuron:
     # L-type Ca-current (mL=activation variable) (from Drion2011)
     def gating_mL(self, v):
         def mL_inf(V): return 1/(1+np.exp(-(V+55.)/3)) # Activation function
-        def tau_mL(V): return (72*np.exp(-(V+45.)^2/400)+6.) # Activation time-constant
+        def tau_mL(V): return (72*np.exp(-(V+45.)**2/400)+6.) # Activation time-constant
         τ = tau_mL(v)
         σ = mL_inf(v)
         return τ, σ
@@ -167,7 +169,7 @@ class Neuron:
     #     return τ, σ
     
     # Kir-current (mKIR=activation variable). Modelled as instantaneous.
-    def mKir_inf(V): return 1/(1+np.exp((V+97.9+10)/9.7)) # Activation function
+    def mKir_inf(self, V): return 1/(1+np.exp((V+97.9+10)/9.7)) # Activation function
     
     # # Synaptic current
     # def gating_s(self, v):
@@ -328,11 +330,10 @@ class Neuron:
         
         taus = np.array([τm, τh, τmH, τmT, τhT, τmA, τhA, τmKD, τmL])
         sigmas = np.array([σm, σh, σmH, σmT, σhT, σmA, σhA, σmKD, σmL])
-        dints = calc_dgate(taus, int_gates, sigmas)
+        dints = calc_dgate(taus, int_gates[:9], sigmas)
         
-        gL_for_Ca=0.4
-        dCa = (-0.1*gL_for_Ca*int_gates[8]*(v-self.ECa)-0.01*int_gates[9])/4
-        dints = np.concatenate((dints, dCa))
+        dCa = (-0.1*self.gL_for_Ca*int_gates[8]*(v-self.ECa)-0.01*int_gates[9])/4
+        dints = np.concatenate((dints, [dCa]))
         
         dsyns = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
@@ -368,13 +369,31 @@ class Neuron:
     
     def calc_dv_no_observer(self, v, ints, syn_gates, I):
         gs = np.concatenate((self.gs, [1.]))
-        terms = calc_terms(v, ints, self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.c, I)
+        mKir = self.mKir_inf(v) # Gate modelled as instantaneous.
+        terms = calc_terms(v, ints, mKir, self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.c, I)
         dv = np.dot(gs, terms)
         
         if syn_gates:
             # In numpy, asterisk operator performs elementwise multiplication.
             dv = dv - self.g_syns * syn_gates * (v - self.Esyn) # !! NEED TO DIVIDE BY C??
         return dv        
+    
+    # Initialise the neuron by setting the gating variables to their 'x_inf' values.
+    def initialise(self, v):
+        (τm,σm) = self.gating_m(v);
+        (τh,σh) = self.gating_h(v);
+        (τmH,σmH) = self.gating_mH(v);
+        (τmT,σmT) = self.gating_mT(v);
+        (τhT,σhT) = self.gating_hT(v);
+        (τmA,σmA) = self.gating_mA(v);
+        (τhA,σhA) = self.gating_hA(v);
+        (τmKD,σmKD) = self.gating_mKD(v);
+        (τmL,σmL) = self.gating_mL(v);
+        Ca = -10*self.gL_for_Ca*σmL*(v-self.ECa)
+        
+        init_gates = np.array([σm, σh, σmH, σmT, σhT, σmA, σhA, σmKD, σmL, Ca])
+        init_gates = np.reshape(init_gates, (self.NUM_GATES,))
+        return init_gates
 
 # Note that 'gs' is a list which can include both floats and functions!
 class HHModelNeuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kinetics

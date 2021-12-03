@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 import time
 
-from network_and_neuron import Synapse, Neuron, HHModelNeuron, Network
+from network_and_neuron import Synapse, HHModelNeuron, Network
 from network_odes import hhmodel_main, hhmodel_no_observer
 
 # TODO:
@@ -59,11 +59,13 @@ from network_odes import hhmodel_main, hhmodel_no_observer
 x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s
 # x̂_0 = [-40, 0.2, 0.3, 0.1] # Works for single neuron.
 x̂_0 = [30, 0.1, 0.2, 0.4, 0.5]
-θ̂_0 = [60, 60, 10, 10]; # [gNa, gK, gL, gs]
-P_0 = np.eye(4);
-Ψ_0 = [0, 0, 0, 0];
-to_estimate = np.array([0, 1, 2])
-estimate_g_syns = False
+θ̂_0 = [60, 10, 10]; # [gNa, gL, gs]
+num_estimators = len(θ̂_0)
+P_0 = np.eye(num_estimators);
+Ψ_0 = np.zeros(num_estimators);
+
+to_estimate = np.array([0, 2])
+estimate_g_syns = True
 estimate_g_res = False # TODO: Need to write the code for this!!
 
 syn = Synapse(2., 1)
@@ -80,23 +82,27 @@ ref_gs = np.array([[110,35,0.2,2.5],[145,48,0.6,1.]]).T # gs of reference networ
 Iapp = lambda t : 6 + np.sin(2*np.pi/10*t)
 Iapps = [Iapp, Iapp] # Neuron 2 converges even with constant current?
 
-# ## FOR TESTING, REMOVE SYNAPSE:
-# x_0 = [0, 0, 0, 0]; # V, m, h, n
-# x̂_0 = [-70, 0.5, 0.5, 0.5]
-# θ̂_0 = [50, 10]; # [gNa, gK, gL]
-# P_0 = np.eye(2);
-# Ψ_0 = [0, 0];
-# neur_one = Neuron(1., [120.,36.,0.3], [])
-# neur_two = Neuron(1., [120.,36.,0.3], [])
-# network = Network([neur_one, neur_two], np.zeros((2,2)))
-# to_estimate = [1, 2]
+## FOR TESTING, REMOVE SYNAPSE:
+x_0 = [0, 0, 0, 0]; # V, m, h, n
+x̂_0 = [-70, 0.5, 0.5, 0.5]
+θ̂_0 = [60, 10]; # [gNa, gL]
+P_0 = np.eye(2);
+Ψ_0 = [0, 0];
+neur_one = HHModelNeuron(1., np.array([120.,36.,0.3]), np.array([]))
+neur_two = HHModelNeuron(1., [120.,36.,0.3], [])
+network = Network([neur_one], np.zeros((1,1)))
+to_estimate = [0, 2]
+num_estimators = len(θ̂_0)
 
-# Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-# Iapps = [Iapp, lambda t: 6] # Neuron 2 converges even with constant current?
+Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+Iapps = [Iapp, lambda t: 6] # Neuron 2 converges even with constant current?
+
+ref_gs = np.array([[110,35,0.2]]).T
+###########
 
 # Observer parameters
 α = 0.5 # Default is 0.5, I've set to 0.3 and then back to 0.5.
-γ = 90 # Default is 70, though Thiago's since lowered to 5.
+γ = 5 # Default is 70, though Thiago's since lowered to 5. Had it at 90 as well.
 
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
@@ -106,7 +112,6 @@ control_law = ["RefTrack", ref_gs]
 # control_law = [""]
 
 num_neurs = len(network.neurons)
-num_estimators = len(θ̂_0)
 len_neur_state = network.neurons[0].NUM_GATES + 1
 max_num_syns = network.max_num_syns
 
@@ -117,19 +122,20 @@ z_0 = np.zeros(((len_neur_state+max_num_syns)*2+
 tmp = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0))
 for j in range(num_neurs): z_0[:,j] = tmp
 z_0 = np.ravel(z_0, order='F')
+#z_0 = np.reshape(z_0, (len(z_0),1))
 
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 2000
+Tfinal = 1000
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns,estimate_g_res)
 
 start_time = time.time()
-out = solve_ivp(lambda t, z: hhmodel_main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+out = solve_ivp(lambda t, z: hhmodel_main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='BDF')
 end_time = time.time()
 print("Simulation time: {}s".format(end_time-start_time))
 
@@ -161,8 +167,14 @@ syn2_ref = Synapse(1., 0)
 neur_one_ref = HHModelNeuron(1., [110.,35.,0.2], np.array([syn_ref]))
 neur_two_ref = HHModelNeuron(1., [145.,48.,0.6], np.array([syn2_ref]))
 network_ref = Network([neur_one_ref, neur_two_ref], np.zeros((2,2)))
+
+# Removing synapse for test:
+neur_one_ref = HHModelNeuron(1., [110.,35.,0.2], np.array([]))
+network_ref = Network([neur_one_ref], np.zeros((1,1)))
+
 p_ref = (Iapps, network_ref)
-z_0_ref = np.concatenate((x_0, x_0))
+# z_0_ref = np.concatenate((x_0, x_0))
+z_0_ref = x_0
 out_ref = solve_ivp(lambda t, z: hhmodel_no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 
