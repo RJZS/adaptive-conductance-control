@@ -100,6 +100,28 @@ Iapps = [Iapp, lambda t: 6] # Neuron 2 converges even with constant current?
 ref_gs = np.array([[110,35,0.2]]).T
 ###########
 
+## Single Neuron Disturbance Rejection
+x_0 = [0, 0, 0, 0, 0]; # V, m, h, n, s1
+# x̂_0 = [-40, 0.2, 0.3, 0.1, 0.4, 0.3] # Works for single neuron.
+x̂_0 = [30, 0.1, 0.2, 0.4, 0.1]
+θ̂_0 = [60, 60, 10, 10]; # [gNa, gK, gL, gsyn1]
+num_estimators = len(θ̂_0)
+P_0 = np.eye(num_estimators);
+Ψ_0 = np.zeros(num_estimators);
+to_estimate = [0, 1, 2]
+estimate_g_syns = True
+estimate_g_res = False # TODO: Need to write the code for this!!
+
+syn_dist = Synapse(2., 1)
+neur_one = HHModelNeuron(1., [120.,36.,0.3], [syn_dist])
+neur_dist = HHModelNeuron(1., [120.,36.,0.3], [])
+network = Network([neur_one, neur_dist], np.zeros((2,2)))
+
+Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+Iapps = [Iapp, lambda t: 6, lambda t: 6]
+
+###########
+
 # Observer parameters
 α = 0.5 # Default is 0.5, I've set to 0.3 and then back to 0.5.
 γ = 5 # Default is 70, though Thiago's since lowered to 5. Had it at 90 as well.
@@ -107,8 +129,8 @@ ref_gs = np.array([[110,35,0.2]]).T
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
-# control_law = ["DistRej", [(0, 1)]]#, (0, 1)]]
-control_law = ["RefTrack", ref_gs]
+control_law = ["DistRej", [(0, 0)]]#, (0, 1)]] # Need to change when switch between neuron and HCO!
+# control_law = ["RefTrack", ref_gs]
 # control_law = [""]
 
 num_neurs = len(network.neurons)
@@ -127,7 +149,7 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 1000
+Tfinal = 600
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
@@ -160,26 +182,37 @@ sol = out.y
 # t_nosyn = out_nosyn.t
 # sol_nosyn = out_nosyn.y
 
-# Reference Tracking
-syn_ref = Synapse(2.5, 1)
-syn2_ref = Synapse(1., 0)
-
-neur_one_ref = HHModelNeuron(1., [110.,35.,0.2], np.array([syn_ref]))
-neur_two_ref = HHModelNeuron(1., [145.,48.,0.6], np.array([syn2_ref]))
-network_ref = Network([neur_one_ref, neur_two_ref], np.zeros((2,2)))
-
-# Removing synapse for test:
-neur_one_ref = HHModelNeuron(1., [110.,35.,0.2], np.array([]))
-network_ref = Network([neur_one_ref], np.zeros((1,1)))
-
-p_ref = (Iapps, network_ref)
-# z_0_ref = np.concatenate((x_0, x_0))
-z_0_ref = x_0
-out_ref = solve_ivp(lambda t, z: hhmodel_no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
+# Single neuron disturbance rejection
+neur_one_nd = HHModelNeuron(1., [120.,36.,0.3], [])
+network_nd = Network([neur_one_nd], np.zeros((1,1)))
+p_nd = (Iapps, network_nd)
+z_0_nd = x_0[:4]
+out_nd = solve_ivp(lambda t, z: hhmodel_no_observer(t, z, p_nd), tspan, z_0_nd,rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 
-t_ref = out_ref.t
-sol_ref = out_ref.y
+t_nd = out_nd.t
+sol_nd = out_nd.y
+
+# # Reference Tracking
+# syn_ref = Synapse(2.5, 1)
+# syn2_ref = Synapse(1., 0)
+
+# neur_one_ref = HHModelNeuron(1., [110.,35.,0.2], np.array([syn_ref]))
+# neur_two_ref = HHModelNeuron(1., [145.,48.,0.6], np.array([syn2_ref]))
+# network_ref = Network([neur_one_ref, neur_two_ref], np.zeros((2,2)))
+
+# # Removing synapse for test:
+# neur_one_ref = HHModelNeuron(1., [110.,35.,0.2], np.array([]))
+# network_ref = Network([neur_one_ref], np.zeros((1,1)))
+
+# p_ref = (Iapps, network_ref)
+# z_0_ref = np.concatenate((x_0, x_0))
+# z_0_ref = x_0
+# out_ref = solve_ivp(lambda t, z: hhmodel_no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
+#                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+
+# t_ref = out_ref.t
+# sol_ref = out_ref.y
 
 # %%
 # Test HCO disturbance rejection. First compare real and estimated Isyns.
@@ -222,6 +255,19 @@ ref_period = 197606 - 194606
 # For HCO_RT it's about 1105, ie np.roll(x, 1105). Remember the spike is every other local max.
 
 #%%
+# Construct data for plotting. For single neur.
+# First construct Id and Id_hat (synaptic disturbance current).
+v = sol[0,:]
+v_nd = sol_nd[0,:]
+Id = syn_dist.g * sol[4,:] * (v - neur_one.Esyn)
+Id_hat = sol[13,:] * sol[9,:] * (v - neur_one.Esyn)
+
+g_ests = sol[10:14,:]
+error = sol[0,:] - sol_nd[0,:]
+
+DR_oneneur_data = np.vstack((t, v, v_nd, g_ests, Id, Id_hat, error))
+np.savetxt("../reports/ifac-data/DR_oneneur_data.txt",DR_oneneur_data,delimiter=",")
+
 # # Write data to .txt
 # from numpy import savetxt
 # np.savetxt("filename.txt",var,delimiter=",") # Note Thiago used delimiter " ", but shouldn't matter?
