@@ -220,3 +220,12 @@ shift = 199606 - 197606
 period = 199606 - 196606
 ref_period = 197606 - 194606
 # For HCO_RT it's about 1105, ie np.roll(x, 1105). Remember the spike is every other local max.
+
+#%%
+# # Write data to .txt
+# from numpy import savetxt
+# np.savetxt("filename.txt",var,delimiter=",") # Note Thiago used delimiter " ", but shouldn't matter?
+
+# # Read data from .txt
+# from numpy import genfromtxt
+# data=genfromtxt('HH_spike.txt',delimiter=",")

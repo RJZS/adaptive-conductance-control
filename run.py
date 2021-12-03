@@ -200,18 +200,30 @@ def Irb(t): # For rebound burster
     else:
         return -6
     
-Iconst = lambda t: -2 #-0.1 in HCO2
+Iconst = lambda t: -2. #-0.1 in HCO2
+
+def Iramp(t):
+    if t < 500:
+        return -1.
+    else:
+        return -2 + 0.005*(t-500)
+
 Iapps = [Iconst, Iconst, lambda t: 6]
-Tfinal = 100 # In HCO2 it's 15000. Will probably reduce all the taus, or some of them anyway.
+Tfinal = 500 # In HCO2 it's 15000. In notebook it's 2800.
 
 tspan = (0.,Tfinal)
 
 # neur_one_play = Neuron(1., [120.,0,5.,0,36.,0,0,0.03], []) # For rebound burster.
 # neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
 
-x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
-neur_one_play = Neuron(1., [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
+#x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
+
+neur_one_play = Neuron(1., [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
 # neur_two_play = Neuron(1., [120.,0.02,0.5,0,30.,0,0,0,0.055], [syn2])
+
+v_0 = np.array([-70.])
+starting_gate_vals = neur_one_play.initialise(v_0)
+x_0 = np.concatenate((v_0, starting_gate_vals))
 
 # # Rebound burster
 # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
@@ -220,14 +232,16 @@ p_play = (Iapps, network_play)
 
 # z_0_play = np.concatenate((x_0, x_0))
 z_0_play = x_0
-z_0_play[0] = -60
+start_time = time.time()
 out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rtol=1e-6,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), vectorized=True)
+end_time = time.time()
+print("'Play' simulation time: {}s".format(end_time-start_time))
 
 t_play = out_play.t
 sol_play = out_play.y
 
-# plt.plot(t_play,sol_play[0,:])
+plt.plot(t_play,sol_play[0,:])
 # %%
 # Test HCO disturbance rejection. First compare real and estimated Isyns.
 v = sol[0,:]
