@@ -159,7 +159,6 @@ def main(t,z,p):
         injected_currents = injected_currents + control_currs
     
     # Now make one time step. First, initialise the required vectors.
-    bs = np.zeros(num_neurs)
     dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)
     dints = np.zeros((num_int_gates, num_neurs))
     dints_hat = np.zeros((num_int_gates, num_neurs))
@@ -182,7 +181,6 @@ def main(t,z,p):
         (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], ints[:,i], syns[:,i], injected_currents[i])
         dvs[i] = np.dot(ϕ,θ) + b
-        bs[i] = b # Will reuse this in the adaptive observer.
         # b here includes the input current, which is different from the paper I think
         
         v_pres = Vs[neur.pre_neurs]
@@ -190,14 +188,14 @@ def main(t,z,p):
             Vs[i], ints[:,i], syns[:,i], v_pres)
         
         # Finally, run the adaptive observer
-        (_, ϕ̂, _) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
+        (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i])
         
-        dv̂s[i] = np.dot(ϕ̂,θ̂) + b + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
+        dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
         (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], ints_hat[:,i], syns_hat[:,i], v_pres)
         
-        dθ̂s[:num_neur_ests,i] = γ*np.matmul(P,Ψ.T)*(Vs[i]-v̂s[i]);
+        dθ̂s[:num_neur_ests,i] = γ*P@Ψ.T*(Vs[i]-v̂s[i]);
         dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
         aux = np.outer(Ψ,Ψ)
         dP = α*P - P@aux@P;

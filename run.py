@@ -13,16 +13,10 @@ from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
 # CURRENT STATUS:
-# Reference tracking seems to work for one neuron, no synapses. But observer estimates of gs do vary!
-# Observer estimates don't settle after 600s. But for the 'spiking HCO', error is within +/- 1 of the 
-# true value (for both 600s and if extend to 1500s)!
-# RefTrack for HCO: Need to apply a phase shift of course. After that, there is still
-# a slight, time-varying phase shift between the system
-# and the reference system, for every other neuron or so. So still have an error after 600s, and even
-# after 1500s (saved figs for this longer data but not the data as not very different from 600s).
-
-# FULL MODEL WORKS!! Can't get it to burst. Maybe because of Ca? Need to think about how to model
-# m_Ca!
+# Observer works fine for single neuron, no synapses or controller, IF alpha is small enough.
+# When I add a disturbance neuron, I have problems with psi. Increasing gamma helps but not much.
+# If I switch off the controller, psi seems ok and the simulation runs longer before diverging
+# (over 100 instead of <1). The problem now is P. 
     
 # On the backburner:
 # Code for graph plotting. Don't just plot everything (messy!), maybe have a 
@@ -57,8 +51,8 @@ neur_dist = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0,0.055]), [])
 network = Network([neur_one_drion, neur_dist], np.zeros((2,2)))
 
 # Initial conditions - Single Neuron Disturbance Rejection
-x_0 = [-70.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
+x_0 = [-70.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
+x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.45]
 θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and 1 gsyn
 P_0 = np.eye(4);
 Ψ_0 = [0,0,0,0];
@@ -71,7 +65,7 @@ neur_one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn])  # gNa, gH, gT,
 neur_dist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
 network = Network([neur_one, neur_dist], np.zeros((2,2)))
 
-control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
+# control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 
 ## Dist Rej Currents
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
@@ -120,15 +114,15 @@ Iapps = [Iconst, Iconst, lambda t: 6]
 # Iapps = [Iapp, lambda t: 6] # Neuron 2 converges even with constant current?
 
 # Observer parameters
-α = 0.5 # Default is 0.5, I've set to 0.3 and then back to 0.5.
-γ = 90 # Default is 70, though Thiago's since lowered to 5.
+α = 0.05 # Default is 0.5. Had to decrease as P values were exploding.
+γ = 70 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
 # control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 # control_law = ["RefTrack", ref_gs]
-# control_law = [""]
+control_law = [""]
 
 num_neurs = len(network.neurons)
 num_estimators = len(θ̂_0)
@@ -146,7 +140,7 @@ z_0 = np.ravel(z_0, order='F')
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 1000
+Tfinal = 100. # 0.24 works. 0.3 explodes I think.
 
 tspan = (0.,Tfinal)
 # controller_on = True
@@ -204,7 +198,7 @@ sol_nodist = out_nodist.y
 # %% 
 # Playing with model to find bursting behaviour.
 dt=0.01
-syn = Synapse(2., 1)
+syn = Synapse(0.5, 1) # 0.5 and 2 seem to have the same result.
 syn2 = Synapse(2., 0)
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 def Irb(t): # For rebound burster
@@ -222,7 +216,7 @@ def Iramp(t):
         return -2 + 0.005*(t-500)
 
 Iapps = [Iconst, Iconst, lambda t: 6]
-Tfinal = 1800 # In HCO2 it's 15000. In notebook it's 2800.
+Tfinal = 350 # In HCO2 it's 15000. In notebook it's 2800.
 
 tspan = (0.,Tfinal)
 
@@ -252,10 +246,10 @@ out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rt
 end_time = time.time()
 print("'Play' simulation time: {}s".format(end_time-start_time))
 
-t_play = out_play.t
-sol_play = out_play.y
+t_play2 = out_play.t
+sol_play2 = out_play.y
 
-plt.plot(t_play,sol_play[0,:])
+plt.plot(t_play2,sol_play2[0,:])
 # %%
 # Test HCO disturbance rejection. First compare real and estimated Isyns.
 v = sol[0,:]
