@@ -367,7 +367,7 @@ class Neuron:
         # Now look at synaptic terms.
         syn_terms = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
-            syn_terms[idx] = - syn_gates[idx] * (v - self.Esyn)
+            syn_terms[idx] = - np.divide(syn_gates[idx] * (v - self.Esyn), self.c)
         
         if est_gsyns:
             θ, ϕ, b = calc_dv_terms_final_step_if_est_gsyns(θ_intrins, 

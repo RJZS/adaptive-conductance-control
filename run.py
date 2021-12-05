@@ -51,7 +51,7 @@ neur_dist = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0,0.055]), [])
 network = Network([neur_one_drion, neur_dist], np.zeros((2,2)))
 
 # Initial conditions - Single Neuron Disturbance Rejection
-x_0 = [-70.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
+x_0 = [0.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
 x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.45]
 θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and 1 gsyn
 P_0 = np.eye(4);
@@ -136,11 +136,12 @@ z_0 = np.zeros(((len_neur_state+max_num_syns)*2+
 tmp = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0))
 for j in range(num_neurs): z_0[:,j] = tmp
 z_0 = np.ravel(z_0, order='F')
+z_0[0] = -70.
 
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 100. # 0.24 works. 0.3 explodes I think.
+Tfinal = 1200. # 200 works. # 0.24 works. 0.3 explodes I think.
 
 tspan = (0.,Tfinal)
 # controller_on = True
@@ -246,10 +247,10 @@ out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rt
 end_time = time.time()
 print("'Play' simulation time: {}s".format(end_time-start_time))
 
-t_play2 = out_play.t
-sol_play2 = out_play.y
+t_play = out_play.t
+sol_play = out_play.y
 
-plt.plot(t_play2,sol_play2[0,:])
+plt.plot(t_play,sol_play[0,:])
 # %%
 # Test HCO disturbance rejection. First compare real and estimated Isyns.
 v = sol[0,:]
