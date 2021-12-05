@@ -39,7 +39,9 @@ class Neuron:
         # self.Esyn = -90. # Thiago's HCO2 sets to the same as EK.
         
         # self.EK = -77 # For rebound burster
-        self.Esyn = -120 # Needs to be below EK I think for rebound bursting...
+        # self.Esyn = -120 # Needs to be below EK I think for rebound bursting...
+        self.Esyn = -70 # GABA A from Drion 2018 (see Fig1C, CaT_ncells.jl)
+        # self.Esyn = -85 # GABA B
         
         # # Drion plos 18
         # self.ENa = 50.
@@ -152,8 +154,8 @@ class Neuron:
         σ = mL_inf(v)
         return τ, σ
     
-    # Intracellular calcium. USING THIS?
-    def ICa_pump(self, Ca): 0.1*Ca/(Ca+0.0001)
+    # # Intracellular calcium. USING THIS?
+    # def ICa_pump(self, Ca): 0.1*Ca/(Ca+0.0001)
     
     # # Gate for KCa. Instead of modelling [Ca]. Term is g_{KCa} mCa^4 (V - E_{KCa})
     # # This is from Thiago's HCO2.
@@ -230,16 +232,16 @@ class Neuron:
     #     (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
     #     return τ, σ
     
-    # Synaptic gate
-    def gating_s(self, v): # Terms are same as m unless stated.
-        Vhalf = -45.; # From Dethier et al - 2015
-        k = 2.; # From Dethier et al - 2015
-        Vmax = -38.;
-        std = 30.;
-        Camp = 0.46;
-        Cbase = 0.04;
-        (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-        return τ, σ   
+    # # Synaptic gate
+    # def gating_s(self, v): # Terms are same as m unless stated.
+    #     Vhalf = -45.; # From Dethier et al - 2015
+    #     k = 2.; # From Dethier et al - 2015
+    #     Vmax = -38.;
+    #     std = 30.;
+    #     Camp = 0.46;
+    #     Cbase = 0.04;
+    #     (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
+    #     return τ, σ   
     
     # # Replace gating variables for mT. This is Ca current from Thiago's 'HCO'.
     # # mCa activation
@@ -313,6 +315,13 @@ class Neuron:
     # def gating_mKD(self,v):
     #     return self.taumKd(v), self.mKdinf(v)
     
+    def dGABA_A(self, v, s):
+        def Tm(V): return 1/(1+np.exp(-(V-2)/5))
+        ds = 0.53*Tm(v)*(1-s)-0.18*s
+        return ds
+    
+    # dGABAB(V::Float64,GABAB::Float64) = (dt)*(0.016*Tm(V)*(1-GABAB)-0.0047*GABAB)
+    
     # ------ END OF CODE FOR DRION PLOS 18 ------
     
     def gate_calcs(self, v, int_gates, syn_gates, v_pres):
@@ -337,8 +346,9 @@ class Neuron:
         
         dsyns = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
-            (τs,σs) = self.gating_s(v_pres[idx])
-            dsyns[idx] = calc_dgate(τs, syn_gates[idx], σs);
+            # (τs,σs) = self.gating_s(v_pres[idx])
+            # dsyns[idx] = calc_dgate(τs, syn_gates[idx], σs);
+            dsyns[idx] = self.dGABA_A(v_pres[idx], syn_gates[idx])
             
         return (dints, dsyns)
     
