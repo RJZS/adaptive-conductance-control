@@ -562,7 +562,7 @@ def calc_terms(v, ints, mKir, ENa, EH, ECa, EK, Eleak, c, I):
                 -ints[5]**4*ints[6]*(v-EK), # I_A
                 -ints[7]**4*(v-EK), # I_KD
                 -ints[8]*(v-ECa), # I_L
-                -(ints[9]/15+ints[9])**4*(v-EK), # I_KCa
+                -(ints[9]/(15+ints[9]))**4*(v-EK), # I_KCa
                 -mKir*(v-EK), # I_Kir
                 -(v-Eleak),
                 I
