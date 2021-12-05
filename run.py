@@ -190,7 +190,7 @@ sol_nodist = out_nodist.y
 
 # %% 
 # Playing with model to find bursting behaviour.
-
+dt=0.01
 syn = Synapse(2., 1)
 syn2 = Synapse(2., 0)
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
@@ -209,7 +209,7 @@ def Iramp(t):
         return -2 + 0.005*(t-500)
 
 Iapps = [Iconst, Iconst, lambda t: 6]
-Tfinal = 500 # In HCO2 it's 15000. In notebook it's 2800.
+Tfinal = 900 # In HCO2 it's 15000. In notebook it's 2800.
 
 tspan = (0.,Tfinal)
 
@@ -218,12 +218,12 @@ tspan = (0.,Tfinal)
 
 #x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
 
-neur_one_play = Neuron(1., [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
+neur_one_play = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
 # neur_two_play = Neuron(1., [120.,0.02,0.5,0,30.,0,0,0,0.055], [syn2])
 
-v_0 = np.array([-70.])
-starting_gate_vals = neur_one_play.initialise(v_0)
-x_0 = np.concatenate((v_0, starting_gate_vals))
+# v_0 = np.array([-70.])
+# starting_gate_vals = neur_one_play.initialise(v_0)
+x_0 = [-70.,0,0,0,0,0,0,0,0,0,0] # No syns
 
 # # Rebound burster
 # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
@@ -234,7 +234,7 @@ p_play = (Iapps, network_play)
 z_0_play = x_0
 start_time = time.time()
 out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rtol=1e-6,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), vectorized=True)
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))#, vectorized=True)
 end_time = time.time()
 print("'Play' simulation time: {}s".format(end_time-start_time))
 

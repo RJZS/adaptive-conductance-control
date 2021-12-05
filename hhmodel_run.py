@@ -265,7 +265,7 @@ Id_hat = sol[13,:] * sol[9,:] * (v - neur_one.Esyn)
 g_ests = sol[10:14,:]
 error = sol[0,:] - sol_nd[0,:]
 
-DR_oneneur_data = np.vstack((t, v, v_nd, g_ests, Id, Id_hat, error))
+DR_oneneur_data = np.vstack((t, v, v_nd, g_ests, Id, Id_hat, error)).T
 np.savetxt("../reports/ifac-data/DR_oneneur_data.txt",DR_oneneur_data,delimiter=' ')
 
 # # Write data to .txt

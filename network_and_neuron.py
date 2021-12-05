@@ -330,10 +330,10 @@ class Neuron:
         
         taus = np.array([τm, τh, τmH, τmT, τhT, τmA, τhA, τmKD, τmL])
         sigmas = np.array([σm, σh, σmH, σmT, σhT, σmA, σhA, σmKD, σmL])
-        dints = calc_dgate(taus, int_gates[:9], sigmas)
+        dints[:9] = calc_dgate(taus, int_gates[:9], sigmas)
         
         dCa = (-0.1*self.gL_for_Ca*int_gates[8]*(v-self.ECa)-0.01*int_gates[9])/4
-        dints = np.concatenate((dints, [dCa]))
+        dints[9] = dCa
         
         dsyns = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
@@ -375,7 +375,7 @@ class Neuron:
         
         if syn_gates:
             # In numpy, asterisk operator performs elementwise multiplication.
-            dv = dv - self.g_syns * syn_gates * (v - self.Esyn) # !! NEED TO DIVIDE BY C??
+            dv = dv - np.divide(self.g_syns * syn_gates * (v - self.Esyn),self.c)
         return dv        
     
     # Initialise the neuron by setting the gating variables to their 'x_inf' values.
@@ -558,8 +558,8 @@ def calc_terms(v, ints, mKir, ENa, EH, ECa, EK, Eleak, c, I):
     terms = np.divide(np.array([
                 -ints[0]**3*ints[1]*(v-ENa), # I_Na
                 -ints[2]*(v-EH), # I_H
-                -ints[3]**3*ints[4]*(v-ECa), # I_T
-                -ints[5]**3*ints[6]*(v-EK), # I_A
+                -ints[3]**2*ints[4]*(v-ECa), # I_T
+                -ints[5]**4*ints[6]*(v-EK), # I_A
                 -ints[7]**4*(v-EK), # I_KD
                 -ints[8]*(v-ECa), # I_L
                 -(ints[9]/15+ints[9])**4*(v-EK), # I_KCa
