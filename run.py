@@ -16,7 +16,11 @@ from network_odes import main, no_observer
 # Observer works fine for single neuron, no synapses or controller, IF alpha is small enough.
 # Added disturbance neuron. Works with no controller. But g_s_hat after 1200s is -4.4.
 # But when I add DistRej controller, I get: "ValueError: array must not contain infs or NaNs",
-# whether estimating g_s or not. V diverges.
+# whether estimating g_s or not. V diverges. I_control makes it unstable.
+
+# Ways to troubleshoot:
+# Plot Isyn against Isyn_hat, see if converges.
+# See if RefTrack works.
 
 # TODO: Optimise!!    
 
@@ -143,7 +147,7 @@ z_0[0] = -70.
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 0.23 # Should converge by 1800.
+Tfinal = 0.15 # Should converge by 1800. Currently breaks at just over 0.23.
 
 tspan = (0.,Tfinal)
 # controller_on = True

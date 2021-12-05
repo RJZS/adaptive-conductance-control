@@ -42,7 +42,7 @@ def reference_tracking_njit(Vs, ints_hat, mKirs, syns_hat, gs, ref_gs, Es, num_n
                                     -mKirs[i]*(Vs[i]-Es[3]), # I_Kir
                                     -(Vs[i]-Es[4])
                                 ]),cs[i])
-        terms[num_neur_gs:,i] = -syns_hat[:,i]*(Vs[i] - Es[5])
+        terms[num_neur_gs:,i] = -syns_hat[:,i]*(Vs[i] - Es[5]) # DIVIDE BY C?!
         adjusting_currents[i] = np.dot(g_diffs[:,i],terms[:,i]) # diag(A^T B)?
     return adjusting_currents
 
