@@ -330,7 +330,7 @@ def hhmodel_main(t,z,p):
         (_, ϕ̂, _) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
                                          Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], injected_currents[i])
         
-        dv̂s[i] = np.dot(ϕ̂,θ̂) + b + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
+        dv̂s[i] = np.dot(ϕ̂,θ̂) + b + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i]) # NEED TO USE b_hat!!
         (dm̂s[i], dĥs[i], dn̂s[i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], m̂s[i], ĥs[i], n̂s[i], syns_hat[:,i], v_pres)
         

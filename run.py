@@ -14,10 +14,12 @@ from network_odes import main, no_observer
 
 # CURRENT STATUS:
 # Observer works fine for single neuron, no synapses or controller, IF alpha is small enough.
-# When I add a disturbance neuron, I have problems with psi. Increasing gamma helps but not much.
-# If I switch off the controller, psi seems ok and the simulation runs longer before diverging
-# (over 100 instead of <1). The problem now is P. 
-    
+# Added disturbance neuron. Works with no controller. But g_s_hat after 1200s is -4.4.
+# But when I add DistRej controller, I get: "ValueError: array must not contain infs or NaNs",
+# whether estimating g_s or not. V diverges.
+
+# TODO: Optimise!!    
+
 # On the backburner:
 # Code for graph plotting. Don't just plot everything (messy!), maybe have a 
 # parameter which is a list of which to plot. Ie an object, where the keys are fig discriptions 
@@ -120,9 +122,9 @@ Iapps = [Iconst, Iconst, lambda t: 6]
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
-# control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
+control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 # control_law = ["RefTrack", ref_gs]
-control_law = [""]
+# control_law = [""]
 
 num_neurs = len(network.neurons)
 num_estimators = len(θ̂_0)
@@ -141,7 +143,7 @@ z_0[0] = -70.
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 1200. # 200 works. # 0.24 works. 0.3 explodes I think.
+Tfinal = 0.23 # Should converge by 1800.
 
 tspan = (0.,Tfinal)
 # controller_on = True
