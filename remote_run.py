@@ -18,7 +18,7 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 20. # Should converge by 1800. With controller, breaks at just over 0.23.
+Tfinal = 2000.
 
 # CURRENT STATUS:
 # Observer works fine for single neuron, no synapses or controller, IF alpha is small enough.
@@ -181,18 +181,19 @@ sol = out.y
 #     for (neur_i, syn_i) in control_law[1]:
         
 # HCO disturbance rejection
-neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn])
-neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn2])
+neur_one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn])
+neur_two_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2])
 
 # # Only one neur
-neur_one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
-network_nodist = Network([neur_one_nodist], np.zeros((1,1)))
+# neur_one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
+network_nodist = Network([neur_one_nodist, neur_two_nodist], np.zeros((2,2)))
 p_nodist = (Iapps, network_nodist)
-# z_0_nodist = np.concatenate((x_0[:12], x_0[:12]))
+z_0_nodist = np.concatenate((x_0[:12], x_0[:12]))
 # z_0_nodist[0] = 20
 # z_0_nodist[12] = -20
-z_0_nodist = x_0[:11] # Only one neur
+# z_0_nodist = x_0[:11] # Only one neur
 z_0_nodist[0] = -70. # Mimicking line above.
+z_0_nodist[12] = 0. # Mimicking line above.
 start_time = time.time()
 out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
@@ -306,5 +307,5 @@ Vs = sol[V_idxs,:]
 t=t.astype('float32')
 sol=sol.astype('float32')
 sol_nodist=sol_nodist.astype('float32')
-np.savez("sim_out.npz", t=t,sol=sol,sol_nodist=sol_nodist)
+np.savez("fullmodel_HCO_DR.npz", t=t,sol=sol,sol_nodist=sol_nodist)
 
