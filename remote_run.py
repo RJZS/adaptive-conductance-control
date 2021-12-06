@@ -43,48 +43,44 @@ Tfinal = 20. # Should converge by 1800. With controller, breaks at just over 0.2
 
 
 # Initial conditions - HCO Disturbance Rejection
-x_0 = [-70.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1
-x̂_0 = [0, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
-θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and 1 gsyn
-P_0 = np.eye(4);
-Ψ_0 = [0,0,0,0];
+x_0 = [-70.,0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
+x̂_0 = [0, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.1, 0.1]
+θ̂_0 = [60, 60, 10, 1, 1]; # Estimating gNa, gKD, gleak and 2 gsyns
+P_0 = np.eye(5);
+Ψ_0 = [0,0,0,0,0];
 to_estimate = np.array([0, 4, 8])
 estimate_g_syns = True
 estimate_g_res = False # TODO: Need to write the code for this!!
 
-syn = Synapse(2., 1)
-syn2 = Synapse(15., 0)
+syn = Synapse(1., 1)
+syn2 = Synapse(1., 0)
 syn_dist = Synapse(2., 2)
-neur_one = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn, syn_dist])
-neur_two = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn2])
-neur_dist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [])
+neur_one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn, syn_dist])
+neur_two = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2])
+neur_dist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
 network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
 
-neur_one_drion = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0,0.055]), [syn])
-neur_dist = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0,0.055]), [])
-network = Network([neur_one_drion, neur_dist], np.zeros((2,2)))
+# # Initial conditions - Single Neuron Disturbance Rejection
+# x_0 = [0.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
+# x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.1]
+# θ̂_0 = [60, 60, 10, 1]; # Estimating gNa, gKD, gleak and 1 gsyn
+# P_0 = np.eye(4);
+# Ψ_0 = [0,0,0,0];
+# to_estimate = np.array([0, 4, 8])
+# estimate_g_syns = True
+# estimate_g_res = False # TODO: Need to write the code for this!!
 
-# Initial conditions - Single Neuron Disturbance Rejection
-x_0 = [0.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.1]
-θ̂_0 = [60, 60, 10, 1]; # Estimating gNa, gKD, gleak and 1 gsyn
-P_0 = np.eye(4);
-Ψ_0 = [0,0,0,0];
-to_estimate = np.array([0, 4, 8])
-estimate_g_syns = True
-estimate_g_res = False # TODO: Need to write the code for this!!
-
-syn = Synapse(2., 1)
-neur_one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
-neur_dist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
-network = Network([neur_one, neur_dist], np.zeros((2,2)))
+# syn = Synapse(2., 1)
+# neur_one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
+# neur_dist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
+# network = Network([neur_one, neur_dist], np.zeros((2,2)))
 
 # control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 
 ## Dist Rej Currents
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 Iconst = lambda t: -2
-Iapps = [Iconst, Iconst, lambda t: 6]
+Iapps = [Iconst, Iconst, Iconst]
 
 # Initial conditions - Reference Tracking
 # x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s
@@ -134,7 +130,7 @@ Iapps = [Iconst, Iconst, lambda t: 6]
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
-control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
+control_law = ["DistRej", [(0, 1)]]#, (0, 1)]]
 # control_law = ["RefTrack", ref_gs]
 # control_law = [""]
 
@@ -151,6 +147,7 @@ tmp = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0))
 for j in range(num_neurs): z_0[:,j] = tmp
 z_0 = np.ravel(z_0, order='F')
 z_0[0] = -70.
+z_0[61] = 0
 
 # %%
 # Integration initial conditions and parameters
@@ -171,9 +168,9 @@ t = out.t
 sol = out.y
 
 # Let's calculate Isyn and Isyn_hat
-v = sol[0,:]
-Isyn = syn.g * sol[11,:] * (v - neur_one.Esyn)
-Isyn_hat = sol[27,:] * sol[23,:] * (v - neur_one.Esyn)
+# v = sol[0,:]
+# Isyn = syn.g * sol[11,:] * (v - neur_one.Esyn)
+# Isyn_hat = sol[27,:] * sol[23,:] * (v - neur_one.Esyn)
 
 # plt.plot(t,v)
 
