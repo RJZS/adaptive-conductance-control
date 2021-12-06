@@ -64,95 +64,8 @@ class Neuron:
         for (idx, syn) in enumerate(self.syns):
             self.pre_neurs[idx] = syn.pre_neur
     
-    ## Gating functions.
-
-    # Na-current (m=activation variable, h=inactivation variable)
-    def gating_m(self, v):
-        def alpha_m(V): return -0.025*(V+40.)/( np.exp(-(V+40)/10) - 1.0 )
-        def beta_m(V): return np.exp(-(V+65)/18)
-        def mNa_inf(V): return alpha_m(V) / (alpha_m(V) + beta_m(V)) # Activation function
-        def tau_mNa(V): return 1. / (alpha_m(V) + beta_m(V))/5 # Activation time-constant 
-        τ = tau_mNa(v)
-        σ = mNa_inf(v)
-        return τ, σ
-        
-    def gating_h(self, v):
-        def alpha_h(V): return 0.0175*np.exp(-(V+65)/20)
-        def beta_h(V): return 0.25/(1.0 + np.exp(-(V+35)/10) )
-        def hNa_inf(V): return alpha_h(V) / (alpha_h(V) + beta_h(V)) # Inactivation function
-        def tau_hNa(V): return 1 / (alpha_h(V) + beta_h(V))/5 # Inactivation time-constant
-        τ = tau_hNa(v)
-        σ = hNa_inf(v)
-        return τ, σ
-    
-    # KD-current (mKD=activation variable)
-    def gating_mKD(self, v):
-        Kdshift=10.0
-        def alpha_mKd(V): return 0.0025*(V+55.)/(1. - np.exp(-(V+55.)/10.) )
-        def beta_mKd(V): return 0.03125*np.exp(-(V+65.)/80.)
-        def mKd_inf(V): return alpha_mKd(V-Kdshift) / (alpha_mKd(V-Kdshift) + beta_mKd(V-Kdshift)) # Activation function
-        def tau_mKd(V): return 1. / (alpha_mKd(V-Kdshift) + beta_mKd(V-Kdshift))/5 # Activation time-constant
-        τ = tau_mKd(v)
-        σ = mKd_inf(v)
-        return τ, σ
-    
-    # H-current (mH=activation variable)
-    def gating_mH(self, v):
-        def alpha_mH(V): return np.exp(-14.59-(0.086*V))
-        def beta_mH(V): return np.exp(-1.87+(0.0701*V))
-        def mH_inf(V): return alpha_mH(V) /(alpha_mH(V) + beta_mH(V)) # Activation function
-        def tau_mH(V): return 1./(alpha_mH(V) + beta_mH(V)) # Activation time-constant
-        τ = tau_mH(v)
-        σ = mH_inf(v)
-        return τ, σ
-    
-     # A-current (mA=activation variable, hA=inactivation variable)
-    def gating_mA(self, v):
-        def mA_inf(V): return 1/(1+np.exp(-(V+90)/8.5)) # Activation function
-        def tau_mA(V): return 0.37 + 1/(np.exp((V+35.82)/19.697)+np.exp((V+79.69)/-12.7))/5 # Activation time-constant
-        τ = tau_mA(v)
-        σ = mA_inf(v)
-        return τ, σ
-    
-    def gating_hA(self, v):
-        def hA_inf(V): return 1/(1+np.exp((V+78)/6)) # Inactivation function
-        def tau_hA(V): # Inactivation time-constant
-            if V < -63:
-                tau_hA = 1/(np.exp((V+46.05)/5)+np.exp((V+238.4)/-37.45))
-            else:
-                tau_hA = 19
-            return tau_hA/5
-        τ = tau_hA(v)
-        σ = hA_inf(v)
-        return τ, σ
-    
-    # T-type Ca-current (mt=activation variable, ht=inactivation variable)
-    def gating_mT(self, v):
-        def mT_inf(V): return 1/(1+np.exp(-(V+57)/6.2)) # Activation function
-        def tau_mT(V): return 0.612 + 1/(np.exp(-(V+131.6)/16.7)+np.exp((V+16.8)/18.2)) # Activation time-constant
-        τ = tau_mT(v)
-        σ = mT_inf(v)
-        return τ, σ
-        
-    def gating_hT(self, v):
-        def hT_inf(V): return 1/(1+np.exp((V+81)/4.03)) # Inactivation function
-        def tau_hT(V):
-            if V < -80:
-                tau_ht = np.exp((V+467)/66.6)
-            else:
-                tau_ht = (np.exp(-(V+21.88)/10.2)+28)
-            return tau_ht
-        τ = tau_hT(v)
-        σ = hT_inf(v)
-        return τ, σ
-    
-    # L-type Ca-current (mL=activation variable) (from Drion2011)
-    def gating_mL(self, v):
-        def mL_inf(V): return 1/(1+np.exp(-(V+55.)/3)) # Activation function
-        def tau_mL(V): return (72*np.exp(-(V+45.)**2/400)+6.) # Activation time-constant
-        τ = tau_mL(v)
-        σ = mL_inf(v)
-        return τ, σ
+    ## Gating functions. All the functions being used have been moved out of
+    ## the class definition!
     
     # # Intracellular calcium. USING THIS?
     # def ICa_pump(self, Ca): 0.1*Ca/(Ca+0.0001)
@@ -170,8 +83,7 @@ class Neuron:
     #     σ = mCa_inf(v)
     #     return τ, σ
     
-    # Kir-current (mKIR=activation variable). Modelled as instantaneous.
-    def mKir_inf(self, V): return 1/(1+np.exp((V+97.9+10)/9.7)) # Activation function
+    
     
     # # Synaptic current
     # def gating_s(self, v):
@@ -315,10 +227,7 @@ class Neuron:
     # def gating_mKD(self,v):
     #     return self.taumKd(v), self.mKdinf(v)
     
-    def dGABA_A(self, v, s):
-        def Tm(V): return 1/(1+np.exp(-(V-2)/5))
-        ds = 0.53*Tm(v)*(1-s)-0.18*s
-        return ds
+    
     
     # dGABAB(V::Float64,GABAB::Float64) = (dt)*(0.016*Tm(V)*(1-GABAB)-0.0047*GABAB)
     
@@ -326,15 +235,15 @@ class Neuron:
     
     def gate_calcs(self, v, int_gates, syn_gates, v_pres):
         dints = np.zeros(self.NUM_GATES)
-        (τm,σm) = self.gating_m(v);
-        (τh,σh) = self.gating_h(v);
-        (τmH,σmH) = self.gating_mH(v);
-        (τmT,σmT) = self.gating_mT(v);
-        (τhT,σhT) = self.gating_hT(v);
-        (τmA,σmA) = self.gating_mA(v);
-        (τhA,σhA) = self.gating_hA(v);
-        (τmKD,σmKD) = self.gating_mKD(v);
-        (τmL,σmL) = self.gating_mL(v);
+        (τm,σm) = gating_mNa(v);
+        (τh,σh) = gating_hNa(v);
+        (τmH,σmH) = gating_mH(v);
+        (τmT,σmT) = gating_mT(v);
+        (τhT,σhT) = gating_hT(v);
+        (τmA,σmA) = gating_mA(v);
+        (τhA,σhA) = gating_hA(v);
+        (τmKD,σmKD) = gating_mKD(v);
+        (τmL,σmL) = gating_mL(v);
         # (τCa,σCa) = self.gating_mCa(v);
         
         taus = np.array([τm, τh, τmH, τmT, τhT, τmA, τhA, τmKD, τmL])
@@ -348,7 +257,7 @@ class Neuron:
         for (idx, syn) in enumerate(self.syns):
             # (τs,σs) = self.gating_s(v_pres[idx])
             # dsyns[idx] = calc_dgate(τs, syn_gates[idx], σs);
-            dsyns[idx] = self.dGABA_A(v_pres[idx], syn_gates[idx])
+            dsyns[idx] = dGABA_A(v_pres[idx], syn_gates[idx])
             
         return (dints, dsyns)
     
@@ -359,7 +268,7 @@ class Neuron:
         # First deal with intrinsic conductances.
         gs = np.concatenate((self.gs, [1.]))
         
-        mKir = self.mKir_inf(v) # Gate modelled as instantaneous.
+        mKir = mKir_inf(v) # Gate modelled as instantaneous.
         terms = calc_terms(v, ints, mKir, self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.c, I)
         
         gs, terms, θ_intrins, ϕ_intrins = calc_intrins_dv_terms(gs, terms, to_estimate)
@@ -379,7 +288,7 @@ class Neuron:
     
     def calc_dv_no_observer(self, v, ints, syn_gates, I):
         gs = np.concatenate((self.gs, [1.]))
-        mKir = self.mKir_inf(v) # Gate modelled as instantaneous.
+        mKir = mKir_inf(v) # Gate modelled as instantaneous.
         terms = calc_terms(v, ints, mKir, self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.c, I)
         dv = np.dot(gs, terms)
         
@@ -586,7 +495,7 @@ def hhmodel_calc_terms(v, m, h, n, ENa, EK, EL, c, I):
     return terms
 
 # Providing types as 'typeof' was taking a long time in the profiler.
-# @njit((f8[:],f8[:],i4[:]), cache=True) # Sometimes need to comment this line out, as doesn't work.
+@njit((f8[:],f8[:],i4[:]), cache=True) # Sometimes need to comment this line out, as doesn't work.
 def calc_intrins_dv_terms(gs, terms, to_estimate):
     # First deal with intrinsic conductances.
     θ_intrins = np.zeros(len(to_estimate))
@@ -618,3 +527,114 @@ def calc_dv_terms_final_step_if_not_est_gsyns(gs, g_syns, terms, syn_terms):
                     np.concatenate((terms, syn_terms))
                 )
     return b
+
+## Gating Functions for full model
+# Na-current (m=activation variable, h=inactivation variable)
+@njit(cache=True)
+def gating_mNa(v):
+    def alpha_m(V): return -0.025*(V+40.)/( np.exp(-(V+40)/10) - 1.0 )
+    def beta_m(V): return np.exp(-(V+65)/18)
+    def mNa_inf(V): return alpha_m(V) / (alpha_m(V) + beta_m(V)) # Activation function
+    def tau_mNa(V): return 1. / (alpha_m(V) + beta_m(V))/5 # Activation time-constant 
+    τ = tau_mNa(v)
+    σ = mNa_inf(v)
+    return τ, σ
+    
+@njit(cache=True)
+def gating_hNa(v):
+    def alpha_h(V): return 0.0175*np.exp(-(V+65)/20)
+    def beta_h(V): return 0.25/(1.0 + np.exp(-(V+35)/10) )
+    def hNa_inf(V): return alpha_h(V) / (alpha_h(V) + beta_h(V)) # Inactivation function
+    def tau_hNa(V): return 1 / (alpha_h(V) + beta_h(V))/5 # Inactivation time-constant
+    τ = tau_hNa(v)
+    σ = hNa_inf(v)
+    return τ, σ
+
+# KD-current (mKD=activation variable)
+@njit(cache=True)
+def gating_mKD(v):
+    Kdshift=10.0
+    def alpha_mKd(V): return 0.0025*(V+55.)/(1. - np.exp(-(V+55.)/10.) )
+    def beta_mKd(V): return 0.03125*np.exp(-(V+65.)/80.)
+    def mKd_inf(V): return alpha_mKd(V-Kdshift) / (alpha_mKd(V-Kdshift) + beta_mKd(V-Kdshift)) # Activation function
+    def tau_mKd(V): return 1. / (alpha_mKd(V-Kdshift) + beta_mKd(V-Kdshift))/5 # Activation time-constant
+    τ = tau_mKd(v)
+    σ = mKd_inf(v)
+    return τ, σ
+
+# H-current (mH=activation variable)
+@njit(cache=True)
+def gating_mH(v):
+    def alpha_mH(V): return np.exp(-14.59-(0.086*V))
+    def beta_mH(V): return np.exp(-1.87+(0.0701*V))
+    def mH_inf(V): return alpha_mH(V) /(alpha_mH(V) + beta_mH(V)) # Activation function
+    def tau_mH(V): return 1./(alpha_mH(V) + beta_mH(V)) # Activation time-constant
+    τ = tau_mH(v)
+    σ = mH_inf(v)
+    return τ, σ
+
+# A-current (mA=activation variable, hA=inactivation variable)
+@njit(cache=True)
+def gating_mA(v):
+    def mA_inf(V): return 1/(1+np.exp(-(V+90)/8.5)) # Activation function
+    def tau_mA(V): return 0.37 + 1/(np.exp((V+35.82)/19.697)+np.exp((V+79.69)/-12.7))/5 # Activation time-constant
+    τ = tau_mA(v)
+    σ = mA_inf(v)
+    return τ, σ
+
+@njit(cache=True)
+def gating_hA(v):
+    def hA_inf(V): return 1/(1+np.exp((V+78)/6)) # Inactivation function
+    def tau_hA(V): # Inactivation time-constant
+        if V < -63:
+            tau_hA = 1/(np.exp((V+46.05)/5)+np.exp((V+238.4)/-37.45))
+        else:
+            tau_hA = 19
+        return tau_hA/5
+    τ = tau_hA(v)
+    σ = hA_inf(v)
+    return τ, σ
+
+# T-type Ca-current (mt=activation variable, ht=inactivation variable)
+@njit(cache=True)
+def gating_mT(v):
+    def mT_inf(V): return 1/(1+np.exp(-(V+57)/6.2)) # Activation function
+    def tau_mT(V): return 0.612 + 1/(np.exp(-(V+131.6)/16.7)+np.exp((V+16.8)/18.2)) # Activation time-constant
+    τ = tau_mT(v)
+    σ = mT_inf(v)
+    return τ, σ
+    
+@njit(cache=True)
+def gating_hT(v):
+    def hT_inf(V): return 1/(1+np.exp((V+81)/4.03)) # Inactivation function
+    def tau_hT(V):
+        if V < -80:
+            tau_ht = np.exp((V+467)/66.6)
+        else:
+            tau_ht = (np.exp(-(V+21.88)/10.2)+28)
+        return tau_ht
+    τ = tau_hT(v)
+    σ = hT_inf(v)
+    return τ, σ
+
+# L-type Ca-current (mL=activation variable) (from Drion2011)
+@njit(cache=True)
+def gating_mL(v):
+    def mL_inf(V): return 1/(1+np.exp(-(V+55.)/3)) # Activation function
+    def tau_mL(V): return (72*np.exp(-(V+45.)**2/400)+6.) # Activation time-constant
+    τ = tau_mL(v)
+    σ = mL_inf(v)
+    return τ, σ
+
+# Kir-current (mKIR=activation variable). Modelled as instantaneous.
+@njit(cache=True)
+def mKir_inf(V):
+    σ = 1/(1+np.exp((V+97.9+10)/9.7)) # Activation function
+    return σ
+
+# Synapse
+@njit(cache=True)
+def dGABA_A(v, s):
+    def Tm(V): return 1/(1+np.exp(-(V-2)/5))
+    ds = 0.53*Tm(v)*(1-s)-0.18*s
+    return ds
