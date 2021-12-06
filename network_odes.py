@@ -7,7 +7,7 @@ Created on Sat Oct 30 19:16:03 2021
 # from numba import jit, njit
 import numpy as np
 
-from network_and_neuron import Neuron, HHModelNeuron, Network
+from network_and_neuron import Neuron, HHModelNeuron, Network, mKir_inf
 
 def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
     Isyn_estimates = np.zeros(num_neurs)
@@ -22,7 +22,7 @@ def reference_tracking(Vs, ints_hat, syns_hat, gs, ref_gs, network, num_neurs, n
     mKirs = np.zeros(num_neurs) # Will need values of this instantaneous gate.
     for (idx, neur) in enumerate(network.neurons):
         cs[idx] = neur.c
-        mKirs[idx] = neur.mKir_inf(Vs[idx]) # No estimates. Know v, and know function.
+        mKirs[idx] = mKir_inf(Vs[idx]) # No estimates. Know v, and know function.
     adjusting_currents = reference_tracking_njit(Vs, ints_hat, mKirs, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs)
     return adjusting_currents
 
@@ -31,7 +31,7 @@ def reference_tracking_njit(Vs, ints_hat, mKirs, syns_hat, gs, ref_gs, Es, num_n
     g_diffs = ref_gs-gs
     terms = np.zeros((num_neur_gs+max_num_syns, num_neurs))
     for i in range(num_neurs):
-        terms[:num_neur_gs,i] = np.divide(np.array([
+        terms[:num_neur_gs,i] = np.array([
                                     -ints_hat[0,i]**3*ints_hat[1,i]*(Vs[i]-Es[0]),
                                     -ints_hat[2,i]*(Vs[i]-Es[1]), # I_H
                                     -ints_hat[3,i]**2*ints_hat[4,i]*(Vs[i]-Es[2]), # I_T
@@ -41,8 +41,8 @@ def reference_tracking_njit(Vs, ints_hat, mKirs, syns_hat, gs, ref_gs, Es, num_n
                                     -(ints_hat[9,i]/(15+ints_hat[9,i]))**4*(Vs[i]-Es[3]), # I_KCa
                                     -mKirs[i]*(Vs[i]-Es[3]), # I_Kir
                                     -(Vs[i]-Es[4])
-                                ]),cs[i])
-        terms[num_neur_gs:,i] = -syns_hat[:,i]*(Vs[i] - Es[5]) # DIVIDE BY C?!
+                                ])
+        terms[num_neur_gs:,i] = -syns_hat[:,i]*(Vs[i] - Es[5])
         adjusting_currents[i] = np.dot(g_diffs[:,i],terms[:,i]) # diag(A^T B)?
     return adjusting_currents
 
@@ -80,7 +80,7 @@ def main(t,z,p):
     # Assuming all the neurons are of the same model:
     num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
     len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
-    num_neur_gs = 8 # Na, H, T, A, KD, L, KCa, leak
+    num_neur_gs = 9 # Na, H, T, A, KD, L, KCa, KIR, leak
     num_int_gates = 10 # m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
     max_num_syns = network.max_num_syns
     num_neurs = len(network.neurons)
@@ -130,7 +130,7 @@ def main(t,z,p):
                 g_syns[:neur.num_syns, idx] = neur.g_syns
         control_currs = disturbance_rejection(controller_settings[1], g_syns, syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
         injected_currents = injected_currents + control_currs
-    elif controller_settings[0] == "RefTrack":
+    elif controller_settings[0] == "RefTrack" and t > 300:
         # If not estimating all the intrinsic gs, will feed controller a mix of true
         # and estimated gs. Need to generate this list of gs to feed in.
         neur_gs = np.zeros((num_neur_gs, num_neurs))

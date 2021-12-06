@@ -18,11 +18,8 @@ from network_odes import main, no_observer
 # But when I add DistRej controller, I get: "ValueError: array must not contain infs or NaNs",
 # whether estimating g_s or not. V diverges. I_control makes it unstable.
 
-# Ways to troubleshoot:
-# Plot Isyn against Isyn_hat, see if converges.
-# See if RefTrack works.
+# Fixed by changing initialisation
 
-# TODO: Optimise!!    
 
 # On the backburner:
 # Code for graph plotting. Don't just plot everything (messy!), maybe have a 
@@ -34,51 +31,51 @@ from network_odes import main, no_observer
 # (So have to move network definition above initialisation).
 
 
-# Initial conditions - HCO Disturbance Rejection
-x_0 = [-70.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1
-x̂_0 = [0, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
-θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and 1 gsyn
-P_0 = np.eye(4);
-Ψ_0 = [0,0,0,0];
-to_estimate = np.array([0, 4, 8])
-estimate_g_syns = True
-estimate_g_res = False # TODO: Need to write the code for this!!
+# # Initial conditions - HCO Disturbance Rejection
+# x_0 = [-70.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1
+# x̂_0 = [0, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
+# θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and 1 gsyn
+# P_0 = np.eye(4);
+# Ψ_0 = [0,0,0,0];
+# to_estimate = np.array([0, 4, 8])
+# estimate_g_syns = True
+# estimate_g_res = False # TODO: Need to write the code for this!!
 
-syn = Synapse(2., 1)
-syn2 = Synapse(15., 0)
-syn_dist = Synapse(2., 2)
-neur_one = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn, syn_dist])
-neur_two = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn2])
-neur_dist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [])
-network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
+# syn = Synapse(2., 1)
+# syn2 = Synapse(15., 0)
+# syn_dist = Synapse(2., 2)
+# neur_one = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn, syn_dist])
+# neur_two = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn2])
+# neur_dist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [])
+# network = Network([neur_one, neur_two, neur_dist], np.zeros((3,3)))
 
-neur_one_drion = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0,0.055]), [syn])
-neur_dist = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0,0.055]), [])
-network = Network([neur_one_drion, neur_dist], np.zeros((2,2)))
+# neur_one_drion = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0,0.055]), [syn])
+# neur_dist = Neuron(1., np.array([120.,0.02,0.2,0.,30.,0.,0.,0,0.055]), [])
+# network = Network([neur_one_drion, neur_dist], np.zeros((2,2)))
 
-# Initial conditions - Single Neuron Disturbance Rejection
-x_0 = [0.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.1]
-θ̂_0 = [60, 60, 10, 1]; # Estimating gNa, gKD, gleak and 1 gsyn
-P_0 = np.eye(4);
-Ψ_0 = [0,0,0,0];
-to_estimate = np.array([0, 4, 8])
-estimate_g_syns = True
-estimate_g_res = False # TODO: Need to write the code for this!!
+# # Initial conditions - Single Neuron Disturbance Rejection
+# x_0 = [0.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
+# x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.1]
+# θ̂_0 = [60, 60, 10, 1]; # Estimating gNa, gKD, gleak and 1 gsyn
+# P_0 = np.eye(4);
+# Ψ_0 = [0,0,0,0];
+# to_estimate = np.array([0, 4, 8])
+# estimate_g_syns = True
+# estimate_g_res = False # TODO: Need to write the code for this!!
 
-syn = Synapse(2., 1)
-neur_one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
-neur_dist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
-network = Network([neur_one, neur_dist], np.zeros((2,2)))
+# syn = Synapse(2., 1)
+# neur_one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
+# neur_dist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
+# network = Network([neur_one, neur_dist], np.zeros((2,2)))
 
-# control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
+# # control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 
-## Dist Rej Currents
-Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-Iconst = lambda t: -2
-Iapps = [Iconst, Iconst, lambda t: 6]
+# ## Dist Rej Currents
+# Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+# Iconst = lambda t: -2
+# Iapps = [Iconst, Iconst, lambda t: 6]
 
-# Initial conditions - Reference Tracking
+# # Initial conditions - HCO Reference Tracking
 # x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s
 # x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
 # θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and gsyn
@@ -97,7 +94,7 @@ Iapps = [Iconst, Iconst, lambda t: 6]
 # network = Network([neur_one, neur_two], np.zeros((2,2))) # for ref tracking
 # # ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
 # ref_gs = np.array([[110,0,0,0,35,0,0,0.2,2.5],
-#                    [145,0,0,0,48,0,0,0.6,1.]]).T # gs of reference network.
+#                     [145,0,0,0,48,0,0,0.6,1.]]).T # gs of reference network.
 # # orig_gs = np.array([ [130.,43.,0.4,2.], [100.,27.,0.2,2.] ]).T # gs of network, for the csv
 
 # # Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
@@ -105,19 +102,36 @@ Iapps = [Iconst, Iconst, lambda t: 6]
 # Iapps = [Iapp, Iapp] # Neuron 2 converges even with constant current?
 # Iapps = [2., 2.]
 
-# ## FOR TESTING, REMOVE SYNAPSE:
-# x_0 = [0, 0, 0, 0]; # V, m, h, n
-# x̂_0 = [-70, 0.5, 0.5, 0.5]
-# θ̂_0 = [50, 10]; # [gNa, gK, gL]
-# P_0 = np.eye(2);
-# Ψ_0 = [0, 0];
-# neur_one = Neuron(1., [120.,36.,0.3], [])
-# neur_two = Neuron(1., [120.,36.,0.3], [])
-# network = Network([neur_one, neur_two], np.zeros((2,2)))
-# to_estimate = [1, 2]
+# Initial conditions - Single Neuron Reference Tracking
+x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
+x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+θ̂_0 = [1, 1, 1]; # Estimating gNa, gKD, gleak 
+P_0 = np.eye(3);
+Ψ_0 = [0,0,0];
+to_estimate = np.array([0, 4, 8])
+estimate_g_syns = True
+estimate_g_res = False # TODO: Need to write the code for this!!
+
+syn = Synapse(2., 1)
+syn2 = Synapse(2., 0)
+syn_dist = Synapse(2., 2)
+# Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
+neur_one = Neuron(0.1, np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1]), np.array([]))
+network = Network([neur_one], np.zeros((1,1))) # for ref tracking
+# ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
+ref_gs = np.array([[100.,0.08,3.5,0,70.,0.5,1.6,0.,0.1]]).T # gs of reference network.
+# orig_gs = np.array([ [130.,43.,0.4,2.], [100.,27.,0.2,2.] ]).T # gs of network, for the csv
+
+# Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
+# Iapp = lambda t : 6 + np.sin(2*np.pi/10*t)
+# Iapps = [Iapp, Iapp] # Neuron 2 converges even with constant current?
+# Iapps = [2., 2.]
 
 # Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 # Iapps = [Iapp, lambda t: 6] # Neuron 2 converges even with constant current?
+
+Iconst = lambda t: -2
+Iapps = [Iconst, Iconst, lambda t: 6]
 
 # Observer parameters
 α = 0.05 # Default is 0.5. Had to decrease as P values were exploding.
@@ -126,8 +140,8 @@ Iapps = [Iconst, Iconst, lambda t: 6]
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
-control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
-# control_law = ["RefTrack", ref_gs]
+# control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
+control_law = ["RefTrack", ref_gs]
 # control_law = [""]
 
 num_neurs = len(network.neurons)
@@ -147,7 +161,7 @@ z_0[0] = -70.
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 2000. # Should converge by 1800. With controller, breaks at just over 0.23.
+Tfinal = 1200. # Textbook notebook has 1800.
 
 tspan = (0.,Tfinal)
 # controller_on = True
@@ -198,6 +212,8 @@ print("'Nodist' Simulation time: {}s".format(end_time-start_time))
 t_nodist = out_nodist.t
 sol_nodist = out_nodist.y
 
+# PHASE SHIFT IS 2455. FOUND BY LOOKING AT M_T.
+
 # Reference Tracking
 # syn_ref = Synapse(2.5, 1)
 # syn2_ref = Synapse(1., 0)
@@ -234,7 +250,7 @@ def Iramp(t):
         return -2 + 0.005*(t-500)
 
 Iapps = [Iconst, Iconst, lambda t: 6]
-Tfinal = 350 # In HCO2 it's 15000. In notebook it's 2800.
+Tfinal = 400. # In HCO2 it's 15000. In notebook it's 2800.
 
 tspan = (0.,Tfinal)
 
@@ -243,20 +259,20 @@ tspan = (0.,Tfinal)
 
 #x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
 
-neur_one_play = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
+neur_one_play = Neuron(0.1, [100.,0.08,3.5,0,70.,0.5,1.6,0.,0.1], [])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
 neur_two_play = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
 
 # v_0 = np.array([-70.])
 # starting_gate_vals = neur_one_play.initialise(v_0)
-x_0 = [0,0,0,0,0,0,0,0,0,0,0,0] # 1 syn
+x_0 = [0,0,0,0,0,0,0,0,0,0,0] # No syns
 
 # # Rebound burster
 # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
-network_play = Network([neur_one_play, neur_two_play], np.zeros((2,2)))
+network_play = Network([neur_one_play], np.zeros((1,1)))
 p_play = (Iapps, network_play)
 
-z_0_play = np.concatenate((x_0, x_0))
-# z_0_play = x_0
+# z_0_play = np.concatenate((x_0, x_0))
+z_0_play = x_0
 z_0_play[0] = -70
 start_time = time.time()
 out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rtol=1e-6,atol=1e-6,
@@ -264,10 +280,10 @@ out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rt
 end_time = time.time()
 print("'Play' simulation time: {}s".format(end_time-start_time))
 
-t_play = out_play.t
-sol_play = out_play.y
+t_play2 = out_play.t
+sol_play2 = out_play.y
 
-plt.plot(t_play,sol_play[0,:])
+# plt.plot(t_play,sol_play[0,:],t_play2,sol_play2[0,:])
 # %%
 # Test HCO disturbance rejection. First compare real and estimated Isyns.
 v = sol[0,:]
