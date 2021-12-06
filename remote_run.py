@@ -44,10 +44,10 @@ Tfinal = 20. # Should converge by 1800. With controller, breaks at just over 0.2
 
 # Initial conditions - HCO Disturbance Rejection
 x_0 = [-70.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1
-x̂_0 = [0, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
-θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and 1 gsyn
+xh_0 = [0, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
+thetah_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and 1 gsyn
 P_0 = np.eye(4);
-Ψ_0 = [0,0,0,0];
+psi_0 = [0,0,0,0];
 to_estimate = np.array([0, 4, 8])
 estimate_g_syns = True
 estimate_g_res = False # TODO: Need to write the code for this!!
@@ -66,10 +66,10 @@ network = Network([neur_one_drion, neur_dist], np.zeros((2,2)))
 
 # Initial conditions - Single Neuron Disturbance Rejection
 x_0 = [0.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.1]
-θ̂_0 = [60, 60, 10, 1]; # Estimating gNa, gKD, gleak and 1 gsyn
+xh_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.1]
+thetah_0 = [60, 60, 10, 1]; # Estimating gNa, gKD, gleak and 1 gsyn
 P_0 = np.eye(4);
-Ψ_0 = [0,0,0,0];
+psi_0 = [0,0,0,0];
 to_estimate = np.array([0, 4, 8])
 estimate_g_syns = True
 estimate_g_res = False # TODO: Need to write the code for this!!
@@ -88,10 +88,10 @@ Iapps = [Iconst, Iconst, lambda t: 6]
 
 # Initial conditions - Reference Tracking
 # x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s
-# x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
-# θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and gsyn
+# xh_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
+# thetah_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and gsyn
 # P_0 = np.eye(4);
-# Ψ_0 = [0,0,0,0];
+# psi_0 = [0,0,0,0];
 # to_estimate = np.array([0, 4, 7])
 # estimate_g_syns = True
 # estimate_g_res = False # TODO: Need to write the code for this!!
@@ -115,10 +115,10 @@ Iapps = [Iconst, Iconst, lambda t: 6]
 
 # ## FOR TESTING, REMOVE SYNAPSE:
 # x_0 = [0, 0, 0, 0]; # V, m, h, n
-# x̂_0 = [-70, 0.5, 0.5, 0.5]
-# θ̂_0 = [50, 10]; # [gNa, gK, gL]
+# xh_0 = [-70, 0.5, 0.5, 0.5]
+# thetah_0 = [50, 10]; # [gNa, gK, gL]
 # P_0 = np.eye(2);
-# Ψ_0 = [0, 0];
+# psi_0 = [0, 0];
 # neur_one = Neuron(1., [120.,36.,0.3], [])
 # neur_two = Neuron(1., [120.,36.,0.3], [])
 # network = Network([neur_one, neur_two], np.zeros((2,2)))
@@ -128,8 +128,8 @@ Iapps = [Iconst, Iconst, lambda t: 6]
 # Iapps = [Iapp, lambda t: 6] # Neuron 2 converges even with constant current?
 
 # Observer parameters
-α = 0.05 # Default is 0.5. Had to decrease as P values were exploding.
-γ = 70 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
+alpha = 0.05 # Default is 0.5. Had to decrease as P values were exploding.
+gamma = 70 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
@@ -139,7 +139,7 @@ control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 # control_law = [""]
 
 num_neurs = len(network.neurons)
-num_estimators = len(θ̂_0)
+num_estimators = len(thetah_0)
 len_neur_state = network.neurons[0].NUM_GATES + 1
 max_num_syns = network.max_num_syns
 
@@ -147,7 +147,7 @@ max_num_syns = network.max_num_syns
 # and np.reshape()
 z_0 = np.zeros(((len_neur_state+max_num_syns)*2+
                 num_estimators*2+num_estimators**2,num_neurs))
-tmp = np.concatenate((x_0, x̂_0, θ̂_0, P_0.flatten(), Ψ_0))
+tmp = np.concatenate((x_0, xh_0, thetah_0, P_0.flatten(), psi_0))
 for j in range(num_neurs): z_0[:,j] = tmp
 z_0 = np.ravel(z_0, order='F')
 z_0[0] = -70.
@@ -158,7 +158,7 @@ dt = 0.01
 
 tspan = (0.,Tfinal)
 # controller_on = True
-p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
+p = (Iapps,network,(alpha,gamma),to_estimate,num_estimators,control_law,
      estimate_g_syns,estimate_g_res)
 
 start_time = time.time()
