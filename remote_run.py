@@ -306,5 +306,8 @@ Vs = sol[V_idxs,:]
 # For HCO_RT it's about 1105, ie np.roll(x, 1105). Remember the spike is every other local max.
 # %%
 
-DR_oneneur_data = np.vstack((t, sol, sol_nodist)).T
-np.savetxt("sim_out.txt",DR_oneneur_data,delimiter=' ')
+t=t.astype('float32')
+sol=sol.astype('float32')
+sol_nodist=sol_nodist.astype('float32')
+np.savez("sim_out.npz", t=t,sol=sol,sol_nodist=sol_nodist)
+
