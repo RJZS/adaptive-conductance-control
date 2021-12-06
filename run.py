@@ -36,7 +36,7 @@ from network_odes import main, no_observer
 
 # Initial conditions - HCO Disturbance Rejection
 x_0 = [-70.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
+x̂_0 = [0, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.5]
 θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and 1 gsyn
 P_0 = np.eye(4);
 Ψ_0 = [0,0,0,0];
@@ -58,8 +58,8 @@ network = Network([neur_one_drion, neur_dist], np.zeros((2,2)))
 
 # Initial conditions - Single Neuron Disturbance Rejection
 x_0 = [0.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.45]
-θ̂_0 = [60, 60, 10, 10]; # Estimating gNa, gKD, gleak and 1 gsyn
+x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.1]
+θ̂_0 = [60, 60, 10, 1]; # Estimating gNa, gKD, gleak and 1 gsyn
 P_0 = np.eye(4);
 Ψ_0 = [0,0,0,0];
 to_estimate = np.array([0, 4, 8])
@@ -147,7 +147,7 @@ z_0[0] = -70.
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 0.15 # Should converge by 1800. Currently breaks at just over 0.23.
+Tfinal = 2000. # Should converge by 1800. With controller, breaks at just over 0.23.
 
 tspan = (0.,Tfinal)
 # controller_on = True
@@ -163,6 +163,13 @@ print("Simulation time: {}s".format(end_time-start_time))
 t = out.t
 sol = out.y
 
+# Let's calculate Isyn and Isyn_hat
+v = sol[0,:]
+Isyn = syn.g * sol[11,:] * (v - neur_one.Esyn)
+Isyn_hat = sol[27,:] * sol[23,:] * (v - neur_one.Esyn)
+
+# plt.plot(t,v)
+
 # %%
 # For comparison, need to calculate undisturbed neuron.
 # Want to further automate this, but actually fairly tricky...
@@ -174,15 +181,19 @@ neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn])
 neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn2])
 
 # # Only one neur
-# neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
-network_nodist = Network([neur_one_nodist, neur_two_nodist], np.zeros((2,2)))
+neur_one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
+network_nodist = Network([neur_one_nodist], np.zeros((1,1)))
 p_nodist = (Iapps, network_nodist)
-z_0_nodist = np.concatenate((x_0[:12], x_0[:12]))
-z_0_nodist[0] = 20
-z_0_nodist[12] = -20
-# z_0_nodist = x_0[:11] # Only one neur
+# z_0_nodist = np.concatenate((x_0[:12], x_0[:12]))
+# z_0_nodist[0] = 20
+# z_0_nodist[12] = -20
+z_0_nodist = x_0[:11] # Only one neur
+z_0_nodist[0] = -70. # Mimicking line above.
+start_time = time.time()
 out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+end_time = time.time()
+print("'Nodist' Simulation time: {}s".format(end_time-start_time))
 
 t_nodist = out_nodist.t
 sol_nodist = out_nodist.y
