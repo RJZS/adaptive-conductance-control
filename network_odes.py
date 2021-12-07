@@ -76,6 +76,7 @@ def main(t,z,p):
     controller_settings = p[5] # Control law to use for the neurons
     estimate_g_syns = p[6]
     estimate_g_res = p[7]
+    control_start_time = p[8]
     
     # Assuming all the neurons are of the same model:
     num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
@@ -130,7 +131,7 @@ def main(t,z,p):
                 g_syns[:neur.num_syns, idx] = neur.g_syns
         control_currs = disturbance_rejection(controller_settings[1], g_syns, syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
         injected_currents = injected_currents + control_currs
-    elif controller_settings[0] == "RefTrack" and t > 300:
+    elif controller_settings[0] == "RefTrack" and t > control_start_time:
         # If not estimating all the intrinsic gs, will feed controller a mix of true
         # and estimated gs. Need to generate this list of gs to feed in.
         neur_gs = np.zeros((num_neur_gs, num_neurs))
