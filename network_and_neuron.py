@@ -460,7 +460,7 @@ class Network:
     def __init__(self, neurons, el_connects):
         self.neurons = neurons
         
-        # Electrical connections, in form [[g, pre_idx, post_idx],[g, ...],...]
+        # Electrical connections, in form [[g, neur_idx_1, neur_idx_2],[g, ...],...]
         self.el_connects = el_connects
         
         max_num_syns = 0
@@ -495,41 +495,28 @@ def calc_dgate(τ, x, σ):
 
 @njit(cache=True)
 def calc_res_gs_and_terms(el_connects, neur_idx, Vs, c):
-    # Filters to find connections involving our neuron.
-    def pre_condition(x): 
+    # Filter to find connections involving our neuron.
+    def res_condition(x): 
         f = np.zeros(len(x), dtype=np.bool_)
-        for (i, (pre,post)) in enumerate(x):
-            if pre == neur_idx:
-                f[i] = True
-        return f
-    def post_condition(x):
-        f = np.zeros(len(x), dtype=np.bool_)
-        for (i, (pre,post)) in enumerate(x):
-            if post == neur_idx:
+        for (i, (one,two)) in enumerate(x):
+            if one == neur_idx or two == neur_idx:
                 f[i] = True
         return f
     res_idxs = el_connects[:,1:]
     
-    pre_res_bool = pre_condition(res_idxs)
-    pre_res_idxs = res_idxs[pre_res_bool]
-    pre_res_idxs = pre_res_idxs.astype(np.int8)
-    pre_res_gs = el_connects[pre_res_bool,0]
+    neur_res_bool = res_condition(res_idxs)
+    neur_res_idxs = res_idxs[neur_res_bool]
+    neur_res_idxs = neur_res_idxs.astype(np.int8)
+    neur_res_gs = el_connects[neur_res_bool,0]
+        
+    # Now calculate terms.
+    terms = np.zeros(len(neur_res_idxs))
+    for (i, res_pair) in enumerate(neur_res_idxs):
+        other_neur_idx = np.extract(res_pair != neur_idx, res_pair)[0]
+        terms[i] = - neur_res_gs[i] * (Vs[neur_idx] - Vs[other_neur_idx])
+    terms = np.divide(terms, c)
     
-    post_res_bool = post_condition(res_idxs)
-    post_res_idxs = res_idxs[post_res_bool]
-    post_res_idxs = post_res_idxs.astype(np.int8)
-    post_res_gs = el_connects[post_res_bool,0]
-    
-    # Now calculate terms, first where the neuron is 'pre' and then where it's 'post'.
-    pre_terms = np.zeros(len(pre_res_idxs))
-    for (i, res_idxs) in enumerate(pre_res_idxs):
-        pre_terms[i] = - pre_res_gs[i] * (Vs[pre_res_idxs[i,1]] - Vs[neur_idx])
-    post_terms = np.zeros(len(post_res_idxs))
-    for (i, res_idxs) in enumerate(post_res_idxs):
-        post_terms[i] = - post_res_gs[i] * (Vs[neur_idx] - Vs[post_res_idxs[i,0]])
-    terms = np.divide(np.concatenate((pre_terms, post_terms)), c)
-    gs = np.concatenate((pre_res_gs, post_res_gs))
-    return (gs, terms)
+    return (neur_res_gs, terms)
 
 @njit(cache=True)
 def calc_terms(v, ints, mKir, ENa, EH, ECa, EK, Eleak, c, I):
