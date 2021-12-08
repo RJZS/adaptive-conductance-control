@@ -12,7 +12,7 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 2000. # Textbook notebook has 1800.
+Tfinal = 6000. # Textbook notebook has 1800.
 control_start_time = 20.
 
 # Single neuron reference tracking.
@@ -25,7 +25,7 @@ x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 θ̂_0 = np.ones(9);
 P_0 = np.eye(9);
 Ψ_0 = np.zeros(9);
-to_estimate = np.array([0,1,2,3,4,5,6,7,8])
+to_estimate = np.array([0,1,2,3,4,5,6,7,8], dtype=np.int32)
 estimate_g_syns_g_els = True
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
