@@ -119,7 +119,7 @@ syn_dist = Synapse(2., 2)
 neur_one = Neuron(0.1, np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1]), np.array([]))
 network = Network([neur_one], np.zeros((1,1))) # for ref tracking
 # ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
-ref_gs = np.array([[100.,0.08,3.5,0,70.,0.5,1.6,0.,0.1]]).T # gs of reference network.
+ref_gs = np.array([[110.,0.09,3.,0,70.,0.5,1.7,0.,0.1]]).T # gs of reference network.
 # orig_gs = np.array([ [130.,43.,0.4,2.], [100.,27.,0.2,2.] ]).T # gs of network, for the csv
 
 # Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
@@ -161,7 +161,7 @@ z_0[0] = -70.
 # %%
 # Integration initial conditions and parameters
 dt = 0.01
-Tfinal = 1200. # Textbook notebook has 1800.
+Tfinal = 2400. # Textbook notebook has 1800.
 
 tspan = (0.,Tfinal)
 # controller_on = True
@@ -190,44 +190,56 @@ Isyn_hat = sol[27,:] * sol[23,:] * (v - neur_one.Esyn)
 # def prepare_nodist_sim(neurons, control_law, z_0):
 #     for (neur_i, syn_i) in control_law[1]:
         
-# HCO disturbance rejection
-neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn])
-neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn2])
+# # HCO disturbance rejection
+# neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn])
+# neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0,0.3], [syn2])
 
-# # Only one neur
-neur_one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
-network_nodist = Network([neur_one_nodist], np.zeros((1,1)))
-p_nodist = (Iapps, network_nodist)
-# z_0_nodist = np.concatenate((x_0[:12], x_0[:12]))
-# z_0_nodist[0] = 20
-# z_0_nodist[12] = -20
-z_0_nodist = x_0[:11] # Only one neur
-z_0_nodist[0] = -70. # Mimicking line above.
-start_time = time.time()
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-6,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
-end_time = time.time()
-print("'Nodist' Simulation time: {}s".format(end_time-start_time))
+# # # Only one neur
+# neur_one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
+# network_nodist = Network([neur_one_nodist], np.zeros((1,1)))
+# p_nodist = (Iapps, network_nodist)
+# # z_0_nodist = np.concatenate((x_0[:12], x_0[:12]))
+# # z_0_nodist[0] = 20
+# # z_0_nodist[12] = -20
+# z_0_nodist = x_0[:11] # Only one neur
+# z_0_nodist[0] = -70. # Mimicking line above.
+# start_time = time.time()
+# out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-6,atol=1e-6,
+#                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+# end_time = time.time()
+# print("'Nodist' Simulation time: {}s".format(end_time-start_time))
 
-t_nodist = out_nodist.t
-sol_nodist = out_nodist.y
+# t_nodist = out_nodist.t
+# sol_nodist = out_nodist.y
 
-# PHASE SHIFT IS 2455. FOUND BY LOOKING AT M_T.
+# PHASE SHIFTS:
+# For single neur DR, phase shift was 2455. Found by looking at m_t.
+# For HCO DR, it's 13299.
 
 # Reference Tracking
-# syn_ref = Synapse(2.5, 1)
-# syn2_ref = Synapse(1., 0)
+syn_ref = Synapse(2.5, 1)
+syn2_ref = Synapse(1., 0)
 
-# neur_one_ref = Neuron(1., np.array([110.,0,0,0,35.,0,0,0.2]), np.array([syn_ref]))
+# the original, for comparison: [120.,0.1,2.,0,80.,0.4,2.,0.,0.1]
+neur_one_ref = Neuron(0.1, np.array([110.,0.09,3.,0,70.,0.5,1.7,0.,0.1]), np.array([]))
 # neur_two_ref = Neuron(1., np.array([145.,0,0,0,48.,0,0,0.6]), np.array([syn2_ref]))
-# network_ref = Network([neur_one, neur_two], np.zeros((2,2)))
-# p_ref = (Iapps, network_ref)
+network_ref = Network([neur_one_ref], np.zeros((1,1)))
+p_ref = (Iapps, network_ref)
 # z_0_ref = np.concatenate((x_0, x_0))
-# out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
-#                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+z_0_ref = x_0
+z_0_ref[0] = -70.
 
-# t_ref = out_ref.t
-# sol_ref = out_ref.y
+start_time = time.time()
+out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+end_time = time.time()
+print("'Ref' Simulation time: {}s".format(end_time-start_time))
+
+t_ref = out_ref.t
+sol_ref = out_ref.y
+
+# PHASE SHIFTS:
+# For single neur RT, phase shift was 11364.
 
 # %% 
 # Playing with model to find bursting behaviour.
