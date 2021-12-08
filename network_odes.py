@@ -74,9 +74,8 @@ def main(t,z,p):
     to_estimate = p[3] # Which maximal conductances to estimate
     num_estimators = p[4] # Combine this with prev? But includes syns and res...
     controller_settings = p[5] # Control law to use for the neurons
-    estimate_g_syns = p[6]
-    estimate_g_res = p[7]
-    control_start_time = p[8]
+    estimate_g_syns_g_els = p[6]
+    control_start_time = p[7]
     
     # Assuming all the neurons are of the same model:
     num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
@@ -123,7 +122,7 @@ def main(t,z,p):
     for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
     # Run controller
     if controller_settings[0] == "DistRej":
-        if estimate_g_syns:
+        if estimate_g_syns_g_els:
             g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
         else:
             g_syns = np.zeros((max_num_syns, num_neurs))
@@ -148,7 +147,7 @@ def main(t,z,p):
             for (neur_idx, neur) in enumerate(network.neurons):
                 neur_gs[known_g_idxs,neur_idx] = neur.gs[known_g_idxs]
         # if-else block below is same as for "DistRej" case above.
-        if estimate_g_syns:
+        if estimate_g_syns_g_els:
             g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
         else:
             g_syns = np.zeros((max_num_syns, num_neurs))
@@ -173,14 +172,15 @@ def main(t,z,p):
         # Need to 'reduce' terms. This is as vectors/matrices are sized for
         # the neuron/s with the largest number of synapses.
         num_neur_ests = len(to_estimate)
-        if estimate_g_syns: num_neur_ests = num_neur_ests + neur.num_syns
+        if estimate_g_syns_g_els: num_neur_ests = num_neur_ests + neur.num_syns
         θ̂ = θ̂s[:num_neur_ests,i]
         P = Ps[:num_neur_ests,:num_neur_ests,i];
         Ψ = Ψs[:num_neur_ests,i]
 
         # Now, run the true system.
-        (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
-                                         Vs[i], ints[:,i], syns[:,i], injected_currents[i])
+        (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
+                                         Vs[i], ints[:,i], syns[:,i], injected_currents[i],
+                                         network.el_connects, i, Vs)
         dvs[i] = np.dot(ϕ,θ) + b
         # b here includes the input current, which is different from the paper I think
         
@@ -189,8 +189,9 @@ def main(t,z,p):
             Vs[i], ints[:,i], syns[:,i], v_pres)
         
         # Finally, run the adaptive observer
-        (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns, 
-                                         Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i])
+        (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
+                                         Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i],
+                                         network.el_connects, i, Vs)
         
         dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
         (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(

@@ -109,15 +109,14 @@ x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 P_0 = np.eye(3);
 Ψ_0 = [0,0,0];
 to_estimate = np.array([0, 4, 8])
-estimate_g_syns = True
-estimate_g_res = False # TODO: Need to write the code for this!!
+estimate_g_syns_g_els = True
 
 syn = Synapse(2., 1)
 syn2 = Synapse(2., 0)
 syn_dist = Synapse(2., 2)
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
 neur_one = Neuron(0.1, np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1]), np.array([]))
-network = Network([neur_one], np.zeros((1,1))) # for ref tracking
+network = Network([neur_one], np.zeros((1,3))) # for ref tracking
 # ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
 ref_gs = np.array([[110.,0.09,3.,0,70.,0.5,1.7,0.,0.1]]).T # gs of reference network.
 # orig_gs = np.array([ [130.,43.,0.4,2.], [100.,27.,0.2,2.] ]).T # gs of network, for the csv
@@ -165,8 +164,9 @@ Tfinal = 2400. # Textbook notebook has 1800.
 
 tspan = (0.,Tfinal)
 # controller_on = True
+controller_start_time = 0.
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns,estimate_g_res)
+     estimate_g_syns_g_els,controller_start_time)
 
 start_time = time.time()
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,

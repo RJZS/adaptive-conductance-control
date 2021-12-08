@@ -261,10 +261,9 @@ class Neuron:
             
         return (dints, dsyns)
     
-    # TODO: Include resistive connections. 
     # Note this function spits out the length of vectors tailored to the neuron,
     # not the standardised 'max length' required by the ODE solver.
-    def define_dv_terms(self, to_estimate, est_gsyns, v, ints, syn_gates, I):
+    def define_dv_terms(self, to_estimate, est_gsyns_gels, v, ints, syn_gates, I, el_connects, neur_idx, network_Vs):
         # First deal with intrinsic conductances.
         gs = np.concatenate((self.gs, [1.]))
         
@@ -277,13 +276,17 @@ class Neuron:
         syn_terms = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
             syn_terms[idx] = - np.divide(syn_gates[idx] * (v - self.Esyn), self.c)
+            
+        # Now resistive terms.
+        (res_gs, res_terms) = calc_res_gs_and_terms(el_connects, neur_idx, network_Vs, self.c)
         
-        if est_gsyns:
-            θ, ϕ, b = calc_dv_terms_final_step_if_est_gsyns(θ_intrins, 
-                                self.g_syns, ϕ_intrins, syn_terms, gs, terms)
+        if est_gsyns_gels:
+            θ, ϕ, b = calc_dv_terms_final_step_if_est_gsyns_gels(θ_intrins, 
+                                self.g_syns, ϕ_intrins, syn_terms, gs, terms, res_gs, res_terms)
             return (θ, ϕ, b)
         else:
-            b = calc_dv_terms_final_step_if_not_est_gsyns(gs, self.g_syns, terms, syn_terms)
+            b = calc_dv_terms_final_step_if_not_est_gsyns_gels(gs, self.g_syns, terms, syn_terms,
+                                                               res_gs, res_terms)
             return (θ_intrins, ϕ_intrins, b)
     
     def calc_dv_no_observer(self, v, ints, syn_gates, I):
@@ -432,11 +435,11 @@ class HHModelNeuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kine
             syn_terms[idx] = - syn_gates[idx] * (v - self.Esyn)
         
         if est_gsyns:
-            θ, ϕ, b = calc_dv_terms_final_step_if_est_gsyns(θ_intrins, 
-                                self.g_syns, ϕ_intrins, syn_terms, gs, terms)
+            θ, ϕ, b = calc_dv_terms_final_step_if_est_gsyns_gels(θ_intrins, 
+                                self.g_syns, ϕ_intrins, syn_terms, gs, terms) # Need to add g_res, res_terms.
             return (θ, ϕ, b)
         else:
-            b = calc_dv_terms_final_step_if_not_est_gsyns(gs, self.g_syns, terms, syn_terms)
+            b = calc_dv_terms_final_step_if_not_est_gsyns_gels(gs, self.g_syns, terms, syn_terms) # Here too.
             return (θ_intrins, ϕ_intrins, b)
     
     def calc_dv_no_observer(self, v, m, h, n, syn_gates, I):
@@ -450,9 +453,11 @@ class HHModelNeuron: # Let's start with neuron in HH_odes not Thiago's HCO2_kine
         return dv
     
 class Network:
-    def __init__(self, neurons, res_connect):
+    def __init__(self, neurons, el_connects):
         self.neurons = neurons
-        self.res_connect = res_connect
+        
+        # Electrical connections, in form [[g, pre_idx, post_idx],[g, ...],...]
+        self.el_connects = el_connects
         
         max_num_syns = 0
         for neur in neurons:
@@ -471,6 +476,56 @@ def calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k):
 def calc_dgate(τ, x, σ):
     dx = 1/τ*(-x + σ)
     return dx
+
+# @njit(cache=True)
+# def calc_resistive_contribution_to_dv(res_mat, neur_idx, Vs, c):
+#     I_res = 0
+#     # First look at connections where this neuron is the 'pre' neuron.
+#     for (i, g) in enumerate(res_mat[:,neur_idx]):
+#         I_res = I_res - g*(Vs[i] - Vs[neur_idx])
+#     # And then where it's the 'post' neuron.
+#     for (i, g) in enumerate(res_mat[neur_idx,:]):
+#         I_res = I_res - g*(Vs[neur_idx] - Vs[i])
+#     dv_contribution = I_res / c
+#     return dv_contribution
+
+@njit(cache=True)
+def calc_res_gs_and_terms(el_connects, neur_idx, Vs, c):
+    # Filters to find connections involving our neuron.
+    def pre_condition(x): 
+        f = np.zeros(len(x), dtype=np.bool_)
+        for (i, (pre,post)) in enumerate(x):
+            if pre == neur_idx:
+                f[i] = True
+        return f
+    def post_condition(x):
+        f = np.zeros(len(x), dtype=np.bool_)
+        for (i, (pre,post)) in enumerate(x):
+            if post == neur_idx:
+                f[i] = True
+        return f
+    res_idxs = el_connects[:,1:]
+    
+    pre_res_bool = pre_condition(res_idxs)
+    pre_res_idxs = res_idxs[pre_res_bool]
+    pre_res_idxs = pre_res_idxs.astype(np.int8)
+    pre_res_gs = el_connects[pre_res_bool,0]
+    
+    post_res_bool = post_condition(res_idxs)
+    post_res_idxs = res_idxs[post_res_bool]
+    post_res_idxs = post_res_idxs.astype(np.int8)
+    post_res_gs = el_connects[post_res_bool,0]
+    
+    # Now calculate terms, first where the neuron is 'pre' and then where it's 'post'.
+    pre_terms = np.zeros(len(pre_res_idxs))
+    for (i, res_idxs) in enumerate(pre_res_idxs):
+        pre_terms[i] = - pre_res_gs[i] * (Vs[pre_res_idxs[i,1]] - Vs[neur_idx])
+    post_terms = np.zeros(len(post_res_idxs))
+    for (i, res_idxs) in enumerate(post_res_idxs):
+        post_terms[i] = - post_res_gs[i] * (Vs[neur_idx] - Vs[post_res_idxs[i,0]])
+    terms = np.divide(np.concatenate((pre_terms, post_terms)), c)
+    gs = np.concatenate((pre_res_gs, post_res_gs))
+    return (gs, terms)
 
 @njit(cache=True)
 def calc_terms(v, ints, mKir, ENa, EH, ECa, EK, Eleak, c, I):
@@ -514,17 +569,17 @@ def calc_intrins_dv_terms(gs, terms, to_estimate):
     return (gs, terms, θ_intrins, ϕ_intrins)
 
 @njit(cache=True)
-def calc_dv_terms_final_step_if_est_gsyns(θ_intrins, g_syns, ϕ_intrins, syn_terms, gs, terms):
-    θ = np.concatenate((θ_intrins, g_syns))
-    ϕ = np.concatenate((ϕ_intrins, syn_terms))
+def calc_dv_terms_final_step_if_est_gsyns_gels(θ_intrins, g_syns, ϕ_intrins, syn_terms, gs, terms, g_res, res_terms):
+    θ = np.concatenate((θ_intrins, g_syns, g_res))
+    ϕ = np.concatenate((ϕ_intrins, syn_terms, res_terms))
     b = np.dot(gs, terms)
     return (θ, ϕ, b)
 
 @njit(cache=True)
-def calc_dv_terms_final_step_if_not_est_gsyns(gs, g_syns, terms, syn_terms):
+def calc_dv_terms_final_step_if_not_est_gsyns_gels(gs, g_syns, terms, syn_terms, g_res, res_terms):
     b = np.dot(
-                    np.concatenate((gs, g_syns)),
-                    np.concatenate((terms, syn_terms))
+                    np.concatenate((gs, g_syns, g_res)),
+                    np.concatenate((terms, syn_terms, res_terms))
                 )
     return b
 
