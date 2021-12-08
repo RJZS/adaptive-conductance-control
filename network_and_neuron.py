@@ -263,7 +263,8 @@ class Neuron:
     
     # Note this function spits out the length of vectors tailored to the neuron,
     # not the standardised 'max length' required by the ODE solver.
-    def define_dv_terms(self, to_estimate, est_gsyns_gels, v, ints, syn_gates, I, el_connects, neur_idx, network_Vs):
+    def define_dv_terms(self, to_estimate, est_gsyns_gels, v, ints, syn_gates, I,
+                        no_res_connections, el_connects, neur_idx, network_Vs):
         # First deal with intrinsic conductances.
         gs = np.concatenate((self.gs, [1.]))
         
@@ -278,7 +279,10 @@ class Neuron:
             syn_terms[idx] = - np.divide(syn_gates[idx] * (v - self.Esyn), self.c)
             
         # Now resistive terms.
-        (res_gs, res_terms) = calc_res_gs_and_terms(el_connects, neur_idx, network_Vs, self.c)
+        if not no_res_connections:
+            (res_gs, res_terms) = calc_res_gs_and_terms(el_connects, neur_idx, network_Vs, self.c)
+        else:
+            res_gs = []; res_terms = []
         
         if est_gsyns_gels:
             θ, ϕ, b = calc_dv_terms_final_step_if_est_gsyns_gels(θ_intrins, 

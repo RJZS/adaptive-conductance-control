@@ -84,6 +84,7 @@ def main(t,z,p):
     num_int_gates = 10 # m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
     max_num_syns = network.max_num_syns
     num_neurs = len(network.neurons)
+    no_res_connections  = (network.el_connects == [])
     
     # Now break out components of z.
     z_mat = np.reshape(z, (len(z)//num_neurs, num_neurs), order='F')
@@ -180,7 +181,7 @@ def main(t,z,p):
         # Now, run the true system.
         (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
                                          Vs[i], ints[:,i], syns[:,i], injected_currents[i],
-                                         network.el_connects, i, Vs)
+                                         no_res_connections, network.el_connects, i, Vs)
         dvs[i] = np.dot(ϕ,θ) + b
         # b here includes the input current, which is different from the paper I think
         
@@ -191,7 +192,7 @@ def main(t,z,p):
         # Finally, run the adaptive observer
         (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
                                          Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i],
-                                         network.el_connects, i, Vs)
+                                         no_res_connections, network.el_connects, i, Vs)
         
         dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
         (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
