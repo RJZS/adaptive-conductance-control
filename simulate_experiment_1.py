@@ -12,8 +12,8 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 6000. # Textbook notebook has 1800.
-control_start_time = 1000.
+Tfinal = 2000. # Textbook notebook has 1800.
+control_start_time = 20.
 
 # Single neuron reference tracking.
 # TODO: can I change the initialisation without 'instability'?
@@ -26,8 +26,7 @@ x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 P_0 = np.eye(9);
 Ψ_0 = np.zeros(9);
 to_estimate = np.array([0,1,2,3,4,5,6,7,8])
-estimate_g_syns = True
-estimate_g_res = False # TODO: Need to write the code for this!!
+estimate_g_syns_g_els = True
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
 neur_one = Neuron(0.1, np.array([0.,0.,0.,0,0.,0.,0.,0.,0.1]), np.array([]))
@@ -65,20 +64,21 @@ dt = 0.01
 
 tspan = (0.,Tfinal)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns,estimate_g_res,control_start_time)
+     estimate_g_syns_g_els,control_start_time)
 
 print("Starting simulation",file=open("printout.txt","a"))
 start_time = time.time()
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='BDF')
 end_time = time.time()
-print("Simulation time: {}s".format(end_time-start_time),file=open("printout.txt","a"))
+print("Simulation time: {}s".format(end_time-start_time))
 
 t = out.t
 sol = out.y
 
 
 # %%
+# Comparison simulation
 
 # # Reference Tracking
 # syn_ref = Synapse(2.5, 1)
@@ -96,7 +96,7 @@ start_time = time.time()
 out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 end_time = time.time()
-print("'Ref' Simulation time: {}s".format(end_time-start_time),file=open("printout.txt","a"))
+print("'Ref' Simulation time: {}s".format(end_time-start_time))
 
 t_ref = out_ref.t
 sol_ref = out_ref.y
@@ -173,7 +173,7 @@ sol_ref = out_ref.y
 
 # For HCO_RT it's about 1105, ie np.roll(x, 1105). Remember the spike is every other local max.
 
-t=t.astype('float32')
-sol=sol.astype('float32')
-sol_ref = sol_ref.astype('float32')
-np.savez("simulate_experiment_1.npz", t=t,sol=sol,sol_ref=sol_ref)
+# t=t.astype('float32')
+# sol=sol.astype('float32')
+# sol_ref = sol_ref.astype('float32')
+# np.savez("simulate_experiment_1.npz", t=t,sol=sol,sol_ref=sol_ref)
