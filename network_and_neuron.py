@@ -282,7 +282,7 @@ class Neuron:
         if not no_res_connections:
             (res_gs, res_terms) = calc_res_gs_and_terms(el_connects, neur_idx, network_Vs, self.c)
         else:
-            res_gs = []; res_terms = []
+            res_gs = np.array([]); res_terms = np.array([])
         
         if est_gsyns_gels:
             θ, ϕ, b = calc_dv_terms_final_step_if_est_gsyns_gels(θ_intrins, 
