@@ -18,22 +18,22 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 2000.
+Tfinal = 8000.
+control_start_time = 2000.
 
 # Initial conditions - Single Neuron Disturbance Rejection
 x_0 = [0.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
-x̂_0 = [30, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.1, 0.2, 0.4, 0.5, 0.1]
-θ̂_0 = [60, 30, 30, 30, 60, 30, 30, 30, 10, 1]; # Estimating all intrinsic and 1 syn.
+x̂_0 = [0., 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+θ̂_0 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]; # Estimating all intrinsic and 1 syn.
 P_0 = np.eye(10);
 Ψ_0 = np.zeros(10);
 to_estimate = np.array([0,1,2,3,4,5,6,7,8])
-estimate_g_syns = True
-estimate_g_res = False # TODO: Need to write the code for this!!
+estimate_g_syns_g_els = True
 
 syn = Synapse(2., 1)
 neur_one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
 neur_dist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
-network = Network([neur_one, neur_dist], np.zeros((2,2)))
+network = Network([neur_one, neur_dist], [])
 
 control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 
@@ -49,7 +49,7 @@ Iapps = [Iconst, Iconst]
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
-control_law = ["DistRej", [(0, 1)]]#, (0, 1)]]
+# control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 # control_law = ["RefTrack", ref_gs]
 # control_law = [""]
 
@@ -74,7 +74,7 @@ dt = 0.01
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns,estimate_g_res)
+     estimate_g_syns_g_els,control_start_time)
 
 start_time = time.time()
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
@@ -103,10 +103,10 @@ neur_one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
 
 network_nodist = Network([neur_one_nodist], np.zeros((1,1)))
 p_nodist = (Iapps, network_nodist)
-z_0_nodist = np.concatenate((x_0[:11], x_0[:11]))
+# z_0_nodist = np.concatenate((x_0[:11], x_0[:11]))
 # z_0_nodist[0] = 20
 # z_0_nodist[12] = -20
-# z_0_nodist = x_0[:11] # Only one neur
+z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
 out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-6,atol=1e-6,
