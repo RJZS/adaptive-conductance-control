@@ -122,7 +122,7 @@ def main(t,z,p):
     injected_currents = np.zeros(num_neurs)
     for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
     # Run controller
-    if controller_settings[0] == "DistRej":
+    if controller_settings[0] == "DistRej" and t > control_start_time:
         if estimate_g_syns_g_els:
             g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
         else:
