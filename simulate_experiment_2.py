@@ -18,16 +18,16 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 8000.
+Tfinal = 10000.
 control_start_time = 2000.
 
 # Initial conditions - Single Neuron Disturbance Rejection
 x_0 = [0.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
 x̂_0 = [0., 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-θ̂_0 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]; # Estimating all intrinsic and 1 syn.
-P_0 = np.eye(10);
-Ψ_0 = np.zeros(10);
-to_estimate = np.array([0,1,2,3,4,5,6,7,8])
+θ̂_0 = [1, 1, 1]; # Estimating all intrinsic and 1 syn.
+P_0 = np.eye(3);
+Ψ_0 = np.zeros(3);
+to_estimate = np.array([0,2], dtype=np.int32)
 estimate_g_syns_g_els = True
 
 syn = Synapse(2., 1)
@@ -43,8 +43,8 @@ Iconst = lambda t: -2
 Iapps = [Iconst, Iconst]
 
 # Observer parameters
-α = 0.05 # Default is 0.5. Had to decrease as P values were exploding.
-γ = 70 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
+α = 0.5 # Default is 0.5. Had to decrease to 0.05 as P values were exploding.
+γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
@@ -76,9 +76,11 @@ tspan = (0.,Tfinal)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns_g_els,control_start_time)
 
+print("Running experiment 2. Tfinal = {}".format(Tfinal))
 start_time = time.time()
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='BDF')
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))#, method='BDF',
+                #vectorized=True)
 end_time = time.time()
 print("Simulation time: {}s".format(end_time-start_time))
 
@@ -123,6 +125,8 @@ sol_nodist = out_nodist.y
 # find_peaks(x) gives the idxs. Then can use np.roll for the phase-shift.
 
 # For HCO_RT it's about 1105, ie np.roll(x, 1105). Remember the spike is every other local max.
+
+# 10th Dec 2021: For one neuron, it's -8207.
 # %%
 
 t=t.astype('float32')

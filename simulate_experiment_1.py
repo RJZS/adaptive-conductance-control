@@ -12,8 +12,10 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 6000. # Textbook notebook has 1800.
+Tfinal = 6000. # I think 6000s is enough.
+Tfinal = 8000.
 control_start_time = 20.
+print("Tfinal: {}".format(Tfinal))#, file=open("experiment1out.txt","a"))
 
 # Single neuron reference tracking.
 # TODO: can I change the initialisation without 'instability'?
@@ -22,10 +24,14 @@ control_start_time = 20.
 # Initial conditions - Single Neuron Reference Tracking
 x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-θ̂_0 = np.ones(9);
+θ̂_0 = np.zeros(9);
 P_0 = np.eye(9);
 Ψ_0 = np.zeros(9);
 to_estimate = np.array([0,1,2,3,4,5,6,7,8], dtype=np.int32)
+to_estimate = np.array([0,2,8], dtype=np.int32)
+θ̂_0 = np.zeros(3);
+P_0 = np.eye(3);
+Ψ_0 = np.zeros(3);
 estimate_g_syns_g_els = True
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
@@ -38,8 +44,8 @@ Iconst = lambda t: -2
 Iapps = [Iconst, Iconst]
 
 # Observer parameters
-α = 0.05 # Default is 0.5. Had to decrease as P values were exploding.
-γ = 70 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
+α = 0.5 # Default is 0.5. Had to decrease to 0.05 as P values were exploding.
+γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 control_law = ["RefTrack", ref_gs]
 # control_law = [""]
@@ -63,15 +69,17 @@ z_0 = np.ravel(z_0, order='F')
 dt = 0.01
 
 tspan = (0.,Tfinal)
+len_ode_state = len(z_0)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,control_start_time)
+     estimate_g_syns_g_els,control_start_time,len_ode_state)
 
-print("Starting simulation")
+print("Starting simulation")#, file=open("experiment1out.txt","a"))
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='BDF')
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-5,atol=1e-5,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
+                vectorized=True)
 end_time = time.time()
-print("Simulation time: {}s".format(end_time-start_time))
+print("Simulation time: {}s".format(end_time-start_time))#,file=open("experiment1out.txt","a"))
 
 t = out.t
 sol = out.y
@@ -96,7 +104,7 @@ start_time = time.time()
 out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
 end_time = time.time()
-print("'Ref' Simulation time: {}s".format(end_time-start_time))
+print("'Ref' Simulation time: {}s".format(end_time-start_time))#,file=open("experiment1out.txt","a"))
 
 t_ref = out_ref.t
 sol_ref = out_ref.y
@@ -173,7 +181,17 @@ sol_ref = out_ref.y
 
 # For HCO_RT it's about 1105, ie np.roll(x, 1105). Remember the spike is every other local max.
 
-# t=t.astype('float32')
-# sol=sol.astype('float32')
-# sol_ref = sol_ref.astype('float32')
-# np.savez("simulate_experiment_1.npz", t=t,sol=sol,sol_ref=sol_ref)
+# rr = np.roll(sol_ref[0,:],5207)
+# j=584600;k=585000;plt.plot(t[j:k],sol[0,j:k]-rr[j:k])
+
+start_time=time.time()
+t=t.astype('float32')
+sol=sol.astype('float32')
+sol_ref = sol_ref.astype('float32')
+end_time = time.time()
+# print("Conversion time: {}s".format(end_time-start_time),file=open("experiment1out.txt","a"))
+
+start_time = time.time()
+np.savez("simulate_experiment_1.npz", t=t,sol=sol,sol_ref=sol_ref)
+end_time = time.time()
+# print("Saving time: {}s".format(end_time-start_time),file=open("experiment1out.txt","a"))
