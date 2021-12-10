@@ -191,19 +191,28 @@ def main(t,z,p):
         θ̂ = θ̂s[:num_neur_ests,i,:]
         P = Ps[:num_neur_ests,:num_neur_ests,i,:];
         Ψ = Ψs[:num_neur_ests,i,:]
+        print("!!! Ψ !!!")
+        print(Ψ[:,0])
 
         # Now, run the true system.
         (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
                                          Vs[i,:], ints[:,i,:], syns[:,i,:], injected_currents[i,:],
                                          no_res_connections, network.el_connects, i, Vs)
-        dvs[i] = np.dot(ϕ,θ) + b
+        print("Finished running true system. Shapes of outputs are: {}, {}, {}".format(θ.shape, ϕ.shape, b.shape))
+        for p in range(num_pts):
+            dvs[i,p] = np.dot(ϕ[p],θ[p]) + b[p]
         print("dvs shape: {}".format(dvs.shape))
         # b here includes the input current, which is different from the paper I think
         
-        v_pres = Vs[neur.pre_neurs]
+        v_pres = np.zeros((len(neur.pre_neurs),num_pts))
+        for p in range(num_pts):
+            v_pres[:,p] = Vs[neur.pre_neurs,p]
+        print("V pres: {}".format(v_pres.shape))
         print(ints.shape)
-        (dints[:,i,:], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
-            Vs[i], ints[:,i,:], syns[:,i], v_pres)
+        print("syns.shape: {}".format(syns.shape))
+        print(neur.gate_calcs(Vs[i,:], ints[:,i,:], syns[:,i,:], v_pres))
+        (dints[:,i,:], dsyns_mat[:neur.num_syns,i,:]) = neur.gate_calcs(
+            Vs[i,:], ints[:,i,:], syns[:,i,:], v_pres)
         print("dints shape: {}".format(dints.shape))
         
         # Finally, run the adaptive observer
@@ -215,27 +224,35 @@ def main(t,z,p):
         print("P: {}".format(P.shape))
         print("ϕ: {}".format(ϕ.shape))
         print("ϕ̂,θ̂: {}{}".format(ϕ̂.shape,θ̂.shape))
-        dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
+        
+        for p in range(num_pts):
+            print(np.dot(ϕ̂[:,p],θ̂[:,p]))
+            print(Ψ.T[:,p].shape)
+            print(np.matmul(P[:,:,p],Ψ[:,p].T))
+            dv̂s[i,p] = np.dot(ϕ̂[:,p],θ̂[:,p]) + b_hat[p] + γ*(1+np.matmul(Ψ[:,p],np.matmul(P[:,:,p],Ψ[:,p].T)))*(Vs[i,p]-v̂s[i,p])
         (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], ints_hat[:,i], syns_hat[:,i], v_pres)
         print("dv̂s shape: {}".format(dv̂s.shape))
         print("dints_hat: {}".format(dints_hat.shape))
         
-        dθ̂s[:num_neur_ests,i] = γ*P@Ψ.T*(Vs[i]-v̂s[i]);
-        dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
-        aux = np.outer(Ψ,Ψ)
-        dP = α*P - P@aux@P;
-        dP = (dP+np.transpose(dP))/2;
-        dPs[:num_neur_ests,:num_neur_ests,i] = dP
+        for p in range(num_pts):
+            dθ̂s[:num_neur_ests,i,p] = γ*np.matmul(P[:,:,p],Ψ[:,p].T)*(Vs[i,p]-v̂s[i,p]);
+            dΨs[:num_neur_ests,i,p] = np.array([-γ*Ψ[:,p] + ϕ̂[:,p]]);
+            aux = np.outer(Ψ[:,p],Ψ[:,p])
+            dP = α*P[:,:,p] - np.matmul(P[:,:,p],np.matmul(aux,P[:,:,p]));
+            dP = (dP+np.transpose(dP))/2;
+            dPs[:num_neur_ests,:num_neur_ests,i,p] = dP
+        
         
     # Finally, need to stack and flatten everything.
     # To stack, need to 'reduce' dP to 2 axes instead of 3
     print("final shapes:")
-    dPs = np.reshape(dPs, (num_estimators**2, num_neurs), order='F')
+    dPs = np.reshape(dPs, (num_estimators**2, num_neurs, num_pts), order='F')
     print("dPs: {}".format(dPs.shape))
     print("dsyns_hat_mat: {}".format(dsyns_hat_mat.shape))
     print("dθ̂s: {}".format(dθ̂s.shape))
     print("dΨs: {}".format(dΨs.shape))
+    
     
     dz_mat = np.vstack((dvs, dints, dsyns_mat,
                          dv̂s, dints_hat, dsyns_hat_mat, dθ̂s, dPs, dΨs))

@@ -256,7 +256,7 @@ class Neuron:
         dCa = (-0.1*self.gL_for_Ca*int_gates[8]*(v-self.ECa)-0.01*int_gates[9])/4
         dints[9] = dCa
         
-        dsyns = np.zeros(self.num_syns)
+        dsyns = np.zeros((self.num_syns, num_vectorized_points))
         for (idx, syn) in enumerate(self.syns):
             # (τs,σs) = self.gating_s(v_pres[idx])
             # dsyns[idx] = calc_dgate(τs, syn_gates[idx], σs);
@@ -527,6 +527,7 @@ def calc_res_gs_and_terms(el_connects, neur_idx, Vs, c):
 
 # # @njit(cache=True)
 def calc_terms(v, ints, mKir, ENa, EH, ECa, EK, Eleak, c, I):
+    print("calc_terms")
     terms = np.divide(np.array([
                 -ints[0]**3*ints[1]*(v-ENa), # I_Na
                 -ints[2]*(v-EH), # I_H
@@ -539,6 +540,7 @@ def calc_terms(v, ints, mKir, ENa, EH, ECa, EK, Eleak, c, I):
                 -(v-Eleak),
                 I
             ]),c)
+    print(terms.shape)
     return terms
 
 # @njit(cache=True)
@@ -551,13 +553,9 @@ def hhmodel_calc_terms(v, m, h, n, ENa, EK, EL, c, I):
 # # @njit((f8[:],f8[:],i4[:]), cache=True)
 def calc_intrins_dv_terms(gs, terms, to_estimate):
     # First deal with intrinsic conductances.
-    num_vectorized_pts = terms.shape[-1]
-    print("Num vectorized:")
-    print(num_vectorized_pts)
-    print(terms.shape)
-    print(gs.shape)
-    θ_intrins = np.zeros(len(to_estimate))
-    ϕ_intrins = np.zeros(len(to_estimate))
+    num_pts = terms.shape[-1]
+    θ_intrins = np.zeros((len(to_estimate), num_pts))
+    ϕ_intrins = np.zeros((len(to_estimate), num_pts))
     
     gs_del_idxs = np.zeros(len(to_estimate), dtype=np.int8)
     terms_del_idxs = np.zeros(len(to_estimate), dtype=np.int8)
@@ -573,6 +571,12 @@ def calc_intrins_dv_terms(gs, terms, to_estimate):
 
 # # @njit(cache=True)
 def calc_dv_terms_final_step_if_est_gsyns_gels(θ_intrins, g_syns, ϕ_intrins, syn_terms, gs, terms, g_res, res_terms):
+    print("calc_dv_terms_final_step_if_est_ shapes: {}, {}, {}".format(θ_intrins.shape, g_syns.shape, g_res.shape))
+    num_pts = θ_intrins.shape[-1]
+    g_syns = np.reshape(g_syns, (len(g_res),num_pts))
+    g_res = np.reshape(g_res, (len(g_res),num_pts))
+    syn_terms = np.reshape(syn_terms, (len(g_res),num_pts))
+    res_terms = np.reshape(res_terms, (len(g_res),num_pts))
     θ = np.concatenate((θ_intrins, g_syns, g_res))
     ϕ = np.concatenate((ϕ_intrins, syn_terms, res_terms))
     b = np.dot(gs, terms)
