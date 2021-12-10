@@ -236,6 +236,7 @@ class Neuron:
     def gate_calcs(self, v, int_gates, syn_gates, v_pres):
         num_vectorized_points = v.shape[-1]
         print("num_vectorized_points: {}".format(num_vectorized_points))
+        print("in gate_calcs, vs.shape: {}".format(v.shape))
         dints = np.zeros((self.NUM_GATES, num_vectorized_points))
         (τm,σm) = gating_mNa(v);
         (τh,σh) = gating_hNa(v);
@@ -250,9 +251,6 @@ class Neuron:
         
         taus = np.array([τm, τh, τmH, τmT, τhT, τmA, τhA, τmKD, τmL])
         sigmas = np.array([σm, σh, σmH, σmT, σhT, σmA, σhA, σmKD, σmL])
-        print("int_gates shape:")
-        print(int_gates.shape)
-        print(calc_dgate(taus, int_gates[:9,:], sigmas).shape)
         dints[:9,:] = calc_dgate(taus, int_gates[:9,:], sigmas)
         
         dCa = (-0.1*self.gL_for_Ca*int_gates[8]*(v-self.ECa)-0.01*int_gates[9])/4
@@ -553,6 +551,11 @@ def hhmodel_calc_terms(v, m, h, n, ENa, EK, EL, c, I):
 # # @njit((f8[:],f8[:],i4[:]), cache=True)
 def calc_intrins_dv_terms(gs, terms, to_estimate):
     # First deal with intrinsic conductances.
+    num_vectorized_pts = terms.shape[-1]
+    print("Num vectorized:")
+    print(num_vectorized_pts)
+    print(terms.shape)
+    print(gs.shape)
     θ_intrins = np.zeros(len(to_estimate))
     ϕ_intrins = np.zeros(len(to_estimate))
     

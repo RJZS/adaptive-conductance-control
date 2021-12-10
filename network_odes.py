@@ -89,44 +89,48 @@ def main(t,z,p):
     print("Start step")
     print(z.shape)
     # Now break out components of z.
-    num_vectorized_pts = z.shape[1]
-    z_mat = np.reshape(z, (z.shape[0]//num_neurs, num_neurs, z.shape[1]), order='F')
+    num_pts = z.shape[1] # Number of points that the solver is evaluating. This is decided by the solver!
+    z_mat = np.reshape(z, (z.shape[0]//num_neurs, num_neurs, num_pts), order='F')
     # True system.
-    Vs = z_mat[0,:]
-    ms = z_mat[1,:]
-    hs = z_mat[2,:]
-    mHs = z_mat[3,:]
-    mTs = z_mat[4,:]
-    hTs = z_mat[5,:]
-    mAs = z_mat[6,:]
-    hAs = z_mat[7,:]
-    mKDs = z_mat[8,:]
-    mLs = z_mat[9,:]
-    mCas = z_mat[10,:]
+    Vs = z_mat[0,:,:]
+    ms = z_mat[1,:,:]
+    hs = z_mat[2,:,:]
+    mHs = z_mat[3,:,:]
+    mTs = z_mat[4,:,:]
+    hTs = z_mat[5,:,:]
+    mAs = z_mat[6,:,:]
+    hAs = z_mat[7,:,:]
+    mKDs = z_mat[8,:,:]
+    mLs = z_mat[9,:,:]
+    mCas = z_mat[10,:,:]
     ints = z_mat[1:11,:,:] # All the intrinsic gates.
-    syns = z_mat[11:11+max_num_syns,:]
+    syns = z_mat[11:11+max_num_syns,:,:]
     # Terms for adaptive observer
-    v̂s = z_mat[11+max_num_syns,:]
-    ints_hat = z_mat[11+max_num_syns+1:11+max_num_syns+11,:] # All the intrinsic gate estimates.
-    syns_hat = z_mat[11+max_num_syns+11:11+max_num_syns*2+11,:]
+    v̂s = z_mat[11+max_num_syns,:,:]
+    ints_hat = z_mat[11+max_num_syns+1:11+max_num_syns+11,:,:] # All the intrinsic gate estimates.
+    syns_hat = z_mat[11+max_num_syns+11:11+max_num_syns*2+11,:,:]
     idx_so_far = 11+max_num_syns*2+11 # Just to make code less ugly
-    θ̂s = z_mat[idx_so_far:idx_so_far+num_estimators,:]
+    θ̂s = z_mat[idx_so_far:idx_so_far+num_estimators,:,:]
     # print(z_mat[10:14,:])
     Ps = np.reshape(z_mat[idx_so_far+num_estimators:idx_so_far+
-                          num_estimators+num_estimators**2,:],
-                    (num_estimators,num_estimators,num_neurs), order='F');
+                          num_estimators+num_estimators**2,:,:],
+                    (num_estimators,num_estimators,num_neurs,num_pts), order='F');
     print("P operation")
     print(Ps.shape)
     for j in range(num_neurs):
-        P = Ps[:,:,j]
-        P = (P+np.transpose(P))/2
-        Ps[:,:,j] = P
+        for k in range(num_pts):
+            P = Ps[:,:,j,k]
+            P = (P+np.transpose(P))/2
+            Ps[:,:,j,k] = P
     print(Ps.shape)
     Ψs = z_mat[idx_so_far+num_estimators+num_estimators**2:
-               idx_so_far+num_estimators*2+num_estimators**2,:]
+               idx_so_far+num_estimators*2+num_estimators**2,:,:] # UP TO HERE!!
     
-    injected_currents = np.zeros(num_neurs)
-    for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
+    injected_currents = np.zeros((num_neurs, num_pts))
+    for i in range(num_neurs):
+        injected_currents[i,:] = Iapps[i](t)
+            
+    # NEED TO VECTORIZE THE CONTROLLERS!
     # Run controller
     if controller_settings[0] == "DistRej" and t > control_start_time:
         if estimate_g_syns_g_els:
@@ -168,29 +172,29 @@ def main(t,z,p):
     print("Finished controller")
     print(injected_currents.shape)
     # Now make one time step. First, initialise the required vectors.
-    dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)
-    dints = np.zeros((num_int_gates, num_neurs, num_vectorized_pts))
+    dvs = np.zeros((num_neurs, num_pts)); dv̂s = np.zeros((num_neurs, num_pts))
+    dints = np.zeros((num_int_gates, num_neurs, num_pts))
     print("Just initialised dints. Its shape is: {}".format(dints.shape))
-    dints_hat = np.zeros((num_int_gates, num_neurs))
-    dsyns_mat = np.zeros((max_num_syns, num_neurs))
-    dsyns_hat_mat = np.zeros((max_num_syns, num_neurs))
+    dints_hat = np.zeros((num_int_gates, num_neurs, num_pts))
+    dsyns_mat = np.zeros((max_num_syns, num_neurs, num_pts))
+    dsyns_hat_mat = np.zeros((max_num_syns, num_neurs, num_pts))
     
-    dθ̂s = np.zeros((num_estimators, num_neurs))
-    dΨs = np.zeros((num_estimators, num_neurs))
-    dPs = np.zeros((num_estimators, num_estimators, num_neurs))
+    dθ̂s = np.zeros((num_estimators, num_neurs, num_pts))
+    dΨs = np.zeros((num_estimators, num_neurs, num_pts))
+    dPs = np.zeros((num_estimators, num_estimators, num_neurs, num_pts))
     print("Calculate deltas")
     for (i, neur) in enumerate(network.neurons):
         # Need to 'reduce' terms. This is as vectors/matrices are sized for
         # the neuron/s with the largest number of synapses.
         num_neur_ests = len(to_estimate)
-        if estimate_g_syns_g_els: num_neur_ests = num_neur_ests + neur.num_syns
-        θ̂ = θ̂s[:num_neur_ests,i]
-        P = Ps[:num_neur_ests,:num_neur_ests,i];
-        Ψ = Ψs[:num_neur_ests,i]
+        if estimate_g_syns_g_els: num_neur_ests = num_neur_ests + neur.num_syns # And what about resistive connections!
+        θ̂ = θ̂s[:num_neur_ests,i,:]
+        P = Ps[:num_neur_ests,:num_neur_ests,i,:];
+        Ψ = Ψs[:num_neur_ests,i,:]
 
         # Now, run the true system.
         (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
-                                         Vs[i], ints[:,i], syns[:,i], injected_currents[i],
+                                         Vs[i,:], ints[:,i,:], syns[:,i,:], injected_currents[i,:],
                                          no_res_connections, network.el_connects, i, Vs)
         dvs[i] = np.dot(ϕ,θ) + b
         print("dvs shape: {}".format(dvs.shape))
@@ -207,6 +211,10 @@ def main(t,z,p):
                                          Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i],
                                          no_res_connections, network.el_connects, i, Vs)
         
+        print("Ψ: {}".format(Ψ.shape))
+        print("P: {}".format(P.shape))
+        print("ϕ: {}".format(ϕ.shape))
+        print("ϕ̂,θ̂: {}{}".format(ϕ̂.shape,θ̂.shape))
         dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
         (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], ints_hat[:,i], syns_hat[:,i], v_pres)
