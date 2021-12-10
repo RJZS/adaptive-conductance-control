@@ -76,6 +76,8 @@ def main(t,z,p):
     controller_settings = p[5] # Control law to use for the neurons
     estimate_g_syns_g_els = p[6]
     control_start_time = p[7]
+    len_ode_state = p[8]
+    num_pts = z.shape[1]
     
     # Assuming all the neurons are of the same model:
     num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
@@ -87,130 +89,133 @@ def main(t,z,p):
     no_res_connections  = (network.el_connects == [])
     
     # Now break out components of z.
-    z_mat = np.reshape(z, (len(z)//num_neurs, num_neurs), order='F')
-    # True system.
-    Vs = z_mat[0,:]
-    ms = z_mat[1,:]
-    hs = z_mat[2,:]
-    mHs = z_mat[3,:]
-    mTs = z_mat[4,:]
-    hTs = z_mat[5,:]
-    mAs = z_mat[6,:]
-    hAs = z_mat[7,:]
-    mKDs = z_mat[8,:]
-    mLs = z_mat[9,:]
-    mCas = z_mat[10,:]
-    ints = z_mat[1:11,:] # All the intrinsic gates.
-    syns = z_mat[11:11+max_num_syns,:]
-    # Terms for adaptive observer
-    v̂s = z_mat[11+max_num_syns,:]
-    ints_hat = z_mat[11+max_num_syns+1:11+max_num_syns+11,:] # All the intrinsic gate estimates.
-    syns_hat = z_mat[11+max_num_syns+11:11+max_num_syns*2+11,:]
-    idx_so_far = 11+max_num_syns*2+11 # Just to make code less ugly
-    θ̂s = z_mat[idx_so_far:idx_so_far+num_estimators,:]
-    # print(z_mat[10:14,:])
-    Ps = np.reshape(z_mat[idx_so_far+num_estimators:idx_so_far+
-                          num_estimators+num_estimators**2,:],
-                    (num_estimators,num_estimators,num_neurs), order='F');
-    for j in range(num_neurs):
-        P = Ps[:,:,j]
-        P = (P+np.transpose(P))/2
-        Ps[:,:,j] = P
-    Ψs = z_mat[idx_so_far+num_estimators+num_estimators**2:
-               idx_so_far+num_estimators*2+num_estimators**2,:]
+    z_mat = np.reshape(z, (len_ode_state//num_neurs, num_neurs, num_pts), order='F')
+    dz_mat = np.zeros(z_mat.shape)
     
-    injected_currents = np.zeros(num_neurs)
-    for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
-    # Run controller
-    if controller_settings[0] == "DistRej" and t > control_start_time:
-        if estimate_g_syns_g_els:
-            g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
-        else:
-            g_syns = np.zeros((max_num_syns, num_neurs))
+    for p in range(num_pts):
+        # True system.
+        Vs = z_mat[0,:,p]
+        ms = z_mat[1,:,p]
+        hs = z_mat[2,:,p]
+        mHs = z_mat[3,:,p]
+        mTs = z_mat[4,:,p]
+        hTs = z_mat[5,:,p]
+        mAs = z_mat[6,:,p]
+        hAs = z_mat[7,:,p]
+        mKDs = z_mat[8,:,p]
+        mLs = z_mat[9,:,p]
+        mCas = z_mat[10,:,p]
+        ints = z_mat[1:11,:,p] # All the intrinsic gates.
+        syns = z_mat[11:11+max_num_syns,:,p]
+        # Terms for adaptive observer
+        v̂s = z_mat[11+max_num_syns,:,p]
+        ints_hat = z_mat[11+max_num_syns+1:11+max_num_syns+11,:,p] # All the intrinsic gate estimates.
+        syns_hat = z_mat[11+max_num_syns+11:11+max_num_syns*2+11,:,p]
+        idx_so_far = 11+max_num_syns*2+11 # Just to make code less ugly
+        θ̂s = z_mat[idx_so_far:idx_so_far+num_estimators,:,p]
+        # print(z_mat[10:14,:])
+        Ps = np.reshape(z_mat[idx_so_far+num_estimators:idx_so_far+
+                              num_estimators+num_estimators**2,:,p],
+                        (num_estimators,num_estimators,num_neurs), order='F');
+        for j in range(num_neurs):
+            P = Ps[:,:,j]
+            P = (P+np.transpose(P))/2
+            Ps[:,:,j] = P
+        Ψs = z_mat[idx_so_far+num_estimators+num_estimators**2:
+                   idx_so_far+num_estimators*2+num_estimators**2,:,p]
+        
+        injected_currents = np.zeros(num_neurs)
+        for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
+        # Run controller
+        if controller_settings[0] == "DistRej" and t > control_start_time:
+            if estimate_g_syns_g_els:
+                g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
+            else:
+                g_syns = np.zeros((max_num_syns, num_neurs))
+                for (idx, neur) in enumerate(network.neurons):
+                    g_syns[:neur.num_syns, idx] = neur.g_syns
+            control_currs = disturbance_rejection(controller_settings[1], g_syns, syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
+            injected_currents = injected_currents + control_currs
+        elif controller_settings[0] == "RefTrack" and t > control_start_time:
+            # If not estimating all the intrinsic gs, will feed controller a mix of true
+            # and estimated gs. Need to generate this list of gs to feed in.
+            neur_gs = np.zeros((num_neur_gs, num_neurs))
+            neur_gs[to_estimate,:] = θ̂s[:len(to_estimate),:]
+            
+            # Use idxs of true gs where not estimating. So need to 'invert' to_estimate.
+            # Ie need an array listing the elements that are NOT in to_estimate.
+            tmp_list = np.array(range(num_neur_gs))
+            tmp_list_mask = np.ones(num_neur_gs, dtype=bool)
+            tmp_list_mask[to_estimate] = False
+            known_g_idxs = tmp_list[tmp_list_mask]
+            
+            if known_g_idxs.any(): # Otherwise, neur_gs already fully populated with estimates.
+                for (neur_idx, neur) in enumerate(network.neurons):
+                    neur_gs[known_g_idxs,neur_idx] = neur.gs[known_g_idxs]
+            # if-else block below is same as for "DistRej" case above.
+            if estimate_g_syns_g_els:
+                g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
+            else:
+                g_syns = np.zeros((max_num_syns, num_neurs))
             for (idx, neur) in enumerate(network.neurons):
                 g_syns[:neur.num_syns, idx] = neur.g_syns
-        control_currs = disturbance_rejection(controller_settings[1], g_syns, syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
-        injected_currents = injected_currents + control_currs
-    elif controller_settings[0] == "RefTrack" and t > control_start_time:
-        # If not estimating all the intrinsic gs, will feed controller a mix of true
-        # and estimated gs. Need to generate this list of gs to feed in.
-        neur_gs = np.zeros((num_neur_gs, num_neurs))
-        neur_gs[to_estimate,:] = θ̂s[:len(to_estimate),:]
+            observer_gs = np.vstack((neur_gs, g_syns))
+            control_currs = reference_tracking(Vs, ints_hat, syns_hat, observer_gs, 
+                                               controller_settings[1], network, num_neurs, num_neur_gs)
+            injected_currents = injected_currents + control_currs
         
-        # Use idxs of true gs where not estimating. So need to 'invert' to_estimate.
-        # Ie need an array listing the elements that are NOT in to_estimate.
-        tmp_list = np.array(range(num_neur_gs))
-        tmp_list_mask = np.ones(num_neur_gs, dtype=bool)
-        tmp_list_mask[to_estimate] = False
-        known_g_idxs = tmp_list[tmp_list_mask]
+        # Now make one time step. First, initialise the required vectors.
+        dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)
+        dints = np.zeros((num_int_gates, num_neurs))
+        dints_hat = np.zeros((num_int_gates, num_neurs))
+        dsyns_mat = np.zeros((max_num_syns, num_neurs))
+        dsyns_hat_mat = np.zeros((max_num_syns, num_neurs))
         
-        if known_g_idxs.any(): # Otherwise, neur_gs already fully populated with estimates.
-            for (neur_idx, neur) in enumerate(network.neurons):
-                neur_gs[known_g_idxs,neur_idx] = neur.gs[known_g_idxs]
-        # if-else block below is same as for "DistRej" case above.
-        if estimate_g_syns_g_els:
-            g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
-        else:
-            g_syns = np.zeros((max_num_syns, num_neurs))
-        for (idx, neur) in enumerate(network.neurons):
-            g_syns[:neur.num_syns, idx] = neur.g_syns
-        observer_gs = np.vstack((neur_gs, g_syns))
-        control_currs = reference_tracking(Vs, ints_hat, syns_hat, observer_gs, 
-                                           controller_settings[1], network, num_neurs, num_neur_gs)
-        injected_currents = injected_currents + control_currs
+        dθ̂s = np.zeros((num_estimators, num_neurs))
+        dΨs = np.zeros((num_estimators, num_neurs))
+        dPs = np.zeros((num_estimators, num_estimators, num_neurs))
+        for (i, neur) in enumerate(network.neurons):
+            # Need to 'reduce' terms. This is as vectors/matrices are sized for
+            # the neuron/s with the largest number of synapses.
+            num_neur_ests = len(to_estimate)
+            if estimate_g_syns_g_els: num_neur_ests = num_neur_ests + neur.num_syns
+            θ̂ = θ̂s[:num_neur_ests,i]
+            P = Ps[:num_neur_ests,:num_neur_ests,i];
+            Ψ = Ψs[:num_neur_ests,i]
     
-    # Now make one time step. First, initialise the required vectors.
-    dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)
-    dints = np.zeros((num_int_gates, num_neurs))
-    dints_hat = np.zeros((num_int_gates, num_neurs))
-    dsyns_mat = np.zeros((max_num_syns, num_neurs))
-    dsyns_hat_mat = np.zeros((max_num_syns, num_neurs))
-    
-    dθ̂s = np.zeros((num_estimators, num_neurs))
-    dΨs = np.zeros((num_estimators, num_neurs))
-    dPs = np.zeros((num_estimators, num_estimators, num_neurs))
-    for (i, neur) in enumerate(network.neurons):
-        # Need to 'reduce' terms. This is as vectors/matrices are sized for
-        # the neuron/s with the largest number of synapses.
-        num_neur_ests = len(to_estimate)
-        if estimate_g_syns_g_els: num_neur_ests = num_neur_ests + neur.num_syns
-        θ̂ = θ̂s[:num_neur_ests,i]
-        P = Ps[:num_neur_ests,:num_neur_ests,i];
-        Ψ = Ψs[:num_neur_ests,i]
-
-        # Now, run the true system.
-        (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
-                                         Vs[i], ints[:,i], syns[:,i], injected_currents[i],
-                                         no_res_connections, network.el_connects, i, Vs)
-        dvs[i] = np.dot(ϕ,θ) + b
-        # b here includes the input current, which is different from the paper I think
-        
-        v_pres = Vs[neur.pre_neurs]
-        (dints[:,i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
-            Vs[i], ints[:,i], syns[:,i], v_pres)
-        
-        # Finally, run the adaptive observer
-        (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
-                                         Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i],
-                                         no_res_connections, network.el_connects, i, Vs)
-        
-        dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
-        (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
-            Vs[i], ints_hat[:,i], syns_hat[:,i], v_pres)
-        
-        dθ̂s[:num_neur_ests,i] = γ*P@Ψ.T*(Vs[i]-v̂s[i]);
-        dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
-        aux = np.outer(Ψ,Ψ)
-        dP = α*P - P@aux@P;
-        dP = (dP+np.transpose(dP))/2;
-        dPs[:num_neur_ests,:num_neur_ests,i] = dP
-        
-    # Finally, need to stack and flatten everything.
-    # To stack, need to 'reduce' dP to 2 axes instead of 3
-    dPs = np.reshape(dPs, (num_estimators**2, num_neurs), order='F')
-    dz_mat = np.vstack((dvs, dints, dsyns_mat,
+            # Now, run the true system.
+            (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
+                                             Vs[i], ints[:,i], syns[:,i], injected_currents[i],
+                                             no_res_connections, network.el_connects, i, Vs)
+            dvs[i] = np.dot(ϕ,θ) + b
+            # b here includes the input current, which is different from the paper I think
+            
+            v_pres = Vs[neur.pre_neurs]
+            (dints[:,i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
+                Vs[i], ints[:,i], syns[:,i], v_pres)
+            
+            # Finally, run the adaptive observer
+            (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
+                                             Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i],
+                                             no_res_connections, network.el_connects, i, Vs)
+            
+            dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
+            (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
+                Vs[i], ints_hat[:,i], syns_hat[:,i], v_pres)
+            
+            dθ̂s[:num_neur_ests,i] = γ*P@Ψ.T*(Vs[i]-v̂s[i]);
+            dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
+            aux = np.outer(Ψ,Ψ)
+            dP = α*P - P@aux@P;
+            dP = (dP+np.transpose(dP))/2;
+            dPs[:num_neur_ests,:num_neur_ests,i] = dP
+            
+        # Finally, need to stack and flatten everything.
+        # To stack, need to 'reduce' dP to 2 axes instead of 3
+        dPs = np.reshape(dPs, (num_estimators**2, num_neurs), order='F')
+        dz_mat[:,:,p] = np.vstack((dvs, dints, dsyns_mat,
                          dv̂s, dints_hat, dsyns_hat_mat, dθ̂s, dPs, dΨs))
-    dz = np.reshape(dz_mat, (len(z),), order='F')
+    dz = np.reshape(dz_mat, (len_ode_state, num_pts), order='F')
     return dz
 
 def hhmodel_main(t,z,p):
