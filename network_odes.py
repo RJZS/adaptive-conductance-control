@@ -86,8 +86,11 @@ def main(t,z,p):
     num_neurs = len(network.neurons)
     no_res_connections  = (network.el_connects == [])
     
+    print("Start step")
+    print(z.shape)
     # Now break out components of z.
-    z_mat = np.reshape(z, (len(z)//num_neurs, num_neurs), order='F')
+    num_vectorized_pts = z.shape[1]
+    z_mat = np.reshape(z, (z.shape[0]//num_neurs, num_neurs, z.shape[1]), order='F')
     # True system.
     Vs = z_mat[0,:]
     ms = z_mat[1,:]
@@ -100,7 +103,7 @@ def main(t,z,p):
     mKDs = z_mat[8,:]
     mLs = z_mat[9,:]
     mCas = z_mat[10,:]
-    ints = z_mat[1:11,:] # All the intrinsic gates.
+    ints = z_mat[1:11,:,:] # All the intrinsic gates.
     syns = z_mat[11:11+max_num_syns,:]
     # Terms for adaptive observer
     v̂s = z_mat[11+max_num_syns,:]
@@ -112,17 +115,20 @@ def main(t,z,p):
     Ps = np.reshape(z_mat[idx_so_far+num_estimators:idx_so_far+
                           num_estimators+num_estimators**2,:],
                     (num_estimators,num_estimators,num_neurs), order='F');
+    print("P operation")
+    print(Ps.shape)
     for j in range(num_neurs):
         P = Ps[:,:,j]
         P = (P+np.transpose(P))/2
         Ps[:,:,j] = P
+    print(Ps.shape)
     Ψs = z_mat[idx_so_far+num_estimators+num_estimators**2:
                idx_so_far+num_estimators*2+num_estimators**2,:]
     
     injected_currents = np.zeros(num_neurs)
     for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
     # Run controller
-    if controller_settings[0] == "DistRej":
+    if controller_settings[0] == "DistRej" and t > control_start_time:
         if estimate_g_syns_g_els:
             g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
         else:
@@ -159,9 +165,12 @@ def main(t,z,p):
                                            controller_settings[1], network, num_neurs, num_neur_gs)
         injected_currents = injected_currents + control_currs
     
+    print("Finished controller")
+    print(injected_currents.shape)
     # Now make one time step. First, initialise the required vectors.
     dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)
-    dints = np.zeros((num_int_gates, num_neurs))
+    dints = np.zeros((num_int_gates, num_neurs, num_vectorized_pts))
+    print("Just initialised dints. Its shape is: {}".format(dints.shape))
     dints_hat = np.zeros((num_int_gates, num_neurs))
     dsyns_mat = np.zeros((max_num_syns, num_neurs))
     dsyns_hat_mat = np.zeros((max_num_syns, num_neurs))
@@ -169,6 +178,7 @@ def main(t,z,p):
     dθ̂s = np.zeros((num_estimators, num_neurs))
     dΨs = np.zeros((num_estimators, num_neurs))
     dPs = np.zeros((num_estimators, num_estimators, num_neurs))
+    print("Calculate deltas")
     for (i, neur) in enumerate(network.neurons):
         # Need to 'reduce' terms. This is as vectors/matrices are sized for
         # the neuron/s with the largest number of synapses.
@@ -183,11 +193,14 @@ def main(t,z,p):
                                          Vs[i], ints[:,i], syns[:,i], injected_currents[i],
                                          no_res_connections, network.el_connects, i, Vs)
         dvs[i] = np.dot(ϕ,θ) + b
+        print("dvs shape: {}".format(dvs.shape))
         # b here includes the input current, which is different from the paper I think
         
         v_pres = Vs[neur.pre_neurs]
-        (dints[:,i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
-            Vs[i], ints[:,i], syns[:,i], v_pres)
+        print(ints.shape)
+        (dints[:,i,:], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
+            Vs[i], ints[:,i,:], syns[:,i], v_pres)
+        print("dints shape: {}".format(dints.shape))
         
         # Finally, run the adaptive observer
         (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
@@ -197,6 +210,8 @@ def main(t,z,p):
         dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
         (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], ints_hat[:,i], syns_hat[:,i], v_pres)
+        print("dv̂s shape: {}".format(dv̂s.shape))
+        print("dints_hat: {}".format(dints_hat.shape))
         
         dθ̂s[:num_neur_ests,i] = γ*P@Ψ.T*(Vs[i]-v̂s[i]);
         dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
@@ -207,10 +222,17 @@ def main(t,z,p):
         
     # Finally, need to stack and flatten everything.
     # To stack, need to 'reduce' dP to 2 axes instead of 3
+    print("final shapes:")
     dPs = np.reshape(dPs, (num_estimators**2, num_neurs), order='F')
+    print("dPs: {}".format(dPs.shape))
+    print("dsyns_hat_mat: {}".format(dsyns_hat_mat.shape))
+    print("dθ̂s: {}".format(dθ̂s.shape))
+    print("dΨs: {}".format(dΨs.shape))
+    
     dz_mat = np.vstack((dvs, dints, dsyns_mat,
                          dv̂s, dints_hat, dsyns_hat_mat, dθ̂s, dPs, dΨs))
     dz = np.reshape(dz_mat, (len(z),), order='F')
+    print("Final shape: {}".format(dz.shape))
     return dz
 
 def hhmodel_main(t,z,p):

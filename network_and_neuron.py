@@ -234,7 +234,9 @@ class Neuron:
     # ------ END OF CODE FOR DRION PLOS 18 ------
     
     def gate_calcs(self, v, int_gates, syn_gates, v_pres):
-        dints = np.zeros(self.NUM_GATES)
+        num_vectorized_points = v.shape[-1]
+        print("num_vectorized_points: {}".format(num_vectorized_points))
+        dints = np.zeros((self.NUM_GATES, num_vectorized_points))
         (τm,σm) = gating_mNa(v);
         (τh,σh) = gating_hNa(v);
         (τmH,σmH) = gating_mH(v);
@@ -248,7 +250,10 @@ class Neuron:
         
         taus = np.array([τm, τh, τmH, τmT, τhT, τmA, τhA, τmKD, τmL])
         sigmas = np.array([σm, σh, σmH, σmT, σhT, σmA, σhA, σmKD, σmL])
-        dints[:9] = calc_dgate(taus, int_gates[:9], sigmas)
+        print("int_gates shape:")
+        print(int_gates.shape)
+        print(calc_dgate(taus, int_gates[:9,:], sigmas).shape)
+        dints[:9,:] = calc_dgate(taus, int_gates[:9,:], sigmas)
         
         dCa = (-0.1*self.gL_for_Ca*int_gates[8]*(v-self.ECa)-0.01*int_gates[9])/4
         dints[9] = dCa
@@ -470,18 +475,22 @@ class Network:
         self.max_num_syns = max_num_syns
         
 # Needed to take some functions out of the class, for numba.
-@njit(cache=True)
+# @njit(cache=True)
 def calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k):
     τ = Cbase + Camp*np.exp(-np.power((v-Vmax),2)/std**2);
     σ = np.divide(1, (1+np.exp(-(v-Vhalf)/k)));
     return τ, σ
 
-@njit(cache=True)
+# @njit(cache=True)
 def calc_dgate(τ, x, σ):
-    dx = 1/τ*(-x + σ)
+    print("sigma and tau")
+    print(σ.shape)
+    print(τ.shape)
+    τ = np.reshape(τ, (len(τ), 1)) # Bug was here! But why affecting tau and not sigma??
+    dx = np.divide(1,np.multiply(τ,(-x + σ)))
     return dx
 
-# @njit(cache=True)
+# # @njit(cache=True)
 # def calc_resistive_contribution_to_dv(res_mat, neur_idx, Vs, c):
 #     I_res = 0
 #     # First look at connections where this neuron is the 'pre' neuron.
@@ -493,7 +502,7 @@ def calc_dgate(τ, x, σ):
 #     dv_contribution = I_res / c
 #     return dv_contribution
 
-@njit(cache=True)
+# # @njit(cache=True)
 def calc_res_gs_and_terms(el_connects, neur_idx, Vs, c):
     # Filter to find connections involving our neuron.
     def res_condition(x): 
@@ -518,7 +527,7 @@ def calc_res_gs_and_terms(el_connects, neur_idx, Vs, c):
     
     return (neur_res_gs, terms)
 
-@njit(cache=True)
+# # @njit(cache=True)
 def calc_terms(v, ints, mKir, ENa, EH, ECa, EK, Eleak, c, I):
     terms = np.divide(np.array([
                 -ints[0]**3*ints[1]*(v-ENa), # I_Na
@@ -534,14 +543,14 @@ def calc_terms(v, ints, mKir, ENa, EH, ECa, EK, Eleak, c, I):
             ]),c)
     return terms
 
-@njit(cache=True)
+# @njit(cache=True)
 def hhmodel_calc_terms(v, m, h, n, ENa, EK, EL, c, I):
     terms = np.divide(np.array([-m**3*h*(v-ENa),-n**4*(v-EK),
                                     -(v-EL),I]),c)
     return terms
 
 # Providing types as 'typeof' was taking a long time in the profiler.
-@njit((f8[:],f8[:],i4[:]), cache=True)
+# # @njit((f8[:],f8[:],i4[:]), cache=True)
 def calc_intrins_dv_terms(gs, terms, to_estimate):
     # First deal with intrinsic conductances.
     θ_intrins = np.zeros(len(to_estimate))
@@ -559,14 +568,14 @@ def calc_intrins_dv_terms(gs, terms, to_estimate):
     terms = terms[terms_mask]
     return (gs, terms, θ_intrins, ϕ_intrins)
 
-@njit(cache=True)
+# # @njit(cache=True)
 def calc_dv_terms_final_step_if_est_gsyns_gels(θ_intrins, g_syns, ϕ_intrins, syn_terms, gs, terms, g_res, res_terms):
     θ = np.concatenate((θ_intrins, g_syns, g_res))
     ϕ = np.concatenate((ϕ_intrins, syn_terms, res_terms))
     b = np.dot(gs, terms)
     return (θ, ϕ, b)
 
-@njit(cache=True)
+# @njit(cache=True)
 def calc_dv_terms_final_step_if_not_est_gsyns_gels(gs, g_syns, terms, syn_terms, g_res, res_terms):
     b = np.dot(
                     np.concatenate((gs, g_syns, g_res)),
@@ -576,7 +585,7 @@ def calc_dv_terms_final_step_if_not_est_gsyns_gels(gs, g_syns, terms, syn_terms,
 
 ## Gating Functions for full model
 # Na-current (m=activation variable, h=inactivation variable)
-@njit(cache=True)
+# @njit(cache=True)
 def gating_mNa(v):
     def alpha_m(V): return -0.025*(V+40.)/( np.exp(-(V+40)/10) - 1.0 )
     def beta_m(V): return np.exp(-(V+65)/18)
@@ -586,7 +595,7 @@ def gating_mNa(v):
     σ = mNa_inf(v)
     return τ, σ
     
-@njit(cache=True)
+# @njit(cache=True)
 def gating_hNa(v):
     def alpha_h(V): return 0.0175*np.exp(-(V+65)/20)
     def beta_h(V): return 0.25/(1.0 + np.exp(-(V+35)/10) )
@@ -597,7 +606,7 @@ def gating_hNa(v):
     return τ, σ
 
 # KD-current (mKD=activation variable)
-@njit(cache=True)
+# @njit(cache=True)
 def gating_mKD(v):
     Kdshift=10.0
     def alpha_mKd(V): return 0.0025*(V+55.)/(1. - np.exp(-(V+55.)/10.) )
@@ -609,7 +618,7 @@ def gating_mKD(v):
     return τ, σ
 
 # H-current (mH=activation variable)
-@njit(cache=True)
+# @njit(cache=True)
 def gating_mH(v):
     def alpha_mH(V): return np.exp(-14.59-(0.086*V))
     def beta_mH(V): return np.exp(-1.87+(0.0701*V))
@@ -620,7 +629,7 @@ def gating_mH(v):
     return τ, σ
 
 # A-current (mA=activation variable, hA=inactivation variable)
-@njit(cache=True)
+# @njit(cache=True)
 def gating_mA(v):
     def mA_inf(V): return 1/(1+np.exp(-(V+90)/8.5)) # Activation function
     def tau_mA(V): return 0.37 + 1/(np.exp((V+35.82)/19.697)+np.exp((V+79.69)/-12.7))/5 # Activation time-constant
@@ -628,7 +637,7 @@ def gating_mA(v):
     σ = mA_inf(v)
     return τ, σ
 
-@njit(cache=True)
+# @njit(cache=True)
 def gating_hA(v):
     def hA_inf(V): return 1/(1+np.exp((V+78)/6)) # Inactivation function
     def tau_hA(V): # Inactivation time-constant
@@ -642,7 +651,7 @@ def gating_hA(v):
     return τ, σ
 
 # T-type Ca-current (mt=activation variable, ht=inactivation variable)
-@njit(cache=True)
+# @njit(cache=True)
 def gating_mT(v):
     def mT_inf(V): return 1/(1+np.exp(-(V+57)/6.2)) # Activation function
     def tau_mT(V): return 0.612 + 1/(np.exp(-(V+131.6)/16.7)+np.exp((V+16.8)/18.2)) # Activation time-constant
@@ -650,7 +659,7 @@ def gating_mT(v):
     σ = mT_inf(v)
     return τ, σ
     
-@njit(cache=True)
+# @njit(cache=True)
 def gating_hT(v):
     def hT_inf(V): return 1/(1+np.exp((V+81)/4.03)) # Inactivation function
     def tau_hT(V):
@@ -664,7 +673,7 @@ def gating_hT(v):
     return τ, σ
 
 # L-type Ca-current (mL=activation variable) (from Drion2011)
-@njit(cache=True)
+# @njit(cache=True)
 def gating_mL(v):
     def mL_inf(V): return 1/(1+np.exp(-(V+55.)/3)) # Activation function
     def tau_mL(V): return (72*np.exp(-(V+45.)**2/400)+6.) # Activation time-constant
@@ -673,14 +682,14 @@ def gating_mL(v):
     return τ, σ
 
 # Kir-current (mKIR=activation variable). Modelled as instantaneous.
-@njit(cache=True)
+# @njit(cache=True)
 def mKir_inf(V):
     σ = 1/(1+np.exp((V+97.9+10)/9.7)) # Activation function
     return σ
 
 # Synapse
-@njit(cache=True)
+# @njit(cache=True)
 def dGABA_A(v, s):
     def Tm(V): return 1/(1+np.exp(-(V-2)/5))
-    ds = 0.53*Tm(v)*(1-s)-0.18*s
+    ds = 0.53*Tm(v)*(1-s)-0.18*s # In paper it's -0.19*s
     return ds
