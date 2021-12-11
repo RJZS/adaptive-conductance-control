@@ -208,7 +208,7 @@ print("'Ref' Simulation time: {}s".format(end_time-start_time))
 # # plt.plot(t_play,sol_play[0,:],t_play2,sol_play2[0,:])
 
 # %%
-#
+# Evaluate the solutions, accounting for phase shift.
 dt = 0.01
 t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
 sol = out.sol(t)
@@ -220,18 +220,18 @@ t_ref = t_ref[ps_idx:] # Eliminate the negative values at the start.
 sol_ref = out_ref.sol(t_ref)
 
 plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_ref[0,:])
-# j=330000;k=335000;plt.plot(t[j:k],sol[0,j:k],t[ps_idx+j:ps_idx+k],sol_ref[0,j:k])
 diff = sol[0,ps_idx:] - sol_ref[0,:]
-check_from_idx=300000
-diff_trunc = diff[check_from_idx:]
-to_minimise = np.abs(diff_trunc).max()
+#check_from_idx=300000
+#diff_trunc = diff[check_from_idx:]
+#to_minimise = np.abs(diff_trunc).max()
 
+# The objective function to calculate phase shift, ps. Assumes ps > 0.
 def obj_fn(ps, start, end, dt):
     t = np.linspace(start,end,int((end-start)//dt + 1))
     sol = out.sol(t)
     ps_idx = int(ps//dt + 1)
     t_ref = t - ps
-    t_ref = t_ref[ps_idx:] # Eliminate the negative values at the start.
+    t_ref = t_ref[ps_idx:] # Eliminate the negative t values at the start.
     sol_ref = out_ref.sol(t_ref)
     
     diff = sol[0,ps_idx:] - sol_ref[0,:]
@@ -248,7 +248,8 @@ ps_start = 52.04336
 ps_end = 52.04337
 res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
                       options={'maxiter':10,'disp':True}, args=(3200,3400,0.001))
-res.x
+res.x # Precise phase shift.
+
 # plt.plot(t[ps_idx+check_from_idx:],diff[check_from_idx:])
 
 # rr = np.roll(sol_ref[0,:],52043)
