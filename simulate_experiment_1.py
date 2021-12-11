@@ -209,46 +209,50 @@ print("'Ref' Simulation time: {}s".format(end_time-start_time))
 
 # %%
 # Evaluate the solutions, accounting for phase shift.
-dt = 0.01
-t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
-sol = out.sol(t)
-
-ps = 52.04336381966011 # Phase shift
-ps_idx = int(ps//dt + 1)
-t_ref = t - ps
-t_ref = t_ref[ps_idx:] # Eliminate the negative values at the start.
-sol_ref = out_ref.sol(t_ref)
-
-plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_ref[0,:])
-diff = sol[0,ps_idx:] - sol_ref[0,:]
-#check_from_idx=300000
-#diff_trunc = diff[check_from_idx:]
-#to_minimise = np.abs(diff_trunc).max()
-
-# The objective function to calculate phase shift, ps. Assumes ps > 0.
-def obj_fn(ps, start, end, dt):
-    t = np.linspace(start,end,int((end-start)//dt + 1))
+know_ps = True
+if know_ps:
+    dt = 0.01
+    t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
     sol = out.sol(t)
+    
+    ps = 52.04336381966011 # Phase shift
     ps_idx = int(ps//dt + 1)
     t_ref = t - ps
-    t_ref = t_ref[ps_idx:] # Eliminate the negative t values at the start.
+    t_ref = t_ref[ps_idx:] # Eliminate the negative values at the start.
     sol_ref = out_ref.sol(t_ref)
     
+    # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_ref[0,:])
     diff = sol[0,ps_idx:] - sol_ref[0,:]
-    to_minimise = np.abs(diff).max()
-    return to_minimise
+    #check_from_idx=300000
+    #diff_trunc = diff[check_from_idx:]
+    #to_minimise = np.abs(diff_trunc).max()
 
-start_time = time.time()
-obj_fn(ps, 3200, 3400, 0.001)
-end_time = time.time()
-print("Time to run obj fn: {}s".format(end_time-start_time))
-
-from scipy.optimize import minimize_scalar
-ps_start = 52.04336
-ps_end = 52.04337
-res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
-                      options={'maxiter':10,'disp':True}, args=(3200,3400,0.001))
-res.x # Precise phase shift.
+calc_ps = False
+if calc_ps:
+    # The objective function to calculate phase shift, ps. Assumes ps > 0.
+    def obj_fn(ps, start, end, dt):
+        t = np.linspace(start,end,int((end-start)//dt + 1))
+        sol = out.sol(t)
+        ps_idx = int(ps//dt + 1)
+        t_ref = t - ps
+        t_ref = t_ref[ps_idx:] # Eliminate the negative t values at the start.
+        sol_ref = out_ref.sol(t_ref)
+    
+        diff = sol[0,ps_idx:] - sol_ref[0,:]
+        to_minimise = np.abs(diff).max()
+        return to_minimise
+    
+    start_time = time.time()
+    obj_fn(ps, 3200, 3400, 0.001)
+    end_time = time.time()
+    print("Time to run obj fn: {}s".format(end_time-start_time))
+    
+    from scipy.optimize import minimize_scalar
+    ps_start = 52.04336
+    ps_end = 52.04337
+    res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
+                          options={'maxiter':10,'disp':True}, args=(3200,3400,0.001))
+    print(res.x) # Precise phase shift.
 
 # plt.plot(t[ps_idx+check_from_idx:],diff[check_from_idx:])
 
@@ -274,7 +278,8 @@ res.x # Precise phase shift.
 
 # For HCO_RT it's about 1105, ie np.roll(x, 1105). Remember the spike is every other local max.
 
-# t=t.astype('float32')
-# sol=sol.astype('float32')
-# sol_ref = sol_ref.astype('float32')
-# np.savez("simulate_experiment_1.npz", t=t,sol=sol,sol_ref=sol_ref)
+t=t.astype('float32')
+t_ref = t_ref.astype('float32')
+sol=sol.astype('float32')
+sol_ref = sol_ref.astype('float32')
+np.savez("simulate_experiment_1.npz", t=t,t_ref=t_ref,sol=sol,sol_ref=sol_ref,ps=ps,ps_idx=ps_idx)

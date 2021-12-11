@@ -18,12 +18,12 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 6000.
+Tfinal = 8000.
 control_start_time = 2000.
 
 # Initial conditions - Single Neuron Disturbance Rejection
-x_0 = [0.,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
-x̂_0 = [0., 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
+x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 θ̂_0 = np.ones(3); # Estimating all intrinsic and 1 syn.
 P_0 = 0.01*np.eye(3);
 Ψ_0 = np.zeros(3);
@@ -78,7 +78,7 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 
 print("Starting simulation")
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
                 dense_output=True)
 end_time = time.time()
@@ -111,7 +111,7 @@ p_nodist = (Iapps, network_nodist)
 z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-6,atol=1e-6,
+out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=True)
 end_time = time.time()
 print("'Nodist' Simulation time: {}s".format(end_time-start_time))
@@ -122,51 +122,58 @@ print("'Nodist' Simulation time: {}s".format(end_time-start_time))
 # %%
 # Evaluate the solutions, accounting for phase shift.
 
-dt = 0.01
-t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
-sol = out.sol(t)
-# Crude is -8184*0.01 +/- 0.01
-ps = -81.84125459426669 # Phase shift
-ps_idx = int(ps//dt - 1)
-t_nodist = t - ps
-t_nodist = t_nodist[:ps_idx] # Eliminate the excess values at the end.
-sol_nodist = out_nodist.sol(t_nodist)
-
-plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
-diff = sol[0,:ps_idx] - sol_nodist[0,:]
-# plt.plot(t[j-ps_idx:],diff[j:])
-# j=570000;k=580000;plt.plot(t[j-ps_idx:k-ps_idx],sol[0,j:k],t_nodist[j:k],sol_nodist[0,j:k])
-
-# To find phase shift.
-def obj_fn(ps, start, end, dt):
-    t = np.linspace(start,end,int((end-start)//dt + 1))
+know_ps = True
+if know_ps:
+    ps = -81.89054905332024 # Phase shift
+    dt = 0.05
+    t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
     sol = out.sol(t)
     ps_idx = int(ps//dt + 1)
     t_nodist = t - ps
-    t_nodist = t_nodist[ps_idx:] # Eliminate the negative values at the start.
+    t_nodist = t_nodist[:ps_idx] # Eliminate the excess values at the end.
     sol_nodist = out_nodist.sol(t_nodist)
     
-    diff = sol[0,ps_idx:] - sol_nodist[0,:]
-    to_minimise = np.abs(diff).max()
-    return to_minimise
+    plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
+    diff = sol[0,:ps_idx] - sol_nodist[0,:]
+    # plt.plot(t[j-ps_idx:],diff[j:])
+    # j=746500;k=749000;plt.plot(t[j-ps_idx:k-ps_idx],sol[j:k],t_nodist[j:k],sol_nodist[j:k])
+    # j=400000;plt.plot(t_nodist[j:],sol[j:ps_idx]-np.roll(sol_nodist,-5)[j:])
 
-# plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_ref[0,:])
-start_time = time.time()
-obj_fn(ps, 5600, 5800, 0.001)
-end_time = time.time()
-print("Time to run obj fn: {}s".format(end_time-start_time))
-
-from scipy.optimize import minimize_scalar
-ps_start = -81.85
-ps_end = -81.83
-res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
-                      options={'maxiter':20,'disp':True}, args=(5600,5800,0.001))
-res.x # Precise phase shift.
+calc_ps = False
+if calc_ps:
+    # # To find phase shift.
+    def obj_fn(ps, start, end, dt):
+        t = np.linspace(start,end,int((end-start)//dt + 1))
+        sol = out.sol(t)
+        ps_idx = int(ps//dt + 1)
+        t_nodist = t - ps
+        t_nodist = t_nodist[ps_idx:] # Eliminate the negative values at the start.
+        sol_nodist = out_nodist.sol(t_nodist)
+        
+        diff = sol[0,ps_idx:] - sol_nodist[0,:]
+        to_minimise = np.abs(diff).max()
+        return to_minimise
+    
+    # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_ref[0,:])
+    start_time = time.time()
+    obj_fn(-81.88, 5600, 5800, 0.001)
+    end_time = time.time()
+    print("Time to run obj fn: {}s".format(end_time-start_time))
+    
+    from scipy.optimize import minimize_scalar
+    ps_start = -81.90
+    ps_end = -81.88
+    res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
+                          options={'maxiter':20,'disp':True}, args=(7400,7650,0.001))
+    res.x # Precise phase shift.
 
 # %%
 
-# t=t.astype('float32')
-# sol=sol.astype('float32')
-# sol_nodist=sol_nodist.astype('float32')
-# np.savez("simulate_experiment_2.npz", t=t,sol=sol,sol_nodist=sol_nodist)
+print("Converting and saving...")
+t=t.astype('float32')
+t_nodist = t_nodist.astype('float32')
+sol=sol.astype('float32')
+sol_nodist=sol_nodist.astype('float32')
+np.savez("simulate_experiment_2.npz", t=t, t_nodist=t_nodist, sol=sol,
+         sol_nodist=sol_nodist,ps=ps,ps_idx=ps_idx)
 
