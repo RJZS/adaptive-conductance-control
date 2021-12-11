@@ -12,8 +12,9 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 6000. # Textbook notebook has 1800.
+Tfinal = 4000. # Textbook notebook has 1800. Simulate to 4000. Can start slowing at 620.
 control_start_time = 20.
+print("Tfinal = {}".format(Tfinal))
 
 # Single neuron reference tracking.
 # TODO: can I change the initialisation without 'instability'?
@@ -22,10 +23,10 @@ control_start_time = 20.
 # Initial conditions - Single Neuron Reference Tracking
 x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-θ̂_0 = np.ones(9);
-P_0 = np.eye(9);
-Ψ_0 = np.zeros(9);
-to_estimate = np.array([0,1,2,3,4,5,6,7,8], dtype=np.int32)
+θ̂_0 = np.ones(3);
+P_0 = 0.01*np.eye(3); # From idx 31 I think
+Ψ_0 = np.zeros(3);
+to_estimate = np.array([0,2,8], dtype=np.int32)
 estimate_g_syns_g_els = True
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
@@ -39,7 +40,7 @@ Iapps = [Iconst, Iconst]
 
 # Observer parameters
 α = 0.05 # Default is 0.5. Had to decrease as P values were exploding.
-γ = 70 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
+γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 control_law = ["RefTrack", ref_gs]
 # control_law = [""]
@@ -60,7 +61,8 @@ z_0 = np.ravel(z_0, order='F')
 
 # %%
 # Integration initial conditions and parameters
-dt = 0.01
+# dt = 0.01
+dt = 0.001
 
 tspan = (0.,Tfinal)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
@@ -68,14 +70,37 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 
 print("Starting simulation")
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='BDF')
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
+                dense_output=True)
 end_time = time.time()
 print("Simulation time: {}s".format(end_time-start_time))
 
-t = out.t
-sol = out.y
+# t = out.t
+# sol = out.y
 
+# t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
+# sol = out.sol(t)
+
+# dt = 0.0005
+# t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
+# t1 = t[0::2]
+# sol1 = out.sol(t1)
+# sol1 = sol1.astype('float32')
+# t1 = t1.astype('float32')
+# t2 = t[1::2]
+# sol2 = out.sol(t2)
+# sol2 = sol2.astype('float32')
+# t2 = t2.astype('float32')
+
+# t = np.concatenate((t1, t2))
+# del t1, t2
+# sol = np.concatenate((sol1, sol2), axis=1)
+# del sol1, sol2
+
+# sort_args = np.argsort(t)
+# t = t[sort_args]
+# sol = sol[:, sort_args]
 
 # %%
 # Comparison simulation
@@ -93,16 +118,38 @@ z_0_ref = x_0
 # z_0_ref[0] = -70.
 
 start_time = time.time()
-out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-8,atol=1e-8,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=True)
 end_time = time.time()
 print("'Ref' Simulation time: {}s".format(end_time-start_time))
 
-t_ref = out_ref.t
-sol_ref = out_ref.y
+# t_ref = out_ref.t
+# sol_ref = out_ref.y
 
-# PHASE SHIFTS:
-# For single neur RT, phase shift was 11364.
+# t_ref = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
+# sol_ref = out_ref.sol(t)
+
+# dt = 0.0005
+# t_ref = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
+# t1_ref = t_ref[0::2]
+# sol1_ref = out_ref.sol(t1_ref)
+# sol1_ref = sol1_ref.astype('float32')
+# t1_ref = t1_ref.astype('float32')
+# t2_ref = t_ref[1::2]
+# sol2_ref = out_ref.sol(t2_ref)
+# sol2_ref = sol2_ref.astype('float32')
+# t2_ref = t2_ref.astype('float32')
+
+# t_ref = np.concatenate((t1_ref, t2_ref))
+# del t1_ref, t2_ref
+# sol_ref = np.concatenate((sol1_ref, sol2_ref), axis=1)
+# del sol1_ref, sol2_ref
+
+# sort_args_ref = np.argsort(t_ref)
+# t_ref = t_ref[sort_args_ref]
+# sol_ref = sol_ref[:, sort_args_ref]
+
+# PHASE SHIFT: 52044
 
 # %% 
 # # Playing with model to find bursting behaviour.
@@ -161,10 +208,63 @@ sol_ref = out_ref.y
 # # plt.plot(t_play,sol_play[0,:],t_play2,sol_play2[0,:])
 
 # %%
-# # Extract variables and label them
-# V_idxs = np.array(list(range(num_neurs)))*(len(sol)/num_neurs)
-# V_idxs = V_idxs.astype(int)
-# Vs = sol[V_idxs,:]
+#
+dt = 0.01
+t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
+sol = out.sol(t)
+
+ps = 52.04336381966011 # Phase shift
+ps_idx = int(ps//dt + 1)
+t_ref = t - ps
+t_ref = t_ref[ps_idx:] # Eliminate the negative values at the start.
+sol_ref = out_ref.sol(t_ref)
+
+plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_ref[0,:])
+# j=330000;k=335000;plt.plot(t[j:k],sol[0,j:k],t[ps_idx+j:ps_idx+k],sol_ref[0,j:k])
+diff = sol[0,ps_idx:] - sol_ref[0,:]
+check_from_idx=300000
+diff_trunc = diff[check_from_idx:]
+to_minimise = np.abs(diff_trunc).max()
+
+def obj_fn(ps, start, end, dt):
+    t = np.linspace(start,end,int((end-start)//dt + 1))
+    sol = out.sol(t)
+    ps_idx = int(ps//dt + 1)
+    t_ref = t - ps
+    t_ref = t_ref[ps_idx:] # Eliminate the negative values at the start.
+    sol_ref = out_ref.sol(t_ref)
+    
+    diff = sol[0,ps_idx:] - sol_ref[0,:]
+    to_minimise = np.abs(diff).max()
+    return to_minimise
+
+start_time = time.time()
+obj_fn(ps, 3200, 3400, 0.001)
+end_time = time.time()
+print("Time to run obj fn: {}s".format(end_time-start_time))
+
+from scipy.optimize import minimize_scalar
+ps_start = 52.04336
+ps_end = 52.04337
+res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
+                      options={'maxiter':10,'disp':True}, args=(3200,3400,0.001))
+res.x
+# plt.plot(t[ps_idx+check_from_idx:],diff[check_from_idx:])
+
+# rr = np.roll(sol_ref[0,:],52043)
+# plt.plot(t,sol[0,:],t,rr)
+# j=300000;plt.plot(t[j:],sol[0,j:],t[j:],rr[j:])
+# # j=320000;k=340000;plt.plot(t[j:k],sol[0,j:k]-rr[j:k])
+# j=3363600;k=3364000;plt.plot(t[j:k],sol[0,j:k],t[j:k],rr[j:k],t[j:k],10*(sol[0,j:k]-rr[j:k]))
+
+# SO the phase shift is 52.04007 + 0.00075 (+ another 0.00258?)
+
+# rr = np.roll(fine_sol_ref[0,:],15)
+# j=3500;k=6500;plt.plot(fine_t[j:k],fine_sol[0,j:k],fine_t[j:k],rr[j:k])
+
+# plt.plot(fine_t[j:k],50*(fine_sol[0,j:k]-rr[j:k]))
+# pk_idx = find_peaks(fine_sol[0,j:k]-rr[j:k])[0][0]
+# print((fine_sol[0,j:k]-rr[j:k])[pk_idx])
 
 # %%
 # To find peaks.
