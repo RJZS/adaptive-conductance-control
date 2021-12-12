@@ -173,7 +173,7 @@ def main(t,z,p):
         # Need to 'reduce' terms. This is as vectors/matrices are sized for
         # the neuron/s with the largest number of synapses.
         num_neur_ests = len(to_estimate)
-        if estimate_g_syns_g_els: num_neur_ests = num_neur_ests + neur.num_syns
+        if estimate_g_syns_g_els: num_neur_ests = num_neur_ests + neur.num_syns + neur.num_els
         θ̂ = θ̂s[:num_neur_ests,i]
         P = Ps[:num_neur_ests,:num_neur_ests,i];
         Ψ = Ψs[:num_neur_ests,i]

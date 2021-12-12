@@ -16,7 +16,7 @@ class Synapse:
 class Neuron:
     NUM_GATES = 10
     
-    def __init__(self, c, gs, synapses):
+    def __init__(self, c, gs, synapses, num_els):
         self.c = c
         self.gNa = gs[0]
         self.gH = gs[1]
@@ -52,6 +52,9 @@ class Neuron:
         self.Es = np.array([self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.Esyn]) # Useful.
         
         self.gL_for_Ca=0.4
+        
+        # Number electrical connections. Could automate finding this but not worth the time.
+        self.num_els = num_els
         
         self.syns = synapses
         self.num_syns = len(synapses)
