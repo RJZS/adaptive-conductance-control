@@ -12,7 +12,7 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 20. # Textbook notebook has 1800.
+Tfinal = 1200. # Textbook notebook has 1800.
 control_start_time = 2000.
 
 # TODO: can I change the initialisation without 'instability'?
@@ -33,8 +33,8 @@ syn3 = Synapse(0.6, 4)
 syn4 = Synapse(0.6, 3)
 
 # To hub neuron
-synhub1 = Synapse(0.6, 0)
-synhub2 = Synapse(0.6, 4)
+synhub1 = Synapse(0.1, 0)
+synhub2 = Synapse(0.1, 4)
 
 
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
@@ -53,20 +53,20 @@ def Ioffset(t): # So two neurons in HCO don't burst simultaneously
 Iconst = lambda t: -2.
 
 
-Iapps = [Iconst, Ioffset, lambda t: -3.7, Iconst, Ioffset]
+Iapps = [Iconst, Ioffset, lambda t: 30, Iconst, Ioffset]
 
 #x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
 
 one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn1], 0)
 two = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2], 1)
 
-three = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [synhub1, synhub2], 2) # Hub neuron
+three = Neuron(0.1, [80.,0.1,0.2,0,30.,0.,1.,0.,0.1], [synhub1, synhub2], 2) # Hub neuron
 
 four = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn3], 1)
 five = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn4], 0)
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
 
-res_g = 0.02
+res_g = 0.1
 el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
 network = Network([one, two, three, four, five], el_connects)
 
@@ -102,10 +102,11 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 print("Tfinal = {}s".format(Tfinal))
 print("Starting simulation")
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-5,atol=1e-5,
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-4,atol=1e-4,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))#, method='LSODA')
 end_time = time.time()
 print("Simulation time: {}s".format(end_time-start_time))
+# NOTE: LATER, WHEN EVALUATING DENSE OUTPUT, CAN SET DT TO EQUAL PHASE SHIFT!
 
 t = out.t
 sol = out.y
@@ -235,7 +236,7 @@ if playing:
         else:
             return -2.
         
-    Iconst = lambda t: -2.
+    Iconst = lambda t: 30.
     
     def Iramp(t):
         if t < 500:
@@ -244,7 +245,7 @@ if playing:
             return -2 + 0.005*(t-500)
     
     Iapps = [Iconst, Ioffset, lambda t: 6]
-    Tfinal = 3000. # In HCO2 it's 15000. In notebook it's 2800.
+    Tfinal = 800. # In HCO2 it's 15000. In notebook it's 2800.
     
     tspan = (0.,Tfinal)
     
@@ -256,26 +257,28 @@ if playing:
     # neur_one_play = Neuron(0.1, [100.,0.08,3.5,0,70.,0.5,1.6,0.,0.1], [])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
     # neur_two_play = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
     
-    one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn])
-    two = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2])
-    three = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
-    four = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn3])
-    five = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn4])
+    one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn], 0)
+    two = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2], 0)
+    
+    three = Neuron(0.1, [80.,0.1,0.2,0,30.,0.,1.,0.,0.1], [], 0)
+    
+    four = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn3], 0)
+    five = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn4], 0)
     
     
     # v_0 = np.array([-70.])
     # starting_gate_vals = neur_one_play.initialise(v_0)
-    x_0 = [0,0,0,0,0,0,0,0,0,0,0,0] # 1 syn
+    x_0 = [0,0,0,0,0,0,0,0,0,0,0] # No syns
     
     # # Rebound burster
     # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
-    network_play = Network([one, two, three, four, five], np.zeros((5,5)))
-    # network_play = Network([one], np.zeros((1,1)))
-    network_play = Network([four, five], np.zeros((2,2)))
+    # network_play = Network([one, two, three, four, five], np.zeros((5,5)))
+    network_play = Network([three], np.zeros((1,1)))
+    # network_play = Network([four, five], np.zeros((2,2)))
     p_play = (Iapps, network_play)
     
-    z_0_play = np.concatenate((x_0, x_0))
-    # z_0_play = x_0
+    # z_0_play = np.concatenate((x_0, x_0))
+    z_0_play = x_0
     # z_0_play[0] = -70
     start_time = time.time()
     out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rtol=1e-4,atol=1e-4,
@@ -286,5 +289,5 @@ if playing:
     t = out_play.t
     sol = out_play.y
     
-    plt.plot(t,sol[0,:],t,sol[12,:])
+    plt.plot(t,sol[0,:])#,t,sol[12,:])
     # plt.plot(t_play,sol_play[0,:],t_play2,sol_play2[0,:])
