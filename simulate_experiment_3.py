@@ -12,8 +12,9 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 1200. # Textbook notebook has 1800.
-control_start_time = 2000.
+Tfinal = 4000.
+Tfinal = 200. # Textbook notebook has 1800.
+control_start_time = 1000.
 
 # TODO: can I change the initialisation without 'instability'?
 # Same for increasing alpha and decreasing gamma.
@@ -27,14 +28,14 @@ P_0 = np.eye(6);
 to_estimate = np.array([0,2], dtype=np.int32)
 estimate_g_syns_g_els = True
 
-syn1 = Synapse(0.5, 1) # 0.5 and 2 seem to have the same result.
-syn2 = Synapse(0.5, 0)
+syn1 = Synapse(0.6, 1) # 0.5 and 2 seem to have the same result.
+syn2 = Synapse(0.6, 0)
 syn3 = Synapse(0.6, 4)
 syn4 = Synapse(0.6, 3)
 
 # To hub neuron
-synhub1 = Synapse(0.1, 0)
-synhub2 = Synapse(0.1, 4)
+synhub1 = Synapse(8, 0)
+synhub2 = Synapse(8, 4)
 
 
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
@@ -50,23 +51,30 @@ def Ioffset(t): # So two neurons in HCO don't burst simultaneously
     else:
         return -2.
     
+def Ioffset2(t): # So two neurons in HCO don't burst simultaneously
+    if t < 300:
+        return -4.
+    else:
+        return -2.
+    
+    
 Iconst = lambda t: -2.
 
 
-Iapps = [Iconst, Ioffset, lambda t: 30, Iconst, Ioffset]
+Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2]
 
 #x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
 
 one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn1], 0)
 two = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2], 1)
 
-three = Neuron(0.1, [80.,0.1,0.2,0,30.,0.,1.,0.,0.1], [synhub1, synhub2], 2) # Hub neuron
+three = Neuron(0.1, [80.,0.1,2.,0,30.,0.,1.,0.,0.1], [synhub1, synhub2], 2) # Hub neuron
 
 four = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn3], 1)
 five = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn4], 0)
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
 
-res_g = 0.1
+res_g = 0.005 # TODO: Need to raise this, otherwise hub isn't affecting HCO.
 el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
 network = Network([one, two, three, four, five], el_connects)
 
@@ -113,31 +121,27 @@ sol = out.y
 
 
 # %%
-# Comparison simulation
+# Comparison simulation. Just the HCO
 
-# # Reference Tracking
-# syn_ref = Synapse(2.5, 1)
-# syn2_ref = Synapse(1., 0)
+one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn1], 0)
+two_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2], 0)
 
-# the original, for comparison: [120.,0.1,2.,0,80.,0.4,2.,0.,0.1]
-neur_one_ref = Neuron(0.1, np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1]), np.array([]))
-network_ref = Network([neur_one_ref], np.zeros((1,1)))
-p_ref = (Iapps, network_ref)
-# z_0_ref = np.concatenate((x_0, x_0))
-z_0_ref = x_0
-# z_0_ref[0] = -70.
+network_nodist = Network([one_nodist, two_nodist], [])
+p_nodist = (Iapps, network_nodist)
 
+z_0_nodist = np.concatenate((x_0[:12], x_0[:12])) # One syn per neuron
+# z_0_nodist[0] = 20
+# z_0_nodist[12] = -20
+# z_0_nodist = x_0[:12] # Only one neur
+# z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
-out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-6,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))
+out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=True)
 end_time = time.time()
-print("'Ref' Simulation time: {}s".format(end_time-start_time))
+print("'Nodist' Simulation time: {}s".format(end_time-start_time))
 
-t_ref = out_ref.t
-sol_ref = out_ref.y
-
-# PHASE SHIFTS:
-# For single neur RT, phase shift was 11364.
+t_nodist = out_nodist.t
+sol_nodist = out_nodist.y
 
 # %% 
 # # Playing with model to find bursting behaviour.
@@ -217,12 +221,18 @@ sol_ref = out_ref.y
 # Playing with model to find bursting behaviour.
 playing = False
 if playing:
+    Tfinal = 3500//2.
     dt=0.01
-    syn = Synapse(0.5, 1) # 0.5 and 2 seem to have the same result.
-    syn2 = Synapse(0.5, 0)
+    syn1 = Synapse(0.6, 1) # 0.5 and 2 seem to have the same result.
+    syn2 = Synapse(0.6, 0)
+    syn3 = Synapse(0.6, 4)
+    syn4 = Synapse(0.6, 3)
     
-    syn3 = Synapse(0.6, 1) # 0.5 and 2 seem to have the same result.
-    syn4 = Synapse(0.6, 0)
+    # To hub neuron
+    synhub1 = Synapse(8, 0) # 0.5 does nothing to stop spiking. 6 give very wide bursts.
+    synhub2 = Synapse(8, 4)
+    
+    
     Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
     def Irb(t): # For rebound burster
         if t < 400 or t > 500:
@@ -236,16 +246,17 @@ if playing:
         else:
             return -2.
         
-    Iconst = lambda t: 30.
-    
-    def Iramp(t):
-        if t < 500:
-            return -1.
+    def Ioffset2(t): # So two neurons in HCO don't burst simultaneously
+        if t < 300:
+            return -4.
         else:
-            return -2 + 0.005*(t-500)
+            return -2.
+        
+    Iconst = lambda t: -2.
     
-    Iapps = [Iconst, Ioffset, lambda t: 6]
-    Tfinal = 800. # In HCO2 it's 15000. In notebook it's 2800.
+    
+    Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2] 
+    # Iapps = [lambda t: 34] # 34 gives bursts, length about 1600. 38 gives spiking.
     
     tspan = (0.,Tfinal)
     
@@ -257,37 +268,49 @@ if playing:
     # neur_one_play = Neuron(0.1, [100.,0.08,3.5,0,70.,0.5,1.6,0.,0.1], [])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
     # neur_two_play = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
     
-    one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn], 0)
-    two = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2], 0)
+    one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn1], 0)
+    two = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2], 1)
     
-    three = Neuron(0.1, [80.,0.1,0.2,0,30.,0.,1.,0.,0.1], [], 0)
+    three = Neuron(0.1, [80.,0.1,0.2,0,30.,0.,1.,0.,0.1], [synhub1, synhub2], 2) # Hub neuron
+    # three = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [synhub1], 1) # Hub neuron
     
-    four = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn3], 0)
-    five = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn4], 0)
+    four = Neuron(0.1, [120.,0.1,1.,0,80.,0.4,2.,0.,0.1], [syn3], 1)
+    five = Neuron(0.1, [120.,0.1,1.,0,80.,0.4,2.,0.,0.1], [syn4], 0)
+    # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
     
+    res_g = 0.001
+    el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
+    # el_connects = np.array([[res_g, 1, 2]])
     
     # v_0 = np.array([-70.])
     # starting_gate_vals = neur_one_play.initialise(v_0)
-    x_0 = [0,0,0,0,0,0,0,0,0,0,0] # No syns
+    x_0 = [0,0,0,0,0,0,0,0,0,0,0,0,0] # 2 syns
     
     # # Rebound burster
     # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
     # network_play = Network([one, two, three, four, five], np.zeros((5,5)))
-    network_play = Network([three], np.zeros((1,1)))
+    network_play = Network([one, two, three, four, five], el_connects)
+    # network_play = Network([one, two, three], el_connects)
     # network_play = Network([four, five], np.zeros((2,2)))
     p_play = (Iapps, network_play)
     
-    # z_0_play = np.concatenate((x_0, x_0))
-    z_0_play = x_0
+    z_0_play = np.concatenate((x_0, x_0, x_0, x_0, x_0))
+    # z_0_play = x_0
     # z_0_play[0] = -70
+    print("Starting 'play' simulation. Tfinal = {}".format(Tfinal))
     start_time = time.time()
-    out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rtol=1e-4,atol=1e-4,
-                    t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))#, vectorized=True)
+    out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rtol=2e-3,atol=2e-3,
+                    t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA')#, vectorized=True)
     end_time = time.time()
     print("'Play' simulation time: {}s".format(end_time-start_time))
     
     t = out_play.t
     sol = out_play.y
     
-    plt.plot(t,sol[0,:])#,t,sol[12,:])
+    plt.plot(t,sol[0,:],t,sol[13,:],t,sol[26,:])
     # plt.plot(t_play,sol_play[0,:],t_play2,sol_play2[0,:])
+    
+print("Converting and saving...")
+t=t.astype('float32')
+sol=sol.astype('float32')
+np.savez("obssim_experiment_3.npz", t=t, sol=sol,t_nd=t_nodist,sol_nd=sol_nodist)
