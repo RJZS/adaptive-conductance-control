@@ -7,13 +7,24 @@ Created on Sat Oct 30 19:16:03 2021
 # from numba import jit, njit
 import numpy as np
 
-from network_and_neuron import Neuron, HHModelNeuron, Network, mKir_inf
+from network_and_neuron import Neuron, HHModelNeuron, Network, mKir_inf, calc_res_gs_and_terms
 
 def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
     Isyn_estimates = np.zeros(num_neurs)
     for (neur_i, syn_i) in to_reject:
         Isyn_estimates[neur_i] = Isyn_estimates[neur_i] - g_syns[syn_i,neur_i] * syns_hat[syn_i,neur_i] * (Vs[neur_i] - Esyn)
     return -Isyn_estimates
+
+def disturbance_rejection_resistive(estimate_g_els, gres_hats, el_connects, Vs, neurons):
+    Ires_estimates = np.zeros(len(neurons))
+    for (idx, neur) in enumerate(neurons):
+        (neur_res_gs_true, terms, neur_res_bool) = calc_res_gs_and_terms(el_connects, idx, Vs, neur.c)
+        terms = np.multiply(terms, neur.c) # As calc_res returns a dv term, but here we want a current.
+        if estimate_g_els:
+            neur_res_gs = gres_hats[neur_res_bool,idx]
+        else: neur_res_gs = neur_res_gs_true
+        Ires_estimates[idx] = np.dot(neur_res_gs, terms)
+    return -Ires_estimates
 
 def reference_tracking(Vs, ints_hat, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
     Es = network.neurons[0].Es # Same for every neuron, so can pick any.
@@ -129,7 +140,12 @@ def main(t,z,p):
             g_syns = np.zeros((max_num_syns, num_neurs))
             for (idx, neur) in enumerate(network.neurons):
                 g_syns[:neur.num_syns, idx] = neur.g_syns
-        control_currs = disturbance_rejection(controller_settings[1], g_syns, syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
+        control_currs = disturbance_rejection(controller_settings[1], g_syns,
+                                              syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
+        # NB: If there are resistive connections, the controller will reject all of them.
+        if not no_res_connections:
+            gres_hats = θ̂s[len(to_estimate)+max_num_syns:,:] # Start after synaptic gs.
+            control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, Vs, network.neurons)
         injected_currents = injected_currents + control_currs
     elif controller_settings[0] == "RefTrack" and t > control_start_time:
         # If not estimating all the intrinsic gs, will feed controller a mix of true
@@ -362,6 +378,7 @@ def no_observer(t,z,p):
     len_neur_state = num_neur_gates + 1
     max_num_syns = network.max_num_syns
     num_neurs = len(network.neurons)
+    no_res_connections = (network.el_connects == [])
     
     # Now break out components of z.
     z_mat = np.reshape(z, (len(z)//num_neurs, num_neurs), order='F')
@@ -376,7 +393,8 @@ def no_observer(t,z,p):
     dints = np.zeros((num_int_gates, num_neurs))
     dsyns_mat = np.zeros((max_num_syns, num_neurs))
     for (i, neur) in enumerate(network.neurons):
-        dvs[i] = neur.calc_dv_no_observer(Vs[i], ints[:,i], syns[:,i], injected_currents[i])
+        dvs[i] = neur.calc_dv_no_observer(Vs[i], ints[:,i], syns[:,i], injected_currents[i],
+                                          no_res_connections, network.el_connects, i, Vs)
         
         v_pres = Vs[neur.pre_neurs]
         (dints[:,i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(

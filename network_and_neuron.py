@@ -283,7 +283,7 @@ class Neuron:
             
         # Now resistive terms.
         if not no_res_connections:
-            (res_gs, res_terms) = calc_res_gs_and_terms(el_connects, neur_idx, network_Vs, self.c)
+            (res_gs, res_terms, _) = calc_res_gs_and_terms(el_connects, neur_idx, network_Vs, self.c)
         else:
             res_gs = np.array([]); res_terms = np.array([])
         
@@ -296,15 +296,22 @@ class Neuron:
                                                                res_gs, res_terms)
             return (θ_intrins, ϕ_intrins, b)
     
-    def calc_dv_no_observer(self, v, ints, syn_gates, I):
+    def calc_dv_no_observer(self, v, ints, syn_gates, I, no_res_connections, el_connects, neur_idx, network_Vs):
         gs = np.concatenate((self.gs, [1.]))
         mKir = mKir_inf(v) # Gate modelled as instantaneous.
         terms = calc_terms(v, ints, mKir, self.ENa, self.EH, self.ECa, self.EK, self.Eleak, self.c, I)
         dv = np.dot(gs, terms)
         
-        if syn_gates:
+        if syn_gates.any():
             # In numpy, asterisk operator performs elementwise multiplication.
-            dv = dv - np.divide(self.g_syns * syn_gates * (v - self.Esyn),self.c)
+            syn_vector = np.divide(self.g_syns * syn_gates * (v - self.Esyn),self.c)
+            dv = dv - np.sum(syn_vector)
+        
+        # Now resistive terms.
+        if not no_res_connections:
+            (res_gs, res_terms, _) = calc_res_gs_and_terms(el_connects, neur_idx, network_Vs, self.c)
+            dv = dv + np.dot(res_gs, res_terms) # res_terms contains the negative sign.
+        
         return dv        
     
     # Initialise the neuron by setting the gating variables to their 'x_inf' values.
@@ -516,10 +523,10 @@ def calc_res_gs_and_terms(el_connects, neur_idx, Vs, c):
     terms = np.zeros(len(neur_res_idxs))
     for (i, res_pair) in enumerate(neur_res_idxs):
         other_neur_idx = np.extract(res_pair != neur_idx, res_pair)[0]
-        terms[i] = - neur_res_gs[i] * (Vs[neur_idx] - Vs[other_neur_idx])
+        terms[i] = - (Vs[neur_idx] - Vs[other_neur_idx])
     terms = np.divide(terms, c)
     
-    return (neur_res_gs, terms)
+    return (neur_res_gs, terms, neur_res_bool)
 
 @njit(cache=True)
 def calc_terms(v, ints, mKir, ENa, EH, ECa, EK, Eleak, c, I):
