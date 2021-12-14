@@ -479,6 +479,12 @@ class Network:
                 max_num_syns = neur.num_syns
         self.max_num_syns = max_num_syns
         
+        max_num_els = 0
+        for neur in neurons:
+            if neur.num_els > max_num_els:
+                max_num_els = neur.num_els
+        self.max_num_els = max_num_els
+        
 # Needed to take some functions out of the class, for numba.
 @njit(cache=True)
 def calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k):

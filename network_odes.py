@@ -57,6 +57,13 @@ def reference_tracking_njit(Vs, ints_hat, mKirs, syns_hat, gs, ref_gs, Es, num_n
         adjusting_currents[i] = np.dot(g_diffs[:,i],terms[:,i]) # diag(A^T B)?
     return adjusting_currents
 
+def extract_gres_hats(neurons, thetas, max_num_els, num_intrins):
+    gres_hats = np.zeros((max_num_els, len(neurons)))
+    for (idx, neur) in enumerate(neurons):
+        gres_hats[:neur.num_els,idx] = thetas[num_intrins+neur.num_syns:
+                                              num_intrins+neur.num_syns+neur.num_els,idx]
+    return gres_hats
+
 def hhmodel_reference_tracking(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
     Es = network.neurons[0].Es # Same for every neuron, so can pick any.
     max_num_syns = network.max_num_syns
@@ -95,7 +102,7 @@ def main(t,z,p):
     num_int_gates = 10 # m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
     max_num_syns = network.max_num_syns
     num_neurs = len(network.neurons)
-    no_res_connections  = (network.el_connects == [])
+    no_res_connections = (network.el_connects == [])
     
     # Now break out components of z.
     z_mat = np.reshape(z, (len(z)//num_neurs, num_neurs), order='F')
@@ -144,7 +151,7 @@ def main(t,z,p):
                                               syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
         # NB: If there are resistive connections, the controller will reject all of them.
         if not no_res_connections:
-            gres_hats = θ̂s[len(to_estimate)+max_num_syns:,:] # Start after synaptic gs.
+            gres_hats = extract_gres_hats(network.neurons, θ̂s, network.max_num_els, len(to_estimate))
             control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, Vs, network.neurons)
         injected_currents = injected_currents + control_currs
     elif controller_settings[0] == "RefTrack" and t > control_start_time:
