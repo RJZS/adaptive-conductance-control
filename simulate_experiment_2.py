@@ -24,15 +24,15 @@ control_start_time = 2000.
 # Initial conditions - Single Neuron Disturbance Rejection
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-θ̂_0 = np.ones(3); # Estimating all intrinsic and 1 syn.
-P_0 = 0.01*np.eye(3);
-Ψ_0 = np.zeros(3);
-to_estimate = np.array([0,2])
+θ̂_0 = np.ones(10); # Estimating all intrinsic and 1 syn.
+P_0 = 0.01*np.eye(10);
+Ψ_0 = np.zeros(10);
+to_estimate = np.array([0,1,2,3,4,5,6,7,8],dtype=np.int32)
 estimate_g_syns_g_els = True
 
 syn = Synapse(2., 1)
-neur_one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
-neur_dist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
+neur_one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn], 0)  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
+neur_dist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [], 0)
 network = Network([neur_one, neur_dist], [])
 
 control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
@@ -43,7 +43,7 @@ Iconst = lambda t: -2
 Iapps = [Iconst, Iconst]
 
 # Observer parameters
-α = 0.05 # Default is 0.5. Had to decrease as P values were exploding.
+α = 0.0001 # Default is 0.5. Had to decrease as P values were exploding.
 γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
@@ -78,9 +78,9 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 
 print("Starting simulation")
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
-                dense_output=True)
+                dense_output=False)
 end_time = time.time()
 print("Simulation time: {}s".format(end_time-start_time))
 
@@ -101,9 +101,9 @@ print("Simulation time: {}s".format(end_time-start_time))
 #     for (neur_i, syn_i) in control_law[1]:
         
 # Single neuron disturbance rejection
-neur_one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
+neur_one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [], 0)
 
-network_nodist = Network([neur_one_nodist], np.zeros((1,1)))
+network_nodist = Network([neur_one_nodist], [])
 p_nodist = (Iapps, network_nodist)
 # z_0_nodist = np.concatenate((x_0[:11], x_0[:11]))
 # z_0_nodist[0] = 20
@@ -111,8 +111,8 @@ p_nodist = (Iapps, network_nodist)
 z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=True)
+out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-6,atol=1e-6,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=False)
 end_time = time.time()
 print("'Nodist' Simulation time: {}s".format(end_time-start_time))
 
