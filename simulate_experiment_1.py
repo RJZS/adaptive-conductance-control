@@ -13,7 +13,7 @@ from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
 Tfinal = 4000. # Textbook notebook has 1800. Simulate to 4000. Can start slowing at 620.
-control_start_time = 20.
+control_start_time = 20. # TODO: Increase this so greater than ps.
 print("Tfinal = {}".format(Tfinal))
 
 # Single neuron reference tracking.
@@ -27,6 +27,7 @@ x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 P_0 = 0.01*np.eye(3); # From idx 31 I think
 Ψ_0 = np.zeros(3);
 to_estimate = np.array([0,2,8], dtype=np.int32)
+to_observe = np.array([0], dtype=np.int32) # Neurons to observe.
 estimate_g_syns_g_els = True
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
@@ -66,7 +67,7 @@ dt = 0.001
 
 tspan = (0.,Tfinal)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,control_start_time)
+     estimate_g_syns_g_els,control_start_time,to_observe)
 
 print("Starting simulation")
 start_time = time.time()
