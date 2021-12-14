@@ -12,7 +12,7 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 4000. # Textbook notebook has 1800. Simulate to 4000. Can start slowing at 620.
+Tfinal = 8000. # Textbook notebook has 1800. Simulate to 4000. Can start slowing at 620.
 control_start_time = 20.
 print("Tfinal = {}".format(Tfinal))
 
@@ -23,24 +23,25 @@ print("Tfinal = {}".format(Tfinal))
 # Initial conditions - Single Neuron Reference Tracking
 x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-θ̂_0 = np.ones(3);
-P_0 = 0.01*np.eye(3); # From idx 31 I think
-Ψ_0 = np.zeros(3);
-to_estimate = np.array([0,2,8], dtype=np.int32)
+θ̂_0 = np.ones(9);
+P_0 = np.eye(9); # From idx 31 I think
+Ψ_0 = np.zeros(9);
+to_estimate = np.array([0,1,2,3,4,5,6,7,8], dtype=np.int32)
 estimate_g_syns_g_els = True
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
-neur_one = Neuron(0.1, np.array([0.,0.,0.,0,0.,0.,0.,0.,0.1]), np.array([]))
+neur_one = Neuron(0.1, np.array([0.,0.,0.,0,0.,0.,0.,0.,0.1]), np.array([]), 0)
 network = Network([neur_one], []) # for ref tracking
 # ref_gs = np.array([[120,36,0.3,2],[120,72,0.3,2]]).T # gs of reference network.
 ref_gs = np.array([[120.,0.1,2.,0,80.,0.4,2.,0.,0.1]]).T # gs of reference network.
 # orig_gs = np.array([ [130.,43.,0.4,2.], [100.,27.,0.2,2.] ]).T # gs of network, for the csv
 Iconst = lambda t: -2
+Iconstsin = lambda t: -2 + np.sin(2*np.pi/10*t)
 Iapps = [Iconst, Iconst]
 
 # Observer parameters
-α = 0.05 # Default is 0.5. Had to decrease as P values were exploding.
-γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
+α = 0.0001 # Default is 0.5. Had to decrease as P values were exploding.
+γ = 20 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 control_law = ["RefTrack", ref_gs]
 # control_law = [""]
@@ -61,8 +62,8 @@ z_0 = np.ravel(z_0, order='F')
 
 # %%
 # Integration initial conditions and parameters
-# dt = 0.01
-dt = 0.001
+dt = 0.01
+# dt = 0.001
 
 tspan = (0.,Tfinal)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
@@ -70,7 +71,7 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 
 print("Starting simulation")
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-5,atol=1e-5,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
                 dense_output=True)
 end_time = time.time()
@@ -110,15 +111,15 @@ print("Simulation time: {}s".format(end_time-start_time))
 # syn2_ref = Synapse(1., 0)
 
 # the original, for comparison: [120.,0.1,2.,0,80.,0.4,2.,0.,0.1]
-neur_one_ref = Neuron(0.1, np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1]), np.array([]))
-network_ref = Network([neur_one_ref], np.zeros((1,1)))
+neur_one_ref = Neuron(0.1, np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1]), np.array([]), 0)
+network_ref = Network([neur_one_ref], [])
 p_ref = (Iapps, network_ref)
 # z_0_ref = np.concatenate((x_0, x_0))
 z_0_ref = x_0
 # z_0_ref[0] = -70.
 
 start_time = time.time()
-out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-8,atol=1e-8,
+out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-5,atol=1e-5,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=True)
 end_time = time.time()
 print("'Ref' Simulation time: {}s".format(end_time-start_time))
