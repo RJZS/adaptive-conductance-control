@@ -15,7 +15,7 @@ def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
         Isyn_estimates[neur_i] = Isyn_estimates[neur_i] - g_syns[syn_i,neur_i] * syns_hat[syn_i,neur_i] * (Vs[neur_i] - Esyn)
     return -Isyn_estimates
 
-def disturbance_rejection_resistive(estimate_g_els, gres_hats, el_connects, Vs, neurons):
+def disturbance_rejection_resistive(estimate_g_els, gres_hats, el_connects, Vs, neurons, reject_els_to_neur_idxs):
     Ires_estimates = np.zeros(len(neurons))
     for (idx, neur) in enumerate(neurons):
         (neur_res_gs_true, terms, neur_res_bool) = calc_res_gs_and_terms(el_connects, idx, Vs, neur.c)
@@ -23,7 +23,8 @@ def disturbance_rejection_resistive(estimate_g_els, gres_hats, el_connects, Vs, 
         if estimate_g_els:
             neur_res_gs = gres_hats[neur_res_bool,idx]
         else: neur_res_gs = neur_res_gs_true
-        Ires_estimates[idx] = np.dot(neur_res_gs, terms)
+        if idx in reject_els_to_neur_idxs:
+            Ires_estimates[idx] = np.dot(neur_res_gs, terms)
     return -Ires_estimates
 
 # Only tracking neuron 1.
@@ -167,7 +168,7 @@ def main(t,z,p):
         # NB: If there are resistive connections, the controller will reject all of them.
         if not no_res_connections:
             gres_hats = extract_gres_hats(network.neurons, θ̂s, network.max_num_els, len(to_estimate))
-            control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, Vs, network.neurons)
+            control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, Vs, network.neurons, controller_settings[2])
         injected_currents = injected_currents + control_currs
     elif controller_settings[0] == "RefTrack" and t > control_start_time:
         # If not estimating all the intrinsic gs, will feed controller a mix of true
