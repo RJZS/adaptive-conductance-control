@@ -27,13 +27,17 @@ def disturbance_rejection_resistive(estimate_g_els, gres_hats, el_connects, Vs, 
     return -Ires_estimates
 
 # Only tracking neuron 1.
-def reference_tracking_exp1(Vs, ints_hat, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
+def reference_tracking_exp1(V, ints_hat, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
     Es = network.neurons[0].Es # Same for every neuron, so can pick any.
     max_num_syns = network.max_num_syns
     c = network.neurons[0].c
-    mKir = mKir_inf(Vs[0]) # Not an estimate. Know v, and know function.
+    mKir = mKir_inf(V) # Not an estimate. Know v, and know function.
     # Call njit function but only passing in first neuron.
-    adjusting_currents = reference_tracking_njit(Vs[0], ints_hat[:,0], mKir, syns_hat[:,0], gs[:,0], ref_gs, Es, 1, num_neur_gs, max_num_syns, c)
+    # First need to put 1D arrays to 2D arrays because of how I wrote the njit fn.
+    V = np.array([V]).T; ints_hat = np.array([ints_hat]).T; mKir = np.array([mKir]).T
+    syns_hat = np.array([syns_hat]).T; gs = np.array([gs]).T; ref_gs = np.array([ref_gs]).T
+    c = np.array([c]).T
+    adjusting_currents = reference_tracking_njit(V, ints_hat, mKir, syns_hat, gs, ref_gs, Es, 1, num_neur_gs, max_num_syns, c)
     return adjusting_currents
 
 def reference_tracking(Vs, ints_hat, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
@@ -190,11 +194,14 @@ def main(t,z,p):
         for (idx, neur) in enumerate(network.neurons):
             g_syns[:neur.num_syns, idx] = neur.g_syns
         observer_gs = np.vstack((neur_gs, g_syns))
-        control_currs = reference_tracking(Vs, ints_hat, syns_hat, observer_gs, 
-                                           controller_settings[1], network, num_neurs, num_neur_gs)
         if controller_settings[2]: # if is_exp1
+            control_currs = reference_tracking_exp1(Vs[0], ints_hat[:,0], syns_hat[:,0], observer_gs[:,0], 
+                                               θ̂s[:9,1], network, num_neurs, num_neur_gs)
             injected_currents[0] = injected_currents[0] + control_currs[0]
-        else: injected_currents = injected_currents + control_currs
+        else:
+            control_currs = reference_tracking(Vs, ints_hat, syns_hat, observer_gs, 
+                                           controller_settings[1], network, num_neurs, num_neur_gs)
+            injected_currents = injected_currents + control_currs
     
     # Now make one time step. First, initialise the required vectors.
     dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)

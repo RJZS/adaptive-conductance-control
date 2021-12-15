@@ -13,7 +13,7 @@ from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
 Tfinal = 6000. # Textbook notebook has 1800. Simulate to 4000. Can start slowing at 620.
-control_start_time = 100.
+control_start_time = 0.
 print("Tfinal = {}".format(Tfinal))
 
 # Single neuron reference tracking.
@@ -23,7 +23,7 @@ print("Tfinal = {}".format(Tfinal))
 # Initial conditions - Single Neuron Reference Tracking
 x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-to_observe = np.array([0], dtype=np.int32) # Neurons to observe.
+to_observe = np.array([0, 1], dtype=np.int32) # Neurons to observe.
 θ̂_0 = np.ones(10); # 1 g_el
 P_0 = np.eye(10); # From idx 31 I think
 Ψ_0 = np.zeros(10);
@@ -91,5 +91,4 @@ sol = out.y
 #%%
 t=t.astype('float32')
 sol=sol.astype('float32')
-sol = sol[:153,:]
 np.savez("exp1_coupled.npz", t=t,sol=sol)
