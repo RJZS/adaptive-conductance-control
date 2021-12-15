@@ -26,6 +26,16 @@ def disturbance_rejection_resistive(estimate_g_els, gres_hats, el_connects, Vs, 
         Ires_estimates[idx] = np.dot(neur_res_gs, terms)
     return -Ires_estimates
 
+# Only tracking neuron 1.
+def reference_tracking_exp1(Vs, ints_hat, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
+    Es = network.neurons[0].Es # Same for every neuron, so can pick any.
+    max_num_syns = network.max_num_syns
+    c = network.neurons[0].c
+    mKir = mKir_inf(Vs[0]) # Not an estimate. Know v, and know function.
+    # Call njit function but only passing in first neuron.
+    adjusting_currents = reference_tracking_njit(Vs[0], ints_hat[:,0], mKir, syns_hat[:,0], gs[:,0], ref_gs, Es, 1, num_neur_gs, max_num_syns, c)
+    return adjusting_currents
+
 def reference_tracking(Vs, ints_hat, syns_hat, gs, ref_gs, network, num_neurs, num_neur_gs):
     Es = network.neurons[0].Es # Same for every neuron, so can pick any.
     max_num_syns = network.max_num_syns
@@ -94,6 +104,7 @@ def main(t,z,p):
     controller_settings = p[5] # Control law to use for the neurons
     estimate_g_syns_g_els = p[6]
     control_start_time = p[7]
+    to_observe = p[8]
     
     # Assuming all the neurons are of the same model:
     num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
@@ -170,9 +181,10 @@ def main(t,z,p):
         if known_g_idxs.any(): # Otherwise, neur_gs already fully populated with estimates.
             for (neur_idx, neur) in enumerate(network.neurons):
                 neur_gs[known_g_idxs,neur_idx] = neur.gs[known_g_idxs]
-        # if-else block below is same as for "DistRej" case above.
+        # if-else block below is very similar to the "DistRej" case above.
+        # Ignoring electrical connections
         if estimate_g_syns_g_els:
-            g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
+            g_syns = θ̂s[len(to_estimate):len(to_estimate)+max_num_syns,:] # Start after intrinsic gs.
         else:
             g_syns = np.zeros((max_num_syns, num_neurs))
         for (idx, neur) in enumerate(network.neurons):
@@ -180,7 +192,9 @@ def main(t,z,p):
         observer_gs = np.vstack((neur_gs, g_syns))
         control_currs = reference_tracking(Vs, ints_hat, syns_hat, observer_gs, 
                                            controller_settings[1], network, num_neurs, num_neur_gs)
-        injected_currents = injected_currents + control_currs
+        if controller_settings[2]: # if is_exp1
+            injected_currents[0] = injected_currents[0] + control_currs[0]
+        else: injected_currents = injected_currents + control_currs
     
     # Now make one time step. First, initialise the required vectors.
     dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)
@@ -213,20 +227,21 @@ def main(t,z,p):
             Vs[i], ints[:,i], syns[:,i], v_pres)
         
         # Finally, run the adaptive observer
-        (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
-                                         Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i],
-                                         no_res_connections, network.el_connects, i, Vs)
-        
-        dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
-        (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
-            Vs[i], ints_hat[:,i], syns_hat[:,i], v_pres)
-        
-        dθ̂s[:num_neur_ests,i] = γ*P@Ψ.T*(Vs[i]-v̂s[i]);
-        dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
-        aux = np.outer(Ψ,Ψ)
-        dP = α*P - P@aux@P;
-        dP = (dP+np.transpose(dP))/2;
-        dPs[:num_neur_ests,:num_neur_ests,i] = dP
+        if i in to_observe:
+            (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
+                                             Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i],
+                                             no_res_connections, network.el_connects, i, Vs)
+            
+            dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
+            (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
+                Vs[i], ints_hat[:,i], syns_hat[:,i], v_pres)
+            
+            dθ̂s[:num_neur_ests,i] = γ*P@Ψ.T*(Vs[i]-v̂s[i]);
+            dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
+            aux = np.outer(Ψ,Ψ)
+            dP = α*P - P@aux@P;
+            dP = (dP+np.transpose(dP))/2;
+            dPs[:num_neur_ests,:num_neur_ests,i] = dP
         
     # Finally, need to stack and flatten everything.
     # To stack, need to 'reduce' dP to 2 axes instead of 3

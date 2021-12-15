@@ -46,8 +46,12 @@ Iapps = [Iconst, Iconst]
 α = 0.0001 # Default is 0.5. Had to decrease as P values were exploding.
 γ = 20 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
-ref_gs = np.array([[120.,0.1,2.,0,80.,0.4,2.,0.,0.1]]).T # gs of reference network.
-control_law = ["RefTrack", ref_gs]
+# gs of reference network. As is_exp1 is set to true, only first neuron will be controlled,
+# but the way I've written the code I need to provide a vector for each neuron in the network.
+ref_gs = np.array([[120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [120.,0.1,2.,0,80.,0.4,2.,0.,0.1]]).T
+
+is_exp1 = True # Have created controller specifically for eq 1. Easier that way.
+control_law = ["RefTrack", ref_gs, is_exp1]
 # control_law = [""]
 
 num_neurs = len(network.neurons)
@@ -85,6 +89,6 @@ t = out.t
 sol = out.y
 
 #%%
-# t=t.astype('float32')
-# sol=sol.astype('float32')
-# np.savez("exp1_coupled.npz", t=t,sol=sol)
+t=t.astype('float32')
+sol=sol.astype('float32')
+np.savez("exp1_coupled.npz", t=t,sol=sol)
