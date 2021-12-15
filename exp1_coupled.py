@@ -91,4 +91,5 @@ sol = out.y
 #%%
 t=t.astype('float32')
 sol=sol.astype('float32')
+sol = sol[:153,:]
 np.savez("exp1_coupled.npz", t=t,sol=sol)
