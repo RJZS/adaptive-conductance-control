@@ -12,8 +12,7 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 4000.
-Tfinal = 200. # Textbook notebook has 1800.
+Tfinal = 8000.
 control_start_time = 1000.
 
 # TODO: can I change the initialisation without 'instability'?
@@ -26,6 +25,7 @@ x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 P_0 = np.eye(6);
 Ψ_0 = np.zeros(6);
 to_estimate = np.array([0,2], dtype=np.int32)
+to_observe = np.array([0,1], dtype=np.int32)
 estimate_g_syns_g_els = True
 
 syn1 = Synapse(0.6, 1) # 0.5 and 2 seem to have the same result.
@@ -105,7 +105,7 @@ dt = 0.01
 
 tspan = (0.,Tfinal)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,control_start_time)
+     estimate_g_syns_g_els,control_start_time,to_observe)
 
 print("Tfinal = {}s".format(Tfinal))
 print("Starting simulation")
@@ -113,6 +113,7 @@ start_time = time.time()
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-4,atol=1e-4,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))#, method='LSODA')
 end_time = time.time()
+print(out.success)
 print("Simulation time: {}s".format(end_time-start_time))
 # NOTE: LATER, WHEN EVALUATING DENSE OUTPUT, CAN SET DT TO EQUAL PHASE SHIFT!
 
@@ -136,7 +137,7 @@ z_0_nodist = np.concatenate((x_0[:12], x_0[:12])) # One syn per neuron
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
 out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=True)
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA')#, dense_output=True)
 end_time = time.time()
 print("'Nodist' Simulation time: {}s".format(end_time-start_time))
 
