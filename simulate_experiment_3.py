@@ -21,11 +21,11 @@ control_start_time = 1000.
 # Initial conditions
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-θ̂_0 = np.ones(6); # 2 intrins, 2 syn, 2 el. Starts at idx 26.
-P_0 = np.eye(6);
-Ψ_0 = np.zeros(6);
-to_estimate = np.array([0,2], dtype=np.int32)
-to_observe = np.array([0,1], dtype=np.int32)
+θ̂_0 = np.ones(5); # 1 intrins, 2 syn, 2 el. Starts at idx 26.
+P_0 = np.eye(5);
+Ψ_0 = np.zeros(5);
+to_estimate = np.array([0], dtype=np.int32)
+to_observe = np.array([2], dtype=np.int32)
 estimate_g_syns_g_els = True # Switch this.
 
 syn1 = Synapse(0.6, 1) # 0.5 and 2 seem to have the same result.
@@ -82,8 +82,11 @@ network = Network([one, two, three, four, five], el_connects)
 α = 0.05 # Default is 0.5. Had to decrease as P values were exploding.
 γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
-reject_els_to_neur_idxs = [1]
-control_law = ["DistRej", [], reject_els_to_neur_idxs]
+# For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...], reject_els_to...]
+# where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
+# and then the index of the synapse in the neuron.
+reject_els_to_neur_idxs = [2] # Rejecting connections to the hub neuron
+control_law = ["DistRej", [(2, 0), (2, 1)], reject_els_to_neur_idxs]
 # control_law = [""]
 
 num_neurs = len(network.neurons)
