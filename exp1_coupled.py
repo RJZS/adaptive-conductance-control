@@ -12,9 +12,9 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 6000. # Textbook notebook has 1800. Simulate to 4000. Can start slowing at 620.
-control_start_time = 0.
-print("Tfinal = {}".format(Tfinal))
+Tfinal = 10000. # Textbook notebook has 1800. Simulate to 4k or 6k. Can start slowing at 620.
+control_start_time = 0. # 2000.
+print("Tfinal = {}".format(Tfinal),file=open("exp1.txt","a"))
 
 # Single neuron reference tracking.
 # TODO: can I change the initialisation without 'instability'?
@@ -24,7 +24,7 @@ print("Tfinal = {}".format(Tfinal))
 x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 to_observe = np.array([0, 1], dtype=np.int32) # Neurons to observe.
-θ̂_0 = np.ones(10); # 1 g_el
+θ̂_0 = np.array([160.,1.,1.,1.,100.,1.,1.,1.,1.,1.]) # np.ones(10); # 1 g_el
 P_0 = np.eye(10); # From idx 31 I think
 Ψ_0 = np.zeros(10);
 to_estimate = np.array([0,1,2,3,4,5,6,7,8], dtype=np.int32)
@@ -34,7 +34,7 @@ estimate_g_syns_g_els = True
 neur_one = Neuron(0.1, np.array([0.,0.,0.,0,0.,0.,0.,0.,0.1]), np.array([]), 1)
 neur_two = Neuron(0.1, np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1]), np.array([]), 1)
 
-res_g = 0.2
+res_g = 0.4
 el_connects = np.array([[res_g, 0, 1]])
 network = Network([neur_one, neur_two], el_connects) # for ref tracking
 
@@ -43,8 +43,8 @@ Iconst = lambda t: -2
 Iapps = [Iconst, Iconst]
 
 # Observer parameters
-α = 0.0001 # Default is 0.5. Had to decrease as P values were exploding.
-γ = 20 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
+α = 0.0005 # Default is 0.5. Had to decrease as P values were exploding.
+γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # gs of reference network. As is_exp1 is set to true, only first neuron will be controlled,
 # but the way I've written the code I need to provide a vector for each neuron in the network.
@@ -77,13 +77,14 @@ tspan = (0.,Tfinal)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns_g_els,control_start_time,to_observe)
 
-print("Starting simulation")
+print("Starting simulation",file=open("exp1.txt","a"))
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-4,atol=1e-4,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-3,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau',
                 dense_output=False)
 end_time = time.time()
-print("Simulation time: {}s".format(end_time-start_time))
+print(out.success, file=open("exp1.txt","a"))
+print("Simulation time: {}s".format(end_time-start_time),file=open("exp1.txt","a"))
 
 t = out.t
 sol = out.y
