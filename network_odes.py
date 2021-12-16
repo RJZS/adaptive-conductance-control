@@ -164,11 +164,11 @@ def main(t,z,p):
             for (idx, neur) in enumerate(network.neurons):
                 g_syns[:neur.num_syns, idx] = neur.g_syns
         control_currs = disturbance_rejection(controller_settings[1], g_syns,
-                                              syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
+                                              syns_hat, v̂s, network.neurons[0].Esyn, num_neurs)
         # NB: If there are resistive connections, the controller will reject all of them.
         if not no_res_connections:
             gres_hats = extract_gres_hats(network.neurons, θ̂s, network.max_num_els, len(to_estimate))
-            control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, Vs, network.neurons, controller_settings[2])
+            control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, v̂s, network.neurons, controller_settings[2])
         injected_currents = injected_currents + control_currs
     elif controller_settings[0] == "RefTrack" and t > control_start_time:
         # If not estimating all the intrinsic gs, will feed controller a mix of true
@@ -196,11 +196,11 @@ def main(t,z,p):
             g_syns[:neur.num_syns, idx] = neur.g_syns
         observer_gs = np.vstack((neur_gs, g_syns))
         if controller_settings[2]: # if is_exp1
-            control_currs = reference_tracking_exp1(Vs[0], ints_hat[:,0], syns_hat[:,0], observer_gs[:,0], 
+            control_currs = reference_tracking_exp1(v̂s[0], ints_hat[:,0], syns_hat[:,0], observer_gs[:,0], 
                                                θ̂s[:9,1], network, num_neurs, num_neur_gs)
             injected_currents[0] = injected_currents[0] + control_currs[0]
         else:
-            control_currs = reference_tracking(Vs, ints_hat, syns_hat, observer_gs, 
+            control_currs = reference_tracking(v̂s, ints_hat, syns_hat, observer_gs, 
                                            controller_settings[1], network, num_neurs, num_neur_gs)
             injected_currents = injected_currents + control_currs
     
