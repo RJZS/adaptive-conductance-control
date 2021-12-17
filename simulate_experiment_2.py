@@ -18,7 +18,7 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 10000.
+Tfinal = 6000.
 control_start_time = 0. # 2000.
 
 # Initial conditions - Single Neuron Disturbance Rejection
@@ -125,7 +125,7 @@ print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp
 
 know_ps = True
 if know_ps:
-    ps = 62.01317974558738 # Phase shift
+    ps = 19.25830446788209 # Phase shift
     dt = 0.005
     t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
     sol = out.sol(t)
@@ -163,13 +163,13 @@ if calc_ps:
     print("Time to run obj fn: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
     
     from scipy.optimize import minimize_scalar
-    ps_start = 61
-    ps_end = 63
+    ps_start = 18.9
+    ps_end = 19.3
     res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
-                          options={'maxiter':50,'disp':True}, args=(3230,3330,0.001))
+                          options={'maxiter':50,'disp':True}, args=(4900,5100,0.001))
     res.x # Precise phase shift.
-    print(res)#, file=open("exp2.txt","a"))
-    print(res.x)#, file=open("exp2.txt","a"))
+    print(res, file=open("exp2.txt","a"))
+    print(res.x, file=open("exp2.txt","a"))
 
 # %%
 
