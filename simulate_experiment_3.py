@@ -20,7 +20,7 @@ control_start_time = 1000.
 
 # Initial conditions
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
-x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+x̂_0 = [10, 0.1, 0.2, 0.01, 0.3, 0.1, 0.2, 0., 0.1, 0.2, 0.1, 0.1, 0.1]
 θ̂_0 = np.ones(5); # 1 intrins, 2 syn, 2 el. Starts at idx 26.
 P_0 = np.eye(5);
 Ψ_0 = np.zeros(5);
@@ -114,8 +114,8 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 print("Tfinal = {}s".format(Tfinal))
 print("Starting simulation")
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-4,atol=1e-4,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))#, method='LSODA')
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-3,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau')
 end_time = time.time()
 print(out.success)
 print("Simulation time: {}s".format(end_time-start_time))
@@ -126,83 +126,28 @@ sol = out.y
 
 
 # %%
-# Comparison simulation. Just the HCO
+# Comparison simulation. Just the hub
 
-one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn1], 0)
-two_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2], 0)
+three_nodist = Neuron(0.1, [80.,0.1,2.,0,30.,0.,1.,0.,0.1], [], 0) # Hub neuron
 
-network_nodist = Network([one_nodist, two_nodist], [])
+network_nodist = Network([three_nodist], [])
 p_nodist = (Iapps, network_nodist)
 
-z_0_nodist = np.concatenate((x_0[:12], x_0[:12])) # One syn per neuron
+# z_0_nodist = np.concatenate((x_0[:12], x_0[:12])) # One syn per neuron
 # z_0_nodist[0] = 20
 # z_0_nodist[12] = -20
-# z_0_nodist = x_0[:12] # Only one neur
+z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA')#, dense_output=True)
+out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-3,atol=1e-3,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau')#, dense_output=True)
 end_time = time.time()
 print("'Nodist' Simulation time: {}s".format(end_time-start_time))
 
 t_nodist = out_nodist.t
 sol_nodist = out_nodist.y
 
-# %% 
-# # Playing with model to find bursting behaviour.
-# dt=0.01
-# syn = Synapse(0.5, 1) # 0.5 and 2 seem to have the same result.
-# syn2 = Synapse(2., 0)
-# Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-# def Irb(t): # For rebound burster
-#     if t < 10 or t > 40:
-#         return 0
-#     else:
-#         return -6
-    
-# Iconst = lambda t: -2. #-0.1 in HCO2
 
-# def Iramp(t):
-#     if t < 500:
-#         return -1.
-#     else:
-#         return -2 + 0.005*(t-500)
-
-# Iapps = [Iconst, Iconst, lambda t: 6]
-# Tfinal = 400. # In HCO2 it's 15000. In notebook it's 2800.
-
-# tspan = (0.,Tfinal)
-
-# # neur_one_play = Neuron(1., [120.,0,5.,0,36.,0,0,0.03], []) # For rebound burster.
-# # neur_two_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [syn2])
-
-# #x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
-
-# neur_one_play = Neuron(0.1, [100.,0.08,3.5,0,70.,0.5,1.6,0.,0.1], [])  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
-# neur_two_play = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [])
-
-# # v_0 = np.array([-70.])
-# # starting_gate_vals = neur_one_play.initialise(v_0)
-# x_0 = [0,0,0,0,0,0,0,0,0,0,0] # No syns
-
-# # # Rebound burster
-# # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
-# network_play = Network([neur_one_play], np.zeros((1,1)))
-# p_play = (Iapps, network_play)
-
-# # z_0_play = np.concatenate((x_0, x_0))
-# z_0_play = x_0
-# z_0_play[0] = -70
-# start_time = time.time()
-# out_play = solve_ivp(lambda t, z: no_observer(t, z, p_play), tspan, z_0_play, rtol=1e-6,atol=1e-6,
-#                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)))#, vectorized=True)
-# end_time = time.time()
-# print("'Play' simulation time: {}s".format(end_time-start_time))
-
-# t_play2 = out_play.t
-# sol_play2 = out_play.y
-
-# # plt.plot(t_play,sol_play[0,:],t_play2,sol_play2[0,:])
 
 # %%
 # # Extract variables and label them
@@ -215,12 +160,6 @@ sol_nodist = out_nodist.y
 # from scipy.signal import find_peaks
 # find_peaks(x) gives the idxs. Then can use np.roll for the phase-shift.
 
-# For HCO_RT it's about 1105, ie np.roll(x, 1105). Remember the spike is every other local max.
-
-# t=t.astype('float32')
-# sol=sol.astype('float32')
-# sol_ref = sol_ref.astype('float32')
-# np.savez("simulate_experiment_1.npz", t=t,sol=sol,sol_ref=sol_ref)
 
 # %% 
 # Playing with model to find bursting behaviour.
@@ -318,4 +257,6 @@ if playing:
 print("Converting and saving...")
 t=t.astype('float32')
 sol=sol.astype('float32')
-np.savez("obssim_experiment_3.npz", t=t, sol=sol,t_nd=t_nodist,sol_nd=sol_nodist)
+t_nodist = t_nodist.astype('float32')
+sol_nodist = sol_nodist.astype('float32')
+np.savez("obssim_experiment_3.npz", t=t, sol=sol,tnd=t_nodist,solnd=sol_nodist)

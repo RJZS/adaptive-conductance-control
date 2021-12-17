@@ -165,7 +165,7 @@ def main(t,z,p):
                 g_syns[:neur.num_syns, idx] = neur.g_syns
         control_currs = disturbance_rejection(controller_settings[1], g_syns,
                                               syns_hat, v̂s, network.neurons[0].Esyn, num_neurs)
-        # NB: If there are resistive connections, the controller will reject all of them.
+        # NB: Will reject electrical connections to neurons listed in controller_settings[2]
         if not no_res_connections:
             gres_hats = extract_gres_hats(network.neurons, θ̂s, network.max_num_els, len(to_estimate))
             control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, v̂s, network.neurons, controller_settings[2])
