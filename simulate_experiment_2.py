@@ -18,17 +18,16 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 8000.
-# Tfinal = 1000.
+Tfinal = 10000.
 control_start_time = 0. # 2000.
 
 # Initial conditions - Single Neuron Disturbance Rejection
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-θ̂_0 = np.ones(2); # Estimating all intrinsic and 1 syn.
-P_0 = np.eye(2);
-Ψ_0 = np.zeros(2);
-to_estimate = np.array([0],dtype=np.int32)
+θ̂_0 = np.ones(1); # Estimating 1syn
+P_0 = np.eye(1);
+Ψ_0 = np.zeros(1);
+to_estimate = np.array([],dtype=np.int32)
 to_observe = np.array([0], dtype=np.int32)
 estimate_g_syns_g_els = True
 
@@ -80,7 +79,7 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 
 print("Starting simulation",file=open("exp2.txt","a"))
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-3,
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau',
                 dense_output=True)
 end_time = time.time()
@@ -113,7 +112,7 @@ p_nodist = (Iapps, network_nodist)
 z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-3,atol=1e-3,
+out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau', dense_output=True)
 end_time = time.time()
 print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
@@ -126,8 +125,8 @@ print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp
 
 know_ps = True
 if know_ps:
-    ps = 486.86592902676364 # Phase shift
-    dt = 0.01
+    ps = 62.01317974558738 # Phase shift
+    dt = 0.005
     t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
     sol = out.sol(t)
     ps_idx = int(ps//dt + 1)
@@ -136,6 +135,7 @@ if know_ps:
     sol_nodist = out_nodist.sol(t_nodist)
     
     # plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
+    # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_nodist[0,:])
     diff = sol[0,ps_idx:] - sol_nodist[0,:]
     # plt.plot(t[j-ps_idx:],diff[j:])
     # j=746500;k=749000;plt.plot(t[j-ps_idx:k-ps_idx],sol[j:k],t_nodist[j:k],sol_nodist[j:k])
@@ -158,18 +158,18 @@ if calc_ps:
     
     # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_ref[0,:])
     start_time = time.time()
-    obj_fn(-81.88, 5600, 5800, 0.001)
+    obj_fn(869, 2000, 3000, 0.001)
     end_time = time.time()
     print("Time to run obj fn: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
     
     from scipy.optimize import minimize_scalar
-    ps_start = 350
-    ps_end = 500
+    ps_start = 61
+    ps_end = 63
     res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
-                          options={'maxiter':50,'disp':True}, args=(6100,7300,0.001))
+                          options={'maxiter':50,'disp':True}, args=(3230,3330,0.001))
     res.x # Precise phase shift.
-    print(res, file=open("exp2.txt","a"))
-    print(res.x, file=open("exp2.txt","a"))
+    print(res)#, file=open("exp2.txt","a"))
+    print(res.x)#, file=open("exp2.txt","a"))
 
 # %%
 
