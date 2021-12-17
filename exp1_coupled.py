@@ -24,7 +24,8 @@ print("Tfinal = {}".format(Tfinal),file=open("exp1.txt","a"))
 x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 to_observe = np.array([0, 1], dtype=np.int32) # Neurons to observe.
-θ̂_0 = np.array([160.,1.,1.,1.,100.,1.,1.,1.,1.,1.]) # np.ones(10); # 1 g_el
+θ̂_0 = np.array([160.,1.,1.,1.,100.,1.,1.,1.,1.,1.]) # np.ones(10); # 1 g_el. From idx 23 to 31,
+# or for second neuron, from 142+22.
 P_0 = np.eye(10); # From idx 31 I think
 Ψ_0 = np.zeros(10);
 to_estimate = np.array([0,1,2,3,4,5,6,7,8], dtype=np.int32)
