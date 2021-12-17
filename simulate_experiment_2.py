@@ -19,15 +19,17 @@ from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
 Tfinal = 8000.
-control_start_time = 2000.
+# Tfinal = 1000.
+control_start_time = 0. # 2000.
 
 # Initial conditions - Single Neuron Disturbance Rejection
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-θ̂_0 = np.ones(10); # Estimating all intrinsic and 1 syn.
-P_0 = 0.01*np.eye(10);
-Ψ_0 = np.zeros(10);
-to_estimate = np.array([0,1,2,3,4,5,6,7,8],dtype=np.int32)
+θ̂_0 = np.ones(2); # Estimating all intrinsic and 1 syn.
+P_0 = np.eye(2);
+Ψ_0 = np.zeros(2);
+to_estimate = np.array([0],dtype=np.int32)
+to_observe = np.array([0], dtype=np.int32)
 estimate_g_syns_g_els = True
 
 syn = Synapse(2., 1)
@@ -43,7 +45,7 @@ Iconst = lambda t: -2
 Iapps = [Iconst, Iconst]
 
 # Observer parameters
-α = 0.0001 # Default is 0.5. Had to decrease as P values were exploding.
+α = 0.0005 # Default is 0.5. Had to decrease as P values were exploding.
 γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
@@ -74,15 +76,15 @@ dt = 0.01
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,control_start_time)
+     estimate_g_syns_g_els,control_start_time,to_observe)
 
-print("Starting simulation")
+print("Starting simulation",file=open("exp2.txt","a"))
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-6,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
-                dense_output=False)
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-3,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau',
+                dense_output=True)
 end_time = time.time()
-print("Simulation time: {}s".format(end_time-start_time))
+print("Simulation time: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
 
 # t = out.t
 # sol = out.y
@@ -111,10 +113,10 @@ p_nodist = (Iapps, network_nodist)
 z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-6,atol=1e-6,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=False)
+out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-3,atol=1e-3,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau', dense_output=True)
 end_time = time.time()
-print("'Nodist' Simulation time: {}s".format(end_time-start_time))
+print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
 
 # t_nodist = out_nodist.t
 # sol_nodist = out_nodist.y
@@ -124,17 +126,17 @@ print("'Nodist' Simulation time: {}s".format(end_time-start_time))
 
 know_ps = True
 if know_ps:
-    ps = -81.89054905332024 # Phase shift
-    dt = 0.05
+    ps = 486.86592902676364 # Phase shift
+    dt = 0.01
     t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
     sol = out.sol(t)
     ps_idx = int(ps//dt + 1)
     t_nodist = t - ps
-    t_nodist = t_nodist[:ps_idx] # Eliminate the excess values at the end.
+    t_nodist = t_nodist[ps_idx:] # Eliminate the excess values at the start.
     sol_nodist = out_nodist.sol(t_nodist)
     
-    plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
-    diff = sol[0,:ps_idx] - sol_nodist[0,:]
+    # plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
+    diff = sol[0,ps_idx:] - sol_nodist[0,:]
     # plt.plot(t[j-ps_idx:],diff[j:])
     # j=746500;k=749000;plt.plot(t[j-ps_idx:k-ps_idx],sol[j:k],t_nodist[j:k],sol_nodist[j:k])
     # j=400000;plt.plot(t_nodist[j:],sol[j:ps_idx]-np.roll(sol_nodist,-5)[j:])
@@ -158,22 +160,26 @@ if calc_ps:
     start_time = time.time()
     obj_fn(-81.88, 5600, 5800, 0.001)
     end_time = time.time()
-    print("Time to run obj fn: {}s".format(end_time-start_time))
+    print("Time to run obj fn: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
     
     from scipy.optimize import minimize_scalar
-    ps_start = -81.90
-    ps_end = -81.88
+    ps_start = 350
+    ps_end = 500
     res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
-                          options={'maxiter':20,'disp':True}, args=(7400,7650,0.001))
+                          options={'maxiter':50,'disp':True}, args=(6100,7300,0.001))
     res.x # Precise phase shift.
+    print(res, file=open("exp2.txt","a"))
+    print(res.x, file=open("exp2.txt","a"))
 
 # %%
 
-print("Converting and saving...")
+# print("sol.max: {}".format(sol.max()),file=open("exp2.txt","a"))
+# print("sol.min: {}".format(sol.min()),file=open("exp2.txt","a"))
+print("Converting and saving...",file=open("exp2.txt","a"))
 t=t.astype('float32')
 t_nodist = t_nodist.astype('float32')
 sol=sol.astype('float32')
 sol_nodist=sol_nodist.astype('float32')
-np.savez("simulate_experiment_2.npz", t=t, t_nodist=t_nodist, sol=sol,
-         sol_nodist=sol_nodist,ps=ps,ps_idx=ps_idx)
+np.savez("exp2.npz", t=t, tnd=t_nodist, sol=sol,
+         solnd=sol_nodist,ps=ps,ps_idx=ps_idx)
 
