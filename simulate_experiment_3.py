@@ -12,8 +12,8 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 8000.
-control_start_time = 1000.
+Tfinal = 6000.
+control_start_time = 0. # 1000.
 
 # TODO: can I change the initialisation without 'instability'?
 # Same for increasing alpha and decreasing gamma.
@@ -21,10 +21,10 @@ control_start_time = 1000.
 # Initial conditions
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
 x̂_0 = [10, 0.1, 0.2, 0.01, 0.3, 0.1, 0.2, 0., 0.1, 0.2, 0.1, 0.1, 0.1]
-θ̂_0 = np.ones(5); # 1 intrins, 2 syn, 2 el. Starts at idx 26.
-P_0 = np.eye(5);
-Ψ_0 = np.zeros(5);
-to_estimate = np.array([0], dtype=np.int32)
+θ̂_0 = np.ones(4); # 2 syn, 2 el. Starts at idx 26.
+P_0 = np.eye(4);
+Ψ_0 = np.zeros(4);
+to_estimate = np.array([], dtype=np.int32)
 to_observe = np.array([2], dtype=np.int32)
 estimate_g_syns_g_els = True # Switch this.
 
@@ -74,12 +74,12 @@ four = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn3], 1)
 five = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn4], 0)
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
 
-res_g = 0.005 # TODO: Need to raise this, otherwise hub isn't affecting HCO.
+res_g = 0.01 # TODO: Need to raise this, otherwise hub isn't affecting HCO.
 el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
 network = Network([one, two, three, four, five], el_connects)
 
 # Observer parameters
-α = 0.05 # Default is 0.5. Had to decrease as P values were exploding.
+α = 0.0005 # Default is 0.5. Had to decrease as P values were exploding.
 γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...], reject_els_to...]
@@ -111,14 +111,14 @@ tspan = (0.,Tfinal)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns_g_els,control_start_time,to_observe)
 
-print("Tfinal = {}s".format(Tfinal))
-print("Starting simulation")
+print("Tfinal = {}s".format(Tfinal),file=open("exp3.txt","a"))
+print("Starting simulation",file=open("exp3.txt","a"))
 start_time = time.time()
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-3,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau')
 end_time = time.time()
-print(out.success)
-print("Simulation time: {}s".format(end_time-start_time))
+print(out.success,file=open("exp3.txt","a"))
+print("Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
 # NOTE: LATER, WHEN EVALUATING DENSE OUTPUT, CAN SET DT TO EQUAL PHASE SHIFT!
 
 t = out.t
@@ -128,10 +128,11 @@ sol = out.y
 # %%
 # Comparison simulation. Just the hub
 
+Iapp_nodist = [lambda t: 38]
 three_nodist = Neuron(0.1, [80.,0.1,2.,0,30.,0.,1.,0.,0.1], [], 0) # Hub neuron
 
 network_nodist = Network([three_nodist], [])
-p_nodist = (Iapps, network_nodist)
+p_nodist = (Iapp_nodist, network_nodist)
 
 # z_0_nodist = np.concatenate((x_0[:12], x_0[:12])) # One syn per neuron
 # z_0_nodist[0] = 20
@@ -142,7 +143,7 @@ start_time = time.time()
 out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-3,atol=1e-3,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau')#, dense_output=True)
 end_time = time.time()
-print("'Nodist' Simulation time: {}s".format(end_time-start_time))
+print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
 
 t_nodist = out_nodist.t
 sol_nodist = out_nodist.y
@@ -254,9 +255,9 @@ if playing:
     plt.plot(t,sol[0,:],t,sol[13,:],t,sol[26,:])
     # plt.plot(t_play,sol_play[0,:],t_play2,sol_play2[0,:])
     
-print("Converting and saving...")
+print("Converting and saving...",file=open("exp3.txt","a"))
 t=t.astype('float32')
 sol=sol.astype('float32')
 t_nodist = t_nodist.astype('float32')
 sol_nodist = sol_nodist.astype('float32')
-np.savez("obssim_experiment_3.npz", t=t, sol=sol,tnd=t_nodist,solnd=sol_nodist)
+np.savez("exp3.npz", t=t, sol=sol,tnd=t_nodist,solnd=sol_nodist)
