@@ -152,24 +152,7 @@ print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp
 
 # %%
 # Evaluate the solutions, accounting for phase shift.
-
-know_ps = False
-if know_ps:
-    ps = 19.25830446788209 # Phase shift
-    dt = 0.005
-    t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
-    sol = out.sol(t)
-    ps_idx = int(ps//dt + 1)
-    t_nodist = t - ps
-    t_nodist = t_nodist[ps_idx:] # Eliminate the excess values at the start.
-    sol_nodist = out_nodist.sol(t_nodist)
-    
-    # plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
-    # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_nodist[0,:])
-    diff = sol[0,ps_idx:] - sol_nodist[0,:]
-    # plt.plot(t[j-ps_idx:],diff[j:])
-    # j=746500;k=749000;plt.plot(t[j-ps_idx:k-ps_idx],sol[j:k],t_nodist[j:k],sol_nodist[j:k])
-    # j=400000;plt.plot(t_nodist[j:],sol[j:ps_idx]-np.roll(sol_nodist,-5)[j:])
+ps = 3
 
 calc_ps = True
 if calc_ps:
@@ -198,8 +181,25 @@ if calc_ps:
     res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
                           options={'maxiter':50,'disp':True}, args=(2450,2950,0.001))
     res.x # Precise phase shift.
+    ps = res.x
     print(res, file=open("exp3.txt","a"))
     print(res.x, file=open("exp3.txt","a"))
+
+dt = 0.005
+t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
+sol = out.sol(t)
+ps_idx = int(ps//dt + 1)
+t_nodist = t - ps
+t_nodist = t_nodist[ps_idx:] # Eliminate the excess values at the start.
+sol_nodist = out_nodist.sol(t_nodist)
+
+# plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
+# plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_nodist[0,:])
+diff = sol[0,ps_idx:] - sol_nodist[0,:]
+# plt.plot(t[j-ps_idx:],diff[j:])
+# j=746500;k=749000;plt.plot(t[j-ps_idx:k-ps_idx],sol[j:k],t_nodist[j:k],sol_nodist[j:k])
+# j=400000;plt.plot(t_nodist[j:],sol[j:ps_idx]-np.roll(sol_nodist,-5)[j:])
+
 
 # %%
 # To find peaks.
@@ -305,4 +305,5 @@ t=t.astype('float32')
 sol=sol.astype('float32')
 t_nodist = t_nodist.astype('float32')
 sol_nodist = sol_nodist.astype('float32')
-np.savez("exp3.npz", t=t, sol=sol,tnd=t_nodist,solnd=sol_nodist)
+np.savez("exp3.npz", t=t, tnd=t_nodist, sol=sol,
+         solnd=sol_nodist,ps=ps,ps_idx=ps_idx)
