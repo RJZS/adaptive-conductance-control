@@ -114,15 +114,16 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 print("Tfinal = {}s".format(Tfinal),file=open("exp3.txt","a"))
 print("Starting simulation",file=open("exp3.txt","a"))
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-3,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau')
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau',
+                dense_output=True)
 end_time = time.time()
 print(out.success,file=open("exp3.txt","a"))
 print("Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
 # NOTE: LATER, WHEN EVALUATING DENSE OUTPUT, CAN SET DT TO EQUAL PHASE SHIFT!
 
-t = out.t
-sol = out.y
+# t = out.t
+# sol = out.y
 
 
 # %%
@@ -140,21 +141,65 @@ p_nodist = (Iapp_nodist, network_nodist)
 z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-3,atol=1e-3,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau')#, dense_output=True)
+out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau', dense_output=True)
 end_time = time.time()
 print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
 
-t_nodist = out_nodist.t
-sol_nodist = out_nodist.y
-
+# t_nodist = out_nodist.t
+# sol_nodist = out_nodist.y
 
 
 # %%
-# # Extract variables and label them
-# V_idxs = np.array(list(range(num_neurs)))*(len(sol)/num_neurs)
-# V_idxs = V_idxs.astype(int)
-# Vs = sol[V_idxs,:]
+# Evaluate the solutions, accounting for phase shift.
+
+know_ps = False
+if know_ps:
+    ps = 19.25830446788209 # Phase shift
+    dt = 0.005
+    t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
+    sol = out.sol(t)
+    ps_idx = int(ps//dt + 1)
+    t_nodist = t - ps
+    t_nodist = t_nodist[ps_idx:] # Eliminate the excess values at the start.
+    sol_nodist = out_nodist.sol(t_nodist)
+    
+    # plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
+    # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_nodist[0,:])
+    diff = sol[0,ps_idx:] - sol_nodist[0,:]
+    # plt.plot(t[j-ps_idx:],diff[j:])
+    # j=746500;k=749000;plt.plot(t[j-ps_idx:k-ps_idx],sol[j:k],t_nodist[j:k],sol_nodist[j:k])
+    # j=400000;plt.plot(t_nodist[j:],sol[j:ps_idx]-np.roll(sol_nodist,-5)[j:])
+
+calc_ps = True
+if calc_ps:
+    # # To find phase shift.
+    def obj_fn(ps, start, end, dt):
+        t = np.linspace(start,end,int((end-start)//dt + 1))
+        sol = out.sol(t)
+        ps_idx = int(ps//dt + 1)
+        t_nodist = t - ps
+        t_nodist = t_nodist[ps_idx:] # Eliminate the negative values at the start.
+        sol_nodist = out_nodist.sol(t_nodist)
+        
+        diff = sol[0,ps_idx:] - sol_nodist[0,:]
+        to_minimise = np.abs(diff).max()
+        return to_minimise
+    
+    # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_ref[0,:])
+    start_time = time.time()
+    obj_fn(3, 2450, 2950, 0.001)
+    end_time = time.time()
+    print("Time to run obj fn: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
+    
+    from scipy.optimize import minimize_scalar
+    ps_start = 3.4
+    ps_end = 3.9
+    res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
+                          options={'maxiter':50,'disp':True}, args=(2450,2950,0.001))
+    res.x # Precise phase shift.
+    print(res, file=open("exp3.txt","a"))
+    print(res.x, file=open("exp3.txt","a"))
 
 # %%
 # To find peaks.
