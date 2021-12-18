@@ -173,7 +173,7 @@ if calc_ps:
     start_time = time.time()
     obj_fn(3, 2450, 2950, 0.001)
     end_time = time.time()
-    print("Time to run obj fn: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
+    print("Time to run obj fn: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
     
     from scipy.optimize import minimize_scalar
     ps_start = 3.4
