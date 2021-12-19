@@ -12,8 +12,8 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 8000. # Textbook notebook has 1800. Simulate to 4000. Can start slowing at 620.
-control_start_time = 20.
+Tfinal = 10. # Textbook notebook has 1800. Simulate to 4000. Can start slowing at 620.
+control_start_time = 100.
 print("Tfinal = {}".format(Tfinal))
 
 # Single neuron reference tracking.
@@ -72,7 +72,7 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 
 print("Starting simulation")
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-5,atol=1e-5,
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-4,atol=1e-4,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
                 dense_output=True)
 end_time = time.time()
@@ -120,7 +120,7 @@ z_0_ref = x_0
 # z_0_ref[0] = -70.
 
 start_time = time.time()
-out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-5,atol=1e-5,
+out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-4,atol=1e-4,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=True)
 end_time = time.time()
 print("'Ref' Simulation time: {}s".format(end_time-start_time))
@@ -211,25 +211,26 @@ print("'Ref' Simulation time: {}s".format(end_time-start_time))
 
 # %%
 # Evaluate the solutions, accounting for phase shift.
-know_ps = True
+know_ps = False
 if know_ps:
     dt = 0.01
     t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
     sol = out.sol(t)
     
-    ps = 52.04336381966011 # Phase shift
+    ps = 52.04336381966011 - 1.1700015 # Phase shift
     ps_idx = int(ps//dt + 1)
     t_ref = t - ps
     t_ref = t_ref[ps_idx:] # Eliminate the negative values at the start.
     sol_ref = out_ref.sol(t_ref)
     
     # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_ref[0,:])
+    # j=745000;k=760000;plt.plot(t[ps_idx+j:ps_idx+k],sol[0,ps_idx+j:ps_idx+k],t[ps_idx+j:ps_idx+k],sol_ref[0,j:k])
     diff = sol[0,ps_idx:] - sol_ref[0,:]
     #check_from_idx=300000
     #diff_trunc = diff[check_from_idx:]
     #to_minimise = np.abs(diff_trunc).max()
 
-calc_ps = False
+calc_ps = True
 if calc_ps:
     # The objective function to calculate phase shift, ps. Assumes ps > 0.
     def obj_fn(ps, start, end, dt):
@@ -245,7 +246,7 @@ if calc_ps:
         return to_minimise
     
     start_time = time.time()
-    obj_fn(ps, 3200, 3400, 0.001)
+    obj_fn(ps, 7500, 7650, 0.01)
     end_time = time.time()
     print("Time to run obj fn: {}s".format(end_time-start_time))
     
@@ -280,8 +281,8 @@ if calc_ps:
 
 # For HCO_RT it's about 1105, ie np.roll(x, 1105). Remember the spike is every other local max.
 
-t=t.astype('float32')
-t_ref = t_ref.astype('float32')
-sol=sol.astype('float32')
-sol_ref = sol_ref.astype('float32')
-np.savez("simulate_experiment_1.npz", t=t,t_ref=t_ref,sol=sol,sol_ref=sol_ref,ps=ps,ps_idx=ps_idx)
+# t=t.astype('float32')
+# t_ref = t_ref.astype('float32')
+# sol=sol.astype('float32')
+# sol_ref = sol_ref.astype('float32')
+# np.savez("simulate_experiment_1.npz", t=t,t_ref=t_ref,sol=sol,sol_ref=sol_ref,ps=ps,ps_idx=ps_idx)
