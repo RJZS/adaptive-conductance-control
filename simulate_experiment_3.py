@@ -12,7 +12,7 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 6000.
+Tfinal = 8000.
 control_start_time = 0. # 1000.
 
 # TODO: can I change the initialisation without 'instability'?
@@ -25,7 +25,7 @@ x̂_0 = [10, 0.1, 0.2, 0.01, 0.3, 0.1, 0.2, 0., 0.1, 0.2, 0.1, 0.1, 0.1]
 P_0 = np.eye(4);
 Ψ_0 = np.zeros(4);
 to_estimate = np.array([], dtype=np.int32)
-to_observe = np.array([2], dtype=np.int32)
+to_observe = np.array([1,2,3], dtype=np.int32)
 estimate_g_syns_g_els = True # Switch this.
 
 syn1 = Synapse(0.6, 1) # 0.5 and 2 seem to have the same result.
@@ -176,10 +176,10 @@ if calc_ps:
     print("Time to run obj fn: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
     
     from scipy.optimize import minimize_scalar
-    ps_start = 3.4
-    ps_end = 3.9
+    ps_start = 1.8
+    ps_end = 2.4
     res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
-                          options={'maxiter':50,'disp':True}, args=(2450,2950,0.001))
+                          options={'maxiter':50,'disp':True}, args=(7600,7800,0.001))
     res.x # Precise phase shift.
     ps = res.x
     print(res, file=open("exp3.txt","a"))
@@ -195,7 +195,9 @@ sol_nodist = out_nodist.sol(t_nodist)
 
 # plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
 # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_nodist[0,:])
+
 diff = sol[0,ps_idx:] - sol_nodist[0,:]
+
 # plt.plot(t[j-ps_idx:],diff[j:])
 # j=746500;k=749000;plt.plot(t[j-ps_idx:k-ps_idx],sol[j:k],t_nodist[j:k],sol_nodist[j:k])
 # j=400000;plt.plot(t_nodist[j:],sol[j:ps_idx]-np.roll(sol_nodist,-5)[j:])
