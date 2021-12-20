@@ -21,10 +21,13 @@ from network_odes import main, no_observer
 Tfinal = 10000.
 observe_start_time = 4000. # 2000.
 
+# Tfinal = 10.002
+# observe_start_time = 10. # 2000.
+
 # Initial conditions - Single Neuron Disturbance Rejection
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-θ̂_0 = np.ones(1); # Estimating 1syn
+θ̂_0 = np.ones(1); # Estimating 1syn. idx 24
 P_0 = np.eye(1);
 Ψ_0 = np.zeros(1);
 to_estimate = np.array([],dtype=np.int32)
@@ -42,7 +45,7 @@ control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 # Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 def Ioffset(t): # So two neurons in HCO don't burst simultaneously
     if t < 200:
-        return -4.
+        return -7.5
     else:
         return -2.
     
@@ -53,7 +56,7 @@ Iapps = [Iconst, Ioffset]
 
 # Observer parameters
 α = 0.0005 # Default is 0.5. Had to decrease as P values were exploding.
-γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
+γ = 2 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...]]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
@@ -85,13 +88,13 @@ tspan = (0.,Tfinal)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns_g_els,observe_start_time,to_observe,0)
 
-print("Starting simulation",file=open("exp2.txt","a"))
+print("Starting simulation")#,file=open("exp2.txt","a"))
 start_time = time.time()
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau',
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
                 dense_output=False)
 end_time = time.time()
-print("Simulation time: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
+print("Simulation time: {}s".format(end_time-start_time))#,file=open("exp2.txt","a"))
 
 t = out.t
 sol = out.y
@@ -121,9 +124,9 @@ z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
 out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau', dense_output=False)
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=False)
 end_time = time.time()
-print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
+print("'Nodist' Simulation time: {}s".format(end_time-start_time))#,file=open("exp2.txt","a"))
 
 t_nodist = out_nodist.t
 sol_nodist = out_nodist.y
