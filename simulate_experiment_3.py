@@ -12,9 +12,8 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 6000.
-control_start_time = 0. # 1000.
-
+Tfinal = 10000.
+observe_start_time = 4000. # 1000.
 # TODO: can I change the initialisation without 'instability'?
 # Same for increasing alpha and decreasing gamma.
 
@@ -25,7 +24,7 @@ x̂_0 = [10, 0.1, 0.2, 0.01, 0.3, 0.1, 0.2, 0., 0.1, 0.2, 0.1, 0.1, 0.1]
 P_0 = np.eye(4);
 Ψ_0 = np.zeros(4);
 to_estimate = np.array([], dtype=np.int32)
-to_observe = np.array([1,2,3], dtype=np.int32)
+to_observe = np.array([2,3], dtype=np.int32)
 estimate_g_syns_g_els = True # Switch this.
 
 syn1 = Synapse(0.6, 1) # 0.5 and 2 seem to have the same result.
@@ -85,8 +84,11 @@ network = Network([one, two, three, four, five], el_connects)
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...], reject_els_to...]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
+# The next two elements of the control_law array pertain to electrical connections. They're very hacky!!
 reject_els_to_neur_idxs = [2] # Rejecting connections to the hub neuron
-control_law = ["DistRej", [(2, 0), (2, 1)], reject_els_to_neur_idxs]
+reject_el_idx_of_reject_els_to_neur = 1 # Reject which of the connections involving 2.
+control_law = ["DistRej", [(2, 0), (2, 1)], reject_els_to_neur_idxs,
+               reject_el_idx_of_reject_els_to_neur]
 # control_law = [""]
 
 num_neurs = len(network.neurons)
@@ -109,7 +111,7 @@ dt = 0.01
 
 tspan = (0.,Tfinal)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,control_start_time,to_observe)
+     estimate_g_syns_g_els,observe_start_time,to_observe,0)
 
 print("Tfinal = {}s".format(Tfinal),file=open("exp3.txt","a"))
 print("Starting simulation",file=open("exp3.txt","a"))
