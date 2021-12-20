@@ -12,7 +12,7 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 8000.
+Tfinal = 6000.
 control_start_time = 0. # 1000.
 
 # TODO: can I change the initialisation without 'instability'?
@@ -176,10 +176,10 @@ if calc_ps:
     print("Time to run obj fn: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
     
     from scipy.optimize import minimize_scalar
-    ps_start = 1.8
-    ps_end = 2.4
+    ps_start = 1.95
+    ps_end = 2.
     res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
-                          options={'maxiter':50,'disp':True}, args=(7600,7800,0.001))
+                          options={'maxiter':50,'disp':True}, args=(5600,5800,0.001))
     res.x # Precise phase shift.
     ps = res.x
     print(res, file=open("exp3.txt","a"))
