@@ -17,6 +17,9 @@ observe_start_time = 4000. # 1000.
 # TODO: can I change the initialisation without 'instability'?
 # Same for increasing alpha and decreasing gamma.
 
+Tfinal = 25.
+observe_start_time=20.
+
 # Initial conditions
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
 x̂_0 = [10, 0.1, 0.2, 0.01, 0.3, 0.1, 0.2, 0., 0.1, 0.2, 0.1, 0.1, 0.1]
@@ -24,7 +27,7 @@ x̂_0 = [10, 0.1, 0.2, 0.01, 0.3, 0.1, 0.2, 0., 0.1, 0.2, 0.1, 0.1, 0.1]
 P_0 = np.eye(4);
 Ψ_0 = np.zeros(4);
 to_estimate = np.array([], dtype=np.int32)
-to_observe = np.array([2,3], dtype=np.int32)
+to_observe = np.array([2,3], dtype=np.int32) # Have to change this if choose to reject the other g_el!
 estimate_g_syns_g_els = True # Switch this.
 
 syn1 = Synapse(0.6, 1) # 0.5 and 2 seem to have the same result.
@@ -118,7 +121,7 @@ print("Starting simulation",file=open("exp3.txt","a"))
 start_time = time.time()
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau',
-                dense_output=True)
+                dense_output=False)
 end_time = time.time()
 print(out.success,file=open("exp3.txt","a"))
 print("Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
@@ -144,7 +147,7 @@ z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
 out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau', dense_output=True)
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau', dense_output=False)
 end_time = time.time()
 print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
 
@@ -156,7 +159,7 @@ print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp
 # Evaluate the solutions, accounting for phase shift.
 ps = 3
 
-calc_ps = True
+calc_ps = False
 if calc_ps:
     # # To find phase shift.
     def obj_fn(ps, start, end, dt):
@@ -187,22 +190,24 @@ if calc_ps:
     print(res, file=open("exp3.txt","a"))
     print(res.x, file=open("exp3.txt","a"))
 
-dt = 0.005
-t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
-sol = out.sol(t)
-ps_idx = int(ps//dt + 1)
-t_nodist = t - ps
-t_nodist = t_nodist[ps_idx:] # Eliminate the excess values at the start.
-sol_nodist = out_nodist.sol(t_nodist)
-
-# plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
-# plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_nodist[0,:])
-
-diff = sol[0,ps_idx:] - sol_nodist[0,:]
-
-# plt.plot(t[j-ps_idx:],diff[j:])
-# j=746500;k=749000;plt.plot(t[j-ps_idx:k-ps_idx],sol[j:k],t_nodist[j:k],sol_nodist[j:k])
-# j=400000;plt.plot(t_nodist[j:],sol[j:ps_idx]-np.roll(sol_nodist,-5)[j:])
+applying_ps = False
+if applying_ps:
+    dt = 0.005
+    t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
+    sol = out.sol(t)
+    ps_idx = int(ps//dt + 1)
+    t_nodist = t - ps
+    t_nodist = t_nodist[ps_idx:] # Eliminate the excess values at the start.
+    sol_nodist = out_nodist.sol(t_nodist)
+    
+    # plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
+    # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_nodist[0,:])
+    
+    diff = sol[0,ps_idx:] - sol_nodist[0,:]
+    
+    # plt.plot(t[j-ps_idx:],diff[j:])
+    # j=746500;k=749000;plt.plot(t[j-ps_idx:k-ps_idx],sol[j:k],t_nodist[j:k],sol_nodist[j:k])
+    # j=400000;plt.plot(t_nodist[j:],sol[j:ps_idx]-np.roll(sol_nodist,-5)[j:])
 
 
 # %%
@@ -310,4 +315,4 @@ sol=sol.astype('float32')
 t_nodist = t_nodist.astype('float32')
 sol_nodist = sol_nodist.astype('float32')
 np.savez("exp3.npz", t=t, tnd=t_nodist, sol=sol,
-         solnd=sol_nodist,ps=ps,ps_idx=ps_idx)
+         solnd=sol_nodist)#,ps=ps,ps_idx=ps_idx)
