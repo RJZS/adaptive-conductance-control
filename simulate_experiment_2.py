@@ -18,8 +18,8 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 6000.
-control_start_time = 0. # 2000.
+Tfinal = 10000.
+observe_start_time = 4000. # 2000.
 
 # Initial conditions - Single Neuron Disturbance Rejection
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
@@ -31,7 +31,7 @@ to_estimate = np.array([],dtype=np.int32)
 to_observe = np.array([0], dtype=np.int32)
 estimate_g_syns_g_els = True
 
-syn = Synapse(2., 1)
+syn = Synapse(0.6, 1)
 neur_one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn], 0)  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
 neur_dist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [], 0)
 network = Network([neur_one, neur_dist], [])
@@ -40,8 +40,16 @@ control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 
 ## Dist Rej Currents
 # Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-Iconst = lambda t: -2
-Iapps = [Iconst, Iconst]
+def Ioffset(t): # So two neurons in HCO don't burst simultaneously
+    if t < 200:
+        return -4.
+    else:
+        return -2.
+    
+Iconst = lambda t: -2.
+
+
+Iapps = [Iconst, Ioffset]
 
 # Observer parameters
 α = 0.0005 # Default is 0.5. Had to decrease as P values were exploding.
@@ -75,18 +83,18 @@ dt = 0.01
 tspan = (0.,Tfinal)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,control_start_time,to_observe)
+     estimate_g_syns_g_els,observe_start_time,to_observe,0)
 
 print("Starting simulation",file=open("exp2.txt","a"))
 start_time = time.time()
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau',
-                dense_output=True)
+                dense_output=False)
 end_time = time.time()
 print("Simulation time: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
 
-# t = out.t
-# sol = out.y
+t = out.t
+sol = out.y
 
 # Let's calculate Isyn and Isyn_hat
 # v = sol[0,:]
@@ -113,17 +121,17 @@ z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
 out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau', dense_output=True)
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau', dense_output=False)
 end_time = time.time()
 print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
 
-# t_nodist = out_nodist.t
-# sol_nodist = out_nodist.y
+t_nodist = out_nodist.t
+sol_nodist = out_nodist.y
 
 # %%
 # Evaluate the solutions, accounting for phase shift.
 
-know_ps = True
+know_ps = False
 if know_ps:
     ps = 19.25830446788209 # Phase shift
     dt = 0.005
@@ -181,5 +189,5 @@ t_nodist = t_nodist.astype('float32')
 sol=sol.astype('float32')
 sol_nodist=sol_nodist.astype('float32')
 np.savez("exp2.npz", t=t, tnd=t_nodist, sol=sol,
-         solnd=sol_nodist,ps=ps,ps_idx=ps_idx)
+         solnd=sol_nodist)#,ps=ps,ps_idx=ps_idx)
 
