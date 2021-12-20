@@ -108,8 +108,15 @@ def main(t,z,p):
     num_estimators = p[4] # Combine this with prev? But includes syns and res...
     controller_settings = p[5] # Control law to use for the neurons
     estimate_g_syns_g_els = p[6]
-    control_start_time = p[7]
+    observe_start_time = p[7]
     to_observe = p[8]
+    is_exp1_res_g = p[9] # Rather hacky. For introducing the diffusive coupling alongside the observer.
+    
+    if is_exp1_res_g > 0:
+        if t < observe_start_time:
+            network.el_connects = np.array([[0., 0, 1]])
+        else:
+            network.el_connects = np.array([[is_exp1_res_g, 0, 1]])
     
     # Assuming all the neurons are of the same model:
     num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
@@ -156,7 +163,7 @@ def main(t,z,p):
     injected_currents = np.zeros(num_neurs)
     for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
     # Run controller
-    if controller_settings[0] == "DistRej" and t > control_start_time:
+    if controller_settings[0] == "DistRej" and t > observe_start_time:
         if estimate_g_syns_g_els:
             g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
         else:
@@ -170,7 +177,7 @@ def main(t,z,p):
             gres_hats = extract_gres_hats(network.neurons, θ̂s, network.max_num_els, len(to_estimate))
             control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, v̂s, network.neurons, controller_settings[2])
         injected_currents = injected_currents + control_currs
-    elif controller_settings[0] == "RefTrack" and t > control_start_time:
+    elif controller_settings[0] == "RefTrack" and t > observe_start_time:
         # If not estimating all the intrinsic gs, will feed controller a mix of true
         # and estimated gs. Need to generate this list of gs to feed in.
         neur_gs = np.zeros((num_neur_gs, num_neurs))
@@ -235,7 +242,7 @@ def main(t,z,p):
             Vs[i], ints[:,i], syns[:,i], v_pres)
         
         # Finally, run the adaptive observer
-        if i in to_observe:
+        if i in to_observe and t > observe_start_time:
             (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
                                              Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i],
                                              no_res_connections, network.el_connects, i, Vs)
