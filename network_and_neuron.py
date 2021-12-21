@@ -40,7 +40,9 @@ class Neuron:
         
         # self.EK = -77 # For rebound burster
         # self.Esyn = -120 # Needs to be below EK I think for rebound bursting...
-        self.Esyn = -70 # GABA A from Drion 2018 (see Fig1C, CaT_ncells.jl)
+        
+        # self.Esyn = -70 # GABA A from Drion 2018 (see Fig1C, CaT_ncells.jl)
+        self.Esyn = -90
         # self.Esyn = -85 # GABA B
         
         # # Drion plos 18

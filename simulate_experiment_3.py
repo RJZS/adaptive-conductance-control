@@ -30,8 +30,8 @@ to_estimate = np.array([], dtype=np.int32)
 to_observe = np.array([2,3], dtype=np.int32) # Have to change this if choose to reject the other g_el!
 estimate_g_syns_g_els = True # Switch this.
 
-syn1 = Synapse(0.6, 1) # 0.5 and 2 seem to have the same result.
-syn2 = Synapse(0.6, 0)
+syn1 = Synapse(0.8, 1) # 0.5 and 2 seem to have the same result.
+syn2 = Synapse(0.8, 0)
 syn3 = Synapse(0.6, 4)
 syn4 = Synapse(0.6, 3)
 
@@ -42,28 +42,35 @@ synhub2 = Synapse(8, 4)
 
 Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
 def Irb(t): # For rebound burster
-    if t < 400 or t > 500:
-        return -3.7
+    if t < 400 or t > 600:
+        return -3.2 # -3.7
     else:
-        return -7.5
-
-def Ioffset(t): # So two neurons in HCO don't burst simultaneously
-    if t < 200:
-        return -4.
+        return -7
+    
+def Irb2(t): # For rebound burster
+    if t < 400 or t > 600:
+        return -2.5 # -3.7
     else:
-        return -2.
+        return -6
+
+# def Ioffset(t): # So two neurons in HCO don't burst simultaneously
+#     if t < 200:
+#         return -4.
+#     else:
+#         return -2.
     
-def Ioffset2(t): # So two neurons in HCO don't burst simultaneously
-    if t < 300:
-        return -4.
-    else:
-        return -2.
+# def Ioffset2(t): # So two neurons in HCO don't burst simultaneously
+#     if t < 300:
+#         return -4.
+#     else:
+#         return -2.
     
-    
-Iconst = lambda t: -2.
+Iconst = lambda t: -3.2 # -3.7
+Iconst2 = lambda t: -2.5
 
 
-Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2]
+# Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2] 
+Iapps = [Irb, Iconst, lambda t: 38, Irb2, Iconst2]
 
 #x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
 
@@ -119,16 +126,16 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 print("Tfinal = {}s".format(Tfinal),file=open("exp3.txt","a"))
 print("Starting simulation",file=open("exp3.txt","a"))
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau',
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-4,atol=1e-4,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
                 dense_output=False)
 end_time = time.time()
 print(out.success,file=open("exp3.txt","a"))
 print("Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
 # NOTE: LATER, WHEN EVALUATING DENSE OUTPUT, CAN SET DT TO EQUAL PHASE SHIFT!
 
-# t = out.t
-# sol = out.y
+t = out.t
+sol = out.y
 
 
 # %%
@@ -146,13 +153,13 @@ p_nodist = (Iapp_nodist, network_nodist)
 z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='Radau', dense_output=False)
+out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-4,atol=1e-4,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=False)
 end_time = time.time()
 print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
 
-# t_nodist = out_nodist.t
-# sol_nodist = out_nodist.y
+t_nodist = out_nodist.t
+sol_nodist = out_nodist.y
 
 
 # %%
@@ -220,12 +227,18 @@ if applying_ps:
 # Playing with model to find bursting behaviour.
 playing = False
 if playing:
-    Tfinal = 3500//2.
+    Tfinal = 4500.
+    Tfinal = 10000.
+    # Tfinal= 2200.
     dt=0.01
-    syn1 = Synapse(0.6, 1) # 0.5 and 2 seem to have the same result.
-    syn2 = Synapse(0.6, 0)
+    syn1 = Synapse(0.8, 1) # 0.5 and 2 seem to have the same result.
+    syn2 = Synapse(0.8, 0)
     syn3 = Synapse(0.6, 4)
     syn4 = Synapse(0.6, 3)
+    
+    
+    # syn3 = Synapse(0.6, 1)
+    # syn4 = Synapse(0.6, 0)
     
     # To hub neuron
     synhub1 = Synapse(8, 0) # 0.5 does nothing to stop spiking. 6 give very wide bursts.
@@ -234,10 +247,16 @@ if playing:
     
     Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
     def Irb(t): # For rebound burster
-        if t < 400 or t > 500:
-            return -3.7
+        if t < 400 or t > 600:
+            return -3.2 # -3.7
         else:
-            return -7.5
+            return -7
+        
+    def Irb2(t): # For rebound burster
+        if t < 400 or t > 600:
+            return -2.5 # -3.7
+        else:
+            return -6
     
     def Ioffset(t): # So two neurons in HCO don't burst simultaneously
         if t < 200:
@@ -251,10 +270,14 @@ if playing:
         else:
             return -2.
         
-    Iconst = lambda t: -2.
+    Iconst2 = lambda t: -2.5
+    
+    Iconst = lambda t: -3.2 # -3.7
     
     
-    Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2] 
+    # Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2] 
+    Iapps = [Irb, Iconst, lambda t: 38, Irb2, Iconst2] 
+    # Iapps = [Irb2, Iconst2] # For second HCO.
     # Iapps = [lambda t: 34] # 34 gives bursts, length about 1600. 38 gives spiking.
     
     tspan = (0.,Tfinal)
@@ -270,15 +293,14 @@ if playing:
     one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn1], 0)
     two = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2], 1)
     
-    three = Neuron(0.1, [80.,0.1,0.2,0,30.,0.,1.,0.,0.1], [synhub1, synhub2], 2) # Hub neuron
-    # three = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [synhub1], 1) # Hub neuron
+    three = Neuron(0.1, [80.,0.1,2.,0,30.,0.,1.,0.,0.1], [synhub1], 1)#, synhub2], 2) # Hub neuron
     
-    four = Neuron(0.1, [120.,0.1,1.,0,80.,0.4,2.,0.,0.1], [syn3], 1)
-    five = Neuron(0.1, [120.,0.1,1.,0,80.,0.4,2.,0.,0.1], [syn4], 0)
+    four = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn3], 0)# 1)
+    five = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn4], 0)
     # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
     
-    res_g = 0.001
-    el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
+    res_g = 0.01 # 0.001
+    el_connects = np.array([[res_g, 1, 2]])#,[res_g, 3, 2]])
     # el_connects = np.array([[res_g, 1, 2]])
     
     # v_0 = np.array([-70.])
@@ -287,13 +309,13 @@ if playing:
     
     # # Rebound burster
     # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
-    # network_play = Network([one, two, three, four, five], np.zeros((5,5)))
-    network_play = Network([one, two, three, four, five], el_connects)
+    # network_play = Network([one, two, three, four, five], el_connects)
+    network_play = Network([one, two, three], el_connects)
     # network_play = Network([one, two, three], el_connects)
     # network_play = Network([four, five], np.zeros((2,2)))
     p_play = (Iapps, network_play)
     
-    z_0_play = np.concatenate((x_0, x_0, x_0, x_0, x_0))
+    z_0_play = np.concatenate((x_0[:12], x_0[:12], x_0[:12]))#, x_0, x_0))
     # z_0_play = x_0
     # z_0_play[0] = -70
     print("Starting 'play' simulation. Tfinal = {}".format(Tfinal))
@@ -306,7 +328,8 @@ if playing:
     t = out_play.t
     sol = out_play.y
     
-    plt.plot(t,sol[0,:],t,sol[13,:],t,sol[26,:])
+    plt.plot(t,sol[0,:],t,sol[12,:])
+    # plt.plot(t,sol[0,:],t,sol[13,:],t,sol[26,:]) # For full system.
     # plt.plot(t_play,sol_play[0,:],t_play2,sol_play2[0,:])
     
 print("Converting and saving...",file=open("exp3.txt","a"))
