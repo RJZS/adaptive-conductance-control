@@ -27,11 +27,11 @@ x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 to_observe = np.array([0, 1], dtype=np.int32) # Neurons to observe.
 # θ̂_0 = np.array([160.,1.,1.,1.,100.,1.,1.,1.,1.,1.]) # np.ones(10); # 1 g_el. From idx 22 to 31,
 # or for second neuron, from 142+22.
-θ̂_0 = np.ones(10);
-P_0 = np.eye(10); # From idx 31 I think
-Ψ_0 = np.zeros(10);
+θ̂_0 = np.ones(9);
+P_0 = np.eye(9); # From idx 31 I think
+Ψ_0 = np.zeros(9);
 to_estimate = np.array([0,1,2,3,4,5,6,7,8], dtype=np.int32)
-estimate_g_syns_g_els = True
+estimate_g_syns_g_els = False
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, 
 neur_one_gs = np.array([0.,0.,0.,0,0.,0.,0.,0.,0.1])
@@ -88,25 +88,29 @@ z_0_ref = np.concatenate((x_0, x_0))
 # z_0_ref[0] = -70.
 
 start_time = time.time()
-out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-4,atol=1e-4,
-                t_eval=np.linspace(0,Tfinal1,int(Tfinal1/dt)), method='LSODA', dense_output=True)
+out_ref = solve_ivp(lambda t, z: no_observer(t, z, p_ref), tspan, z_0_ref,rtol=1e-3,atol=1e-3,
+                t_eval=np.linspace(0,Tfinal1,int(Tfinal1/dt)), method='Radau', dense_output=False)
 end_time = time.time()
-print("'Ref' Simulation time: {}s".format(end_time-start_time))
+print("'Ref' Simulation time: {}s".format(end_time-start_time),file=open("exp1.txt","a"))
 
 t_ref = out_ref.t
 sol_ref = out_ref.y
 
 # Now use those parameters to initialise the next sim.
 z_0[:11] = out_ref.y[:11]
+# init = np.load("exp1_resg_0_4_solref.npy")
+# z_0[:11] = init[:11]
+# z_0[:11] = np.zeros(11)
 neur_ref_start_idx = len(z_0) // 2 # Test this!
-z_0[neur_ref_start_idx:neur_ref_start_idx+11] = out_ref.y[11:]
+z_0[neur_ref_start_idx:neur_ref_start_idx+11] = out_ref.y[11:] # init[11:]
 
+
+# %%
 # Now set up the full connected network.
 neur_one = Neuron(0.1, neur_one_gs, np.array([]), 1)
 neur_ref = Neuron(0.1, neur_ref_gs, np.array([]), 1)
 network = Network([neur_one, neur_ref], el_connects)
 
-# %%
 # Integration initial conditions and parameters
 tspan = (0.,Tfinal2)
 observe_start_time = 0.
@@ -115,8 +119,8 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 
 print("Starting simulation",file=open("exp1.txt","a"))
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-4,atol=1e-4,
-                t_eval=np.linspace(0,Tfinal2,int(Tfinal2/dt)), method='LSODA',
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-3,
+                t_eval=np.linspace(0,Tfinal2,int(Tfinal2/dt)), method='Radau',
                 dense_output=False)
 end_time = time.time()
 print(out.success, file=open("exp1.txt","a"))

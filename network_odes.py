@@ -111,7 +111,7 @@ def main(t,z,p):
     estimate_g_syns_g_els = p[6]
     observe_start_time = p[7]
     to_observe = p[8]
-    is_exp1_res_g = p[9] # Rather hacky. For introducing the diffusive coupling alongside the observer.
+    # is_exp1_res_g = p[9] # Rather hacky. For introducing the diffusive coupling alongside the observer.
     
     # if is_exp1_res_g > 0:
     #     if t < observe_start_time:
