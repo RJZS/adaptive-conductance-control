@@ -17,8 +17,8 @@ observe_start_time = 4000. # 1000.
 # TODO: can I change the initialisation without 'instability'?
 # Same for increasing alpha and decreasing gamma.
 
-Tfinal = 25.
-observe_start_time=20.
+# Tfinal = 25.
+# observe_start_time=20.
 
 # Initial conditions
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
