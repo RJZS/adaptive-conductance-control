@@ -97,7 +97,7 @@ if prep_exp3:
     v_nd = np.roll(sol_nodist[0,:], -roll_idx)[:-roll_idx]
     error = v - v_nd
     
-    g_ests = sol[126:129,:]
+    g_ests = sol[126:130,:]
     
     trnc = 1200000 # For controller plots
     t_trnc = t_psd[:trnc]; v_trnc = v[:trnc]; v_nd_trnc = v_nd[:trnc] # Note t_psd
