@@ -206,7 +206,7 @@ def main(t,z,p):
         observer_gs = np.vstack((neur_gs, g_syns))
         if controller_settings[2]: # if is_exp1
             control_currs = reference_tracking_exp1(v̂s[0], ints_hat[:,0], syns_hat[:,0], observer_gs[:,0], 
-                                               θ̂s[:9,1], network, num_neurs, num_neur_gs)
+                                               np.concatenate((θ̂s[:8,1],[neur_gs[-1,0]])), network, num_neurs, num_neur_gs)
             injected_currents[0] = injected_currents[0] + control_currs[0]
         else:
             control_currs = reference_tracking(v̂s, ints_hat, syns_hat, observer_gs, 

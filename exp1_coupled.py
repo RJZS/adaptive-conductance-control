@@ -14,6 +14,9 @@ from network_odes import main, no_observer
 
 Tfinal1 = 3000. # How long to run 'before'
 Tfinal2 = 12000. # How long to run observer+controller.
+
+#Tfinal1=10.
+#Tfinal2=50.
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp1.txt","a"))
 print("Tfinal2 = {}".format(Tfinal2),file=open("exp1.txt","a"))
 
@@ -27,10 +30,10 @@ x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 to_observe = np.array([0, 1], dtype=np.int32) # Neurons to observe.
 # θ̂_0 = np.array([160.,1.,1.,1.,100.,1.,1.,1.,1.,1.]) # np.ones(10); # 1 g_el. From idx 22 to 31,
 # or for second neuron, from 142+22.
-θ̂_0 = np.ones(9);
-P_0 = np.eye(9); # From idx 31 I think
-Ψ_0 = np.zeros(9);
-to_estimate = np.array([0,1,2,3,4,5,6,7,8], dtype=np.int32)
+θ̂_0 = np.ones(8);
+P_0 = np.eye(8); # From idx 31 I think
+Ψ_0 = np.zeros(8);
+to_estimate = np.array([0,1,2,3,4,5,6,7], dtype=np.int32)
 estimate_g_syns_g_els = False
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, 
@@ -97,12 +100,12 @@ t_ref = out_ref.t
 sol_ref = out_ref.y
 
 # Now use those parameters to initialise the next sim.
-z_0[:11] = out_ref.y[:11]
+z_0[:11] = out_ref.y[:11,-1]
 # init = np.load("exp1_resg_0_4_solref.npy")
 # z_0[:11] = init[:11]
 # z_0[:11] = np.zeros(11)
 neur_ref_start_idx = len(z_0) // 2 # Test this!
-z_0[neur_ref_start_idx:neur_ref_start_idx+11] = out_ref.y[11:] # init[11:]
+z_0[neur_ref_start_idx:neur_ref_start_idx+11] = out_ref.y[11:,-1] # init[11:]
 
 
 # %%
