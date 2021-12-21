@@ -18,10 +18,13 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 10000.
-observe_start_time = 4000. # 2000.
+Tfinal1 = 6000.
+Tfinal2 = 4000. # 2000.
 
-# Tfinal = 10.002
+tol = 1e-8
+solvemethod = 'LSODA'
+
+# Tfinal = 11
 # observe_start_time = 10. # 2000.
 
 # Initial conditions - Single Neuron Disturbance Rejection
@@ -34,9 +37,13 @@ to_estimate = np.array([],dtype=np.int32)
 to_observe = np.array([0], dtype=np.int32)
 estimate_g_syns_g_els = True
 
-syn = Synapse(0.6, 1)
-neur_one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn], 0)  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
-neur_dist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [], 0)
+syn = Synapse(0.8, 1)
+
+neur_one_gs = [120.,0.1,2.,0,80.,0.4,2.,0.,0.1]
+neur_dist_gs = [120.,0.1,2.,0,80.,0.4,2.,0.,0.1]
+
+neur_one = Neuron(0.1, neur_one_gs, [syn], 0)  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
+neur_dist = Neuron(0.1, neur_dist_gs, [], 0)
 network = Network([neur_one, neur_dist], [])
 
 control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
@@ -80,21 +87,46 @@ z_0 = np.ravel(z_0, order='F')
 # z_0[0] = -70.
 
 # %%
-# Integration initial conditions and parameters
+# First run the pre-observer system.
 dt = 0.01
+tspan = (0.,Tfinal1)
 
-tspan = (0.,Tfinal)
+p_before = (Iapps, network)
+z_0_before = np.concatenate((x_0, x_0))
+# z_0_ref[0] = -70.
+
+start_time = time.time()
+out_before = solve_ivp(lambda t, z: no_observer(t, z, p_before), tspan, z_0_before,rtol=tol,atol=tol,
+                t_eval=np.linspace(0,Tfinal1,int(Tfinal1/dt)), method=solvemethod, dense_output=False)
+end_time = time.time()
+print("'Before' Simulation time: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
+
+t_before = out_before.t
+sol_before = out_before.y
+
+# Now use those parameters to initialise the next sim.
+z_0[:12] = out_before.y[:12,-1]
+# init = np.load("exp1_resg_0_4_solref.npy")
+# z_0[:11] = init[:11]
+# z_0[:11] = np.zeros(11)
+neur_bef_start_idx = len(z_0) // 2 # Test this!
+z_0[neur_bef_start_idx:neur_bef_start_idx+12] = out_before.y[12:,-1] # init[11:]
+
+# %%
+# Integration initial conditions and parameters
+
+tspan = (0.,Tfinal2)
 # controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,observe_start_time,to_observe,0)
+     estimate_g_syns_g_els,0.,to_observe,0)
 
-print("Starting simulation")#,file=open("exp2.txt","a"))
+print("Starting simulation",file=open("exp2.txt","a"))
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=tol,atol=tol,
+                t_eval=np.linspace(0,Tfinal2,int(Tfinal2/dt)), method=solvemethod,
                 dense_output=False)
 end_time = time.time()
-print("Simulation time: {}s".format(end_time-start_time))#,file=open("exp2.txt","a"))
+print("Simulation time: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
 
 t = out.t
 sol = out.y
@@ -113,7 +145,7 @@ sol = out.y
 #     for (neur_i, syn_i) in control_law[1]:
         
 # Single neuron disturbance rejection
-neur_one_nodist = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [], 0)
+neur_one_nodist = Neuron(0.1, neur_one_gs, [], 0)
 
 network_nodist = Network([neur_one_nodist], [])
 p_nodist = (Iapps, network_nodist)
@@ -123,10 +155,12 @@ p_nodist = (Iapps, network_nodist)
 z_0_nodist = x_0[:11] # Only one neur
 # z_0_nodist[0] = -70. # Mimicking line above.
 start_time = time.time()
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=False)
+Tfinal = Tfinal1 + Tfinal2
+tspan = (0.,Tfinal)
+out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=tol,atol=tol,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method=solvemethod, dense_output=False)
 end_time = time.time()
-print("'Nodist' Simulation time: {}s".format(end_time-start_time))#,file=open("exp2.txt","a"))
+print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp2.txt","a"))
 
 t_nodist = out_nodist.t
 sol_nodist = out_nodist.y
@@ -191,6 +225,6 @@ t=t.astype('float32')
 t_nodist = t_nodist.astype('float32')
 sol=sol.astype('float32')
 sol_nodist=sol_nodist.astype('float32')
-np.savez("exp2.npz", t=t, tnd=t_nodist, sol=sol,
-         solnd=sol_nodist)#,ps=ps,ps_idx=ps_idx)
+np.savez("exp2.npz", tbef=t_before, t=t, tnd=t_nodist, solbef=sol_before, 
+         sol=sol, solnd=sol_nodist)#,ps=ps,ps_idx=ps_idx)
 
