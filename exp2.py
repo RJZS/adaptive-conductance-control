@@ -21,7 +21,7 @@ from network_odes import main, no_observer
 Tfinal1 = 4000.
 Tfinal2 = 6000. # 2000.
 
-Tfinal1 = 4000.
+Tfinal1 = 6000.
 Tfinal2 = 20000.
 
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp2.txt","a"))
@@ -46,7 +46,7 @@ estimate_g_syns_g_els = True
 syn = Synapse(0.8, 1)
 
 neur_one_gs = np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1])
-neur_dist_gs = np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1])
+neur_dist_gs = np.array([120.,0.1,3.,0,80.,1.,2.,0.,0.1])
 
 neur_one = Neuron(0.1, neur_one_gs, [syn], 0)  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
 neur_dist = Neuron(0.1, neur_dist_gs, [], 0)
@@ -57,17 +57,18 @@ control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
 
 ## Dist Rej Currents
 # Iapp = lambda t : 2 + np.sin(2*np.pi/10*t)
-def Ioffset(t): # So two neurons in HCO don't burst simultaneously
+def Ioffset_dist(t): # So two neurons in HCO don't burst simultaneously
     if t < 400:
         return -7.5
     else:
-        return -2.
+        return -1.
     
 Iconst = lambda t: -2.
+Iconst_dist = lambda t: -1.
 
 
-Iapps_before = [Iconst, Ioffset]
-Iapps = [Iconst, Iconst]
+Iapps_before = [Iconst, Ioffset_dist]
+Iapps = [Iconst, Iconst_dist]
 
 # Observer parameters
 α = 0.001 # 0.0005 # Default is 0.5. Had to decrease as P values were exploding.
