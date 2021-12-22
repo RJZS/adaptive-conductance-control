@@ -13,7 +13,11 @@ from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
 Tfinal1 = 4000.
-Tfinal2 = 10000.
+# Tfinal2 = 10000.
+Tfinal2 = 6000.
+
+# Tfinal1 = 2000.
+# Tfinal2 = 700.
 
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp3.txt","a"))
 print("Tfinal2 = {}".format(Tfinal2),file=open("exp3.txt","a"))
@@ -100,7 +104,7 @@ el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
 network = Network([one, two, three, four, five], el_connects)
 
 # Observer parameters
-α = 0.00085 # HCO periods are 1080 and 850.
+α = 0.0001 # 0.0001 # 0.0008 # 0.00085 # HCO periods are 1080 and 850. What about combined rhythm?
 γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...], reject_els_to...]
@@ -170,6 +174,7 @@ out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=tol,atol=tol,
                 dense_output=False)
 end_time = time.time()
 print(out.success,file=open("exp3.txt","a"))
+print(out.y[126:130,-1],file=open("exp3.txt","a"))
 print("Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
 # Hint: could set dt to equal phase shift if decide to do phase shifts again,
 # and obtain dense outputs etc.
@@ -382,5 +387,5 @@ t=t.astype('float32')
 t_nodist = t_nodist.astype('float32')
 sol=sol.astype('float32')
 sol_nodist=sol_nodist.astype('float32')
-np.savez("exp2.npz", tbef=t_before, t=t, tnd=t_nodist, solbef=sol_before, 
+np.savez("exp3.npz", tbef=t_before, t=t, tnd=t_nodist, solbef=sol_before, 
          sol=sol, solnd=sol_nodist)#,ps=ps,ps_idx=ps_idx)
