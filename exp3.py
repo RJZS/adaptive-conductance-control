@@ -16,8 +16,8 @@ Tfinal1 = 4000.
 # Tfinal2 = 10000.
 Tfinal2 = 6000.
 
-# Tfinal1 = 2000.
-# Tfinal2 = 700.
+Tfinal1 = 2000.
+Tfinal2 = 2500.
 
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp3.txt","a"))
 print("Tfinal2 = {}".format(Tfinal2),file=open("exp3.txt","a"))
@@ -113,7 +113,7 @@ network = Network([one, two, three, four, five], el_connects)
 # The next two elements of the control_law array pertain to electrical connections. They're very hacky!!
 reject_els_to_neur_idxs = [2] # Rejecting connections to the hub neuron
 reject_el_idx_of_reject_els_to_neur = 1 # Reject which of the connections involving 2.
-control_law = ["DistRej", [(2, 0), (2, 1)], reject_els_to_neur_idxs,
+control_law = ["DistRej", [(2, 1)], reject_els_to_neur_idxs,
                reject_el_idx_of_reject_els_to_neur]
 # control_law = [""]
 
