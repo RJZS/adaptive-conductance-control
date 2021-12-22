@@ -161,11 +161,9 @@ def main(t,z,p):
     Ψs = z_mat[idx_so_far+num_estimators+num_estimators**2:
                idx_so_far+num_estimators*2+num_estimators**2,:]
     
-    injected_currents_true = np.zeros(num_neurs)
-    injected_currents_observer = np.zeros(num_neurs)
-    for i in range(num_neurs):
-        injected_currents_true[i] = Iapps[i](t)
-        injected_currents_observer[i] = Iapps[i](t)
+    injected_currents = np.zeros(num_neurs)
+    for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
+    
     # Run controller
     if controller_settings[0] == "DistRej" and t > observe_start_time:
         if estimate_g_syns_g_els:
@@ -174,18 +172,15 @@ def main(t,z,p):
             g_syns = np.zeros((max_num_syns, num_neurs))
             for (idx, neur) in enumerate(network.neurons):
                 g_syns[:neur.num_syns, idx] = neur.g_syns
-        control_currs_t = disturbance_rejection(controller_settings[1], g_syns,
+        control_currs = disturbance_rejection(controller_settings[1], g_syns,
                                               syns_hat, v̂s, network.neurons[0].Esyn, num_neurs)
-        control_currs_o = disturbance_rejection(controller_settings[1], g_syns,
-                                              syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
         # NB: Will reject electrical connections to neurons listed in controller_settings[2]
         if not no_res_connections:
             gres_hats = extract_gres_hats(network.neurons, θ̂s, network.max_num_els, len(to_estimate))
             # What about o...
-            control_currs = control_currs_t + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, v̂s,
+            control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, v̂s,
                                                                             network.neurons, controller_settings[2], controller_settings[3])
-        injected_currents_true = injected_currents_true + control_currs_t
-        injected_currents_observer = injected_currents_observer + control_currs_o
+        injected_currents = injected_currents + control_currs
     elif controller_settings[0] == "RefTrack" and t > observe_start_time:
         # If not estimating all the intrinsic gs, will feed controller a mix of true
         # and estimated gs. Need to generate this list of gs to feed in.
@@ -214,11 +209,11 @@ def main(t,z,p):
         if controller_settings[2]: # if is_exp1
             control_currs = reference_tracking_exp1(v̂s[0], ints_hat[:,0], syns_hat[:,0], observer_gs[:,0], 
                                                np.concatenate((θ̂s[:8,1],[neur_gs[-1,0]])), network, num_neurs, num_neur_gs)
-            injected_currents_true[0] = injected_currents_true[0] + control_currs[0]
+            injected_currents[0] = injected_currents[0] + control_currs[0]
         else:
             control_currs = reference_tracking(v̂s, ints_hat, syns_hat, observer_gs, 
                                            controller_settings[1], network, num_neurs, num_neur_gs)
-            injected_currents_true = injected_currents_true + control_currs
+            injected_currents = injected_currents + control_currs
     
     # Now make one time step. First, initialise the required vectors.
     dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)
@@ -241,7 +236,7 @@ def main(t,z,p):
 
         # Now, run the true system.
         (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
-                                         Vs[i], ints[:,i], syns[:,i], injected_currents_true[i],
+                                         Vs[i], ints[:,i], syns[:,i], injected_currents[i],
                                          no_res_connections, network.el_connects, i, Vs)
         dvs[i] = np.dot(ϕ,θ) + b
         # b here includes the input current, which is different from the paper I think
@@ -253,7 +248,7 @@ def main(t,z,p):
         # Finally, run the adaptive observer
         if i in to_observe and t > observe_start_time:
             (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
-                                             Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents_true[i],
+                                             Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i],
                                              no_res_connections, network.el_connects, i, Vs)
             
             dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
