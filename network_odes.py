@@ -253,7 +253,7 @@ def main(t,z,p):
         # Finally, run the adaptive observer
         if i in to_observe and t > observe_start_time:
             (_, ϕ̂, b_hat) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
-                                             Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents_observer[i],
+                                             Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents_true[i],
                                              no_res_connections, network.el_connects, i, Vs)
             
             dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
