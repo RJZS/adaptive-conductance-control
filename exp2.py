@@ -231,6 +231,8 @@ if calc_ps:
 # print("sol.max: {}".format(sol.max()),file=open("exp2.txt","a"))
 # print("sol.min: {}".format(sol.min()),file=open("exp2.txt","a"))
 print("Converting and saving...",file=open("exp2.txt","a"))
+t_before=t_before.astype('float32')
+sol_before=sol_before.astype('float32')
 t=t.astype('float32')
 t_nodist = t_nodist.astype('float32')
 sol=sol.astype('float32')

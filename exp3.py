@@ -12,13 +12,16 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
-Tfinal = 10000.
-observe_start_time = 4000. # 1000.
+Tfinal1 = 4000.
+Tfinal2 = 10000.
+
+print("Tfinal1 = {}".format(Tfinal1),file=open("exp3.txt","a"))
+print("Tfinal2 = {}".format(Tfinal2),file=open("exp3.txt","a"))
 # TODO: can I change the initialisation without 'instability'?
 # Same for increasing alpha and decreasing gamma.
 
-# Tfinal = 25.
-# observe_start_time=20.
+tol = 1e-3
+solvemethod = 'Radau'
 
 # Initial conditions
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
@@ -27,7 +30,11 @@ x̂_0 = [10, 0.1, 0.2, 0.01, 0.3, 0.1, 0.2, 0., 0.1, 0.2, 0.1, 0.1, 0.1]
 P_0 = np.eye(4);
 Ψ_0 = np.zeros(4);
 to_estimate = np.array([], dtype=np.int32)
-to_observe = np.array([2,3], dtype=np.int32) # Have to change this if choose to reject the other g_el!
+
+# Have to change this if choose to reject the other g_el!
+# Also have to change the nodist simulation below.
+to_observe = np.array([2,3], dtype=np.int32)
+
 estimate_g_syns_g_els = True # Switch this.
 
 syn1 = Synapse(0.8, 1) # 0.5 and 2 seem to have the same result.
@@ -70,17 +77,22 @@ Iconst2 = lambda t: -2.5
 
 
 # Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2] 
-Iapps = [Irb, Iconst, lambda t: 38, Irb2, Iconst2]
+Iapps_before = [Irb, Iconst, lambda t: 38, Irb2, Iconst2]
+Iapps = [Iconst, Iconst, lambda t:38, Iconst2, Iconst2]
 
 #x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
 
-one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn1], 0)
-two = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2], 1)
+hco_one_gs = np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1])
+hub_gs = np.array([80.,0.1,2.,0,30.,0.,1.,0.,0.1])
+hco_two_gs = np.array([120.,0.1,1.6,0,80.,0.2,2.,0.,0.1])
 
-three = Neuron(0.1, [80.,0.1,2.,0,30.,0.,1.,0.,0.1], [synhub1, synhub2], 2) # Hub neuron
+one = Neuron(0.1, hco_one_gs, [syn1], 0)
+two = Neuron(0.1, hco_one_gs, [syn2], 1)
 
-four = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn3], 1)
-five = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn4], 0)
+three = Neuron(0.1, hub_gs, [synhub1, synhub2], 2) # Hub neuron
+
+four = Neuron(0.1, hco_two_gs, [syn3], 1)
+five = Neuron(0.1, hco_two_gs, [syn4], 0)
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
 
 res_g = 0.01 # TODO: Need to raise this, otherwise hub isn't affecting HCO.
@@ -88,7 +100,7 @@ el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
 network = Network([one, two, three, four, five], el_connects)
 
 # Observer parameters
-α = 0.0005 # Default is 0.5. Had to decrease as P values were exploding.
+α = 0.00085 # HCO periods are 1080 and 850.
 γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...], reject_els_to...]
@@ -116,45 +128,75 @@ z_0 = np.ravel(z_0, order='F')
 # z_0[0] = -70.
 
 # %%
-# Integration initial conditions and parameters
+# First run the pre-observer system.
 dt = 0.01
+tspan = (0.,Tfinal1)
 
-tspan = (0.,Tfinal)
+p_before = (Iapps_before, network)
+z_0_before = np.concatenate((x_0, x_0, x_0, x_0, x_0))
+# z_0_ref[0] = -70.
+
+start_time = time.time()
+out_before = solve_ivp(lambda t, z: no_observer(t, z, p_before), tspan, z_0_before,rtol=tol,atol=tol,
+                t_eval=np.linspace(0,Tfinal1,int(Tfinal1/dt)), method=solvemethod, dense_output=False)
+end_time = time.time()
+print("'Before' Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
+
+t_before = out_before.t
+sol_before = out_before.y
+
+# Now use those parameters to initialise the next sim.
+z_0[:13] = out_before.y[:13,-1]
+# init = np.load("exp1_resg_0_4_solref.npy")
+# z_0[:11] = init[:11]
+# z_0[:11] = np.zeros(11)
+neur_bef_start_idx = len(z_0) // 5
+z_0[neur_bef_start_idx:neur_bef_start_idx+13] = out_before.y[13:2*13,-1] # init[11:]
+z_0[2*neur_bef_start_idx:2*neur_bef_start_idx+13] = out_before.y[2*13:3*13,-1] # init[11:]
+z_0[3*neur_bef_start_idx:3*neur_bef_start_idx+13] = out_before.y[3*13:4*13,-1] # init[11:]
+z_0[4*neur_bef_start_idx:4*neur_bef_start_idx+13] = out_before.y[4*13:,-1] # init[11:]
+
+# %%
+# Integration initial conditions and parameters
+tspan = (0.,Tfinal2)
+# controller_on = True
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,observe_start_time,to_observe,0)
+     estimate_g_syns_g_els,0.,to_observe,0)
 
-print("Tfinal = {}s".format(Tfinal),file=open("exp3.txt","a"))
 print("Starting simulation",file=open("exp3.txt","a"))
 start_time = time.time()
-out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-4,atol=1e-4,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
+out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=tol,atol=tol,
+                t_eval=np.linspace(0,Tfinal2,int(Tfinal2/dt)), method=solvemethod,
                 dense_output=False)
 end_time = time.time()
 print(out.success,file=open("exp3.txt","a"))
 print("Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
-# NOTE: LATER, WHEN EVALUATING DENSE OUTPUT, CAN SET DT TO EQUAL PHASE SHIFT!
+# Hint: could set dt to equal phase shift if decide to do phase shifts again,
+# and obtain dense outputs etc.
 
 t = out.t
 sol = out.y
 
 
 # %%
-# Comparison simulation. Just the hub
+# 'Nodist' comparison simulation. Hub and first HCO.
 
-Iapp_nodist = [lambda t: 38]
-three_nodist = Neuron(0.1, [80.,0.1,2.,0,30.,0.,1.,0.,0.1], [], 0) # Hub neuron
+one_nodist = Neuron(0.1, hco_one_gs, [syn1], 0)
+two_nodist = Neuron(0.1, hco_one_gs, [syn2], 1)
+three_nodist = Neuron(0.1, hub_gs, [synhub1], 1) # Hub neuron
 
-network_nodist = Network([three_nodist], [])
-p_nodist = (Iapp_nodist, network_nodist)
+el_connects_nodist = np.array([[res_g, 1, 2]])
+Iapps_nodist = [Irb, Iconst, lambda t:38]
+network_nodist = Network([one_nodist, two_nodist, three_nodist], el_connects_nodist)
+p_nodist = (Iapps_nodist, network_nodist)
 
-# z_0_nodist = np.concatenate((x_0[:12], x_0[:12])) # One syn per neuron
-# z_0_nodist[0] = 20
-# z_0_nodist[12] = -20
-z_0_nodist = x_0[:11] # Only one neur
+z_0_nodist = np.concatenate((x_0[:12], x_0[:12], x_0[:12])) # No more than one syn per neuron.
 # z_0_nodist[0] = -70. # Mimicking line above.
+Tfinal = Tfinal1 + Tfinal2
+tspan = (0.,Tfinal)
 start_time = time.time()
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-4,atol=1e-4,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=False)
+out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=tol,atol=tol,
+                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method=solvemethod, dense_output=False)
 end_time = time.time()
 print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
 
@@ -229,7 +271,7 @@ playing = False
 if playing:
     Tfinal = 4500.
     Tfinal = 10000.
-    # Tfinal= 2200.
+    Tfinal= 3000.
     dt=0.01
     syn1 = Synapse(0.8, 1) # 0.5 and 2 seem to have the same result.
     syn2 = Synapse(0.8, 0)
@@ -293,14 +335,14 @@ if playing:
     one = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn1], 0)
     two = Neuron(0.1, [120.,0.1,2.,0,80.,0.4,2.,0.,0.1], [syn2], 1)
     
-    three = Neuron(0.1, [80.,0.1,2.,0,30.,0.,1.,0.,0.1], [synhub1], 1)#, synhub2], 2) # Hub neuron
+    three = Neuron(0.1, [80.,0.1,2.,0,30.,0.,1.,0.,0.1], [synhub1, synhub2], 2) # Hub neuron
     
     four = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn3], 0)# 1)
     five = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [syn4], 0)
     # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
     
     res_g = 0.01 # 0.001
-    el_connects = np.array([[res_g, 1, 2]])#,[res_g, 3, 2]])
+    el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
     # el_connects = np.array([[res_g, 1, 2]])
     
     # v_0 = np.array([-70.])
@@ -310,12 +352,13 @@ if playing:
     # # Rebound burster
     # neur_one_nodist = Neuron(1., [120.,0,0,0,36.,0,0,0.3], [])
     # network_play = Network([one, two, three, four, five], el_connects)
-    network_play = Network([one, two, three], el_connects)
+    network_play = Network([one, two], [])
     # network_play = Network([one, two, three], el_connects)
     # network_play = Network([four, five], np.zeros((2,2)))
     p_play = (Iapps, network_play)
     
-    z_0_play = np.concatenate((x_0[:12], x_0[:12], x_0[:12]))#, x_0, x_0))
+    z_0_play = np.concatenate((x_0[:12], x_0[:12]))# , x_0[:12]))#, x_0, x_0))
+    # z_0_play = np.concatenate((x_0, x_0, x_0, x_0, x_0))
     # z_0_play = x_0
     # z_0_play[0] = -70
     print("Starting 'play' simulation. Tfinal = {}".format(Tfinal))
@@ -333,9 +376,11 @@ if playing:
     # plt.plot(t_play,sol_play[0,:],t_play2,sol_play2[0,:])
     
 print("Converting and saving...",file=open("exp3.txt","a"))
+t_before=t_before.astype('float32')
+sol_before=sol_before.astype('float32')
 t=t.astype('float32')
-sol=sol.astype('float32')
 t_nodist = t_nodist.astype('float32')
-sol_nodist = sol_nodist.astype('float32')
-np.savez("exp3.npz", t=t, tnd=t_nodist, sol=sol,
-         solnd=sol_nodist)#,ps=ps,ps_idx=ps_idx)
+sol=sol.astype('float32')
+sol_nodist=sol_nodist.astype('float32')
+np.savez("exp2.npz", tbef=t_before, t=t, tnd=t_nodist, solbef=sol_before, 
+         sol=sol, solnd=sol_nodist)#,ps=ps,ps_idx=ps_idx)
