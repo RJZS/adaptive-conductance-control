@@ -25,6 +25,7 @@ Tfinal2 = 6000. # 2000.
 Tfinal1 = 6000.
 Tfinal2 = 20000.
 
+print("Tfinal0 = {}".format(Tfinal0),file=open("exp2.txt","a"))
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp2.txt","a"))
 print("Tfinal2 = {}".format(Tfinal2),file=open("exp2.txt","a"))
 

@@ -12,6 +12,7 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
+Tfinal0 = 4000.
 Tfinal1 = 4000.
 # Tfinal2 = 10000.
 Tfinal2 = 6000.
@@ -19,6 +20,7 @@ Tfinal2 = 6000.
 Tfinal1 = 2000.
 Tfinal2 = 2500.
 
+print("Tfinal0 = {}".format(Tfinal0),file=open("exp3.txt","a"))
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp3.txt","a"))
 print("Tfinal2 = {}".format(Tfinal2),file=open("exp3.txt","a"))
 # TODO: can I change the initialisation without 'instability'?
@@ -28,7 +30,7 @@ tol = 1e-3
 solvemethod = 'Radau'
 
 # Initial conditions
-x_0 = [0,0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
+x_0 = [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
 x̂_0 = [10, 0.1, 0.2, 0.01, 0.3, 0.1, 0.2, 0., 0.1, 0.2, 0.1, 0.1, 0.1]
 θ̂_0 = np.ones(4); # 2 syn, 2 el. Starts at idx 26.
 P_0 = np.eye(4);
@@ -81,7 +83,8 @@ Iconst2 = lambda t: -2.5
 
 
 # Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2] 
-Iapps_before = [Irb, Iconst, lambda t: 38, Irb2, Iconst2]
+Iapps_nodist = [Irb, Iconst, lambda t:38]
+Iapps_before = [Iconst, Iconst, lambda t: 38, Irb2, Iconst2]
 Iapps = [Iconst, Iconst, lambda t:38, Iconst2, Iconst2]
 
 #x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
@@ -102,6 +105,13 @@ five = Neuron(0.1, hco_two_gs, [syn4], 0)
 res_g = 0.01 # TODO: Need to raise this, otherwise hub isn't affecting HCO.
 el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
 network = Network([one, two, three, four, five], el_connects)
+
+one_nodist = Neuron(0.1, hco_one_gs, [syn1], 0)
+two_nodist = Neuron(0.1, hco_one_gs, [syn2], 1)
+three_nodist = Neuron(0.1, hub_gs, [synhub1], 1) # Hub neuron
+
+el_connects_nodist = np.array([[res_g, 1, 2]])
+network_nodist = Network([one_nodist, two_nodist, three_nodist], el_connects_nodist)
 
 # Observer parameters
 α = 0.0001 # 0.0001 # 0.0008 # 0.00085 # HCO periods are 1080 and 850. What about combined rhythm?
@@ -132,14 +142,34 @@ z_0 = np.ravel(z_0, order='F')
 # z_0[0] = -70.
 
 # %%
-# First run the pre-observer system.
+# Start by simulating the system without the disturbance. So just the hub and first HCO.
+
+p_nodist = (Iapps_nodist, network_nodist)
+z_0_nodist = np.concatenate((x_0[:12], x_0[:12], x_0[:12])) # No more than one syn per neuron.
+# z_0_nodist[0] = -70. # Mimicking line above.
+
 dt = 0.01
-tspan = (0.,Tfinal1)
+tspan = (0.,Tfinal0)
+start_time = time.time()
+out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=tol,atol=tol,
+                t_eval=np.linspace(0,Tfinal0,int(Tfinal0/dt)), method=solvemethod, dense_output=False)
+end_time = time.time()
+print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
 
-p_before = (Iapps_before, network)
+t_nodist = out_nodist.t
+sol_nodist = out_nodist.y
+
+# Now use those parameters to initialise the next sim.
 z_0_before = np.concatenate((x_0, x_0, x_0, x_0, x_0))
-# z_0_ref[0] = -70.
+z_0_before[:12] = sol_nodist[:12,-1]
+z_0_before[13:13+12] = sol_nodist[12:24,-1]
+z_0_before[26:26+12] = sol_nodist[24:,-1]
 
+# %%
+# Now run the full 5-neuron system without the observer/controller.
+p_before = (Iapps_before, network)
+
+tspan = (0.,Tfinal1)
 start_time = time.time()
 out_before = solve_ivp(lambda t, z: no_observer(t, z, p_before), tspan, z_0_before,rtol=tol,atol=tol,
                 t_eval=np.linspace(0,Tfinal1,int(Tfinal1/dt)), method=solvemethod, dense_output=False)
@@ -181,88 +211,6 @@ print("Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a
 
 t = out.t
 sol = out.y
-
-
-# %%
-# 'Nodist' comparison simulation. Hub and first HCO.
-
-one_nodist = Neuron(0.1, hco_one_gs, [syn1], 0)
-two_nodist = Neuron(0.1, hco_one_gs, [syn2], 1)
-three_nodist = Neuron(0.1, hub_gs, [synhub1], 1) # Hub neuron
-
-el_connects_nodist = np.array([[res_g, 1, 2]])
-Iapps_nodist = [Irb, Iconst, lambda t:38]
-network_nodist = Network([one_nodist, two_nodist, three_nodist], el_connects_nodist)
-p_nodist = (Iapps_nodist, network_nodist)
-
-z_0_nodist = np.concatenate((x_0[:12], x_0[:12], x_0[:12])) # No more than one syn per neuron.
-# z_0_nodist[0] = -70. # Mimicking line above.
-Tfinal = Tfinal1 + Tfinal2
-tspan = (0.,Tfinal)
-start_time = time.time()
-out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=tol,atol=tol,
-                t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method=solvemethod, dense_output=False)
-end_time = time.time()
-print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
-
-t_nodist = out_nodist.t
-sol_nodist = out_nodist.y
-
-
-# %%
-# Evaluate the solutions, accounting for phase shift.
-ps = 3
-
-calc_ps = False
-if calc_ps:
-    # # To find phase shift.
-    def obj_fn(ps, start, end, dt):
-        t = np.linspace(start,end,int((end-start)//dt + 1))
-        sol = out.sol(t)
-        ps_idx = int(ps//dt + 1)
-        t_nodist = t - ps
-        t_nodist = t_nodist[ps_idx:] # Eliminate the negative values at the start.
-        sol_nodist = out_nodist.sol(t_nodist)
-        
-        diff = sol[0,ps_idx:] - sol_nodist[0,:]
-        to_minimise = np.abs(diff).max()
-        return to_minimise
-    
-    # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_ref[0,:])
-    start_time = time.time()
-    obj_fn(3, 2450, 2950, 0.001)
-    end_time = time.time()
-    print("Time to run obj fn: {}s".format(end_time-start_time),file=open("exp3.txt","a"))
-    
-    from scipy.optimize import minimize_scalar
-    ps_start = 1.95
-    ps_end = 2.
-    res = minimize_scalar(obj_fn, bounds=(ps_start, ps_end), method='bounded',
-                          options={'maxiter':50,'disp':True}, args=(5600,5800,0.001))
-    res.x # Precise phase shift.
-    ps = res.x
-    print(res, file=open("exp3.txt","a"))
-    print(res.x, file=open("exp3.txt","a"))
-
-applying_ps = False
-if applying_ps:
-    dt = 0.005
-    t = np.linspace(0,Tfinal,int(Tfinal//dt + 1))
-    sol = out.sol(t)
-    ps_idx = int(ps//dt + 1)
-    t_nodist = t - ps
-    t_nodist = t_nodist[ps_idx:] # Eliminate the excess values at the start.
-    sol_nodist = out_nodist.sol(t_nodist)
-    
-    # plt.plot(t[-ps_idx:],sol[0,:ps_idx],t_nodist,sol_nodist[0,:])
-    # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_nodist[0,:])
-    
-    diff = sol[0,ps_idx:] - sol_nodist[0,:]
-    
-    # plt.plot(t[j-ps_idx:],diff[j:])
-    # j=746500;k=749000;plt.plot(t[j-ps_idx:k-ps_idx],sol[j:k],t_nodist[j:k],sol_nodist[j:k])
-    # j=400000;plt.plot(t_nodist[j:],sol[j:ps_idx]-np.roll(sol_nodist,-5)[j:])
-
 
 # %%
 # To find peaks.
