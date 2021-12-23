@@ -35,7 +35,7 @@ solvemethod = 'Radau'
 # observe_start_time = 10. # 2000.
 
 # Initial conditions - Single Neuron Disturbance Rejection
-x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
+x_0 = [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
 x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 θ̂_0 = np.ones(1); # Estimating 1syn. idx 24
 P_0 = np.eye(1);
@@ -120,7 +120,7 @@ sol_nodist = out_nodist.y
 
 # Now use those parameters to initialise the next sim.
 z_0_before = np.concatenate((x_0, x_0))
-z_0_before[:11] = sol_nodist[:,-1]
+z_0_before[:11] = sol_nodist[:11,-1]
 
 # %%
 # Now run the perturbed system without the observer/controller.
