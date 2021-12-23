@@ -85,8 +85,8 @@ Iconst2 = lambda t: -2.5
 
 
 # Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2] 
-Iapps_nodist = [Irb, Iconst, lambda t:38]
-Iapps_before = [Iconst, Iconst, lambda t: 38, Irb2, Iconst2]
+Iapps_nodist = [Irb, Iconst, lambda t:38, Irb2, Iconst2]
+Iapps_before = [Iconst, Iconst, lambda t: 38, Iconst2, Iconst2]
 Iapps = [Iconst, Iconst, lambda t:38, Iconst2, Iconst2]
 
 #x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
@@ -108,12 +108,15 @@ res_g = 0.01 # TODO: Need to raise this, otherwise hub isn't affecting HCO.
 el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
 network = Network([one, two, three, four, five], el_connects)
 
-one_nodist = Neuron(0.1, hco_one_gs, [syn1], 0)
-two_nodist = Neuron(0.1, hco_one_gs, [syn2], 1)
-three_nodist = Neuron(0.1, hub_gs, [synhub1], 1) # Hub neuron
+# one_nodist = Neuron(0.1, hco_one_gs, [syn1], 0) # Same as one
+# two_nodist = Neuron(0.1, hco_one_gs, [syn2], 1) # Same as two
+three_nodist = Neuron(0.1, hub_gs, [synhub1], 2) # Hub neuron
+# four_nodist = Neuron(0.1, hco_two_gs, [syn3], 1)
+# five_nodist = Neuron(0.1, hco_two_gs, [syn4], 0)
 
-el_connects_nodist = np.array([[res_g, 1, 2]])
-network_nodist = Network([one_nodist, two_nodist, three_nodist], el_connects_nodist)
+# el_connects_nodist = np.array([[res_g, 1, 2]]) Not rejecting gap jn anymore.
+network_nodist = Network([one, two, three_nodist, four,
+                          five], el_connects)
 
 # Observer parameters
 α = 0.0001 # 0.0001 # 0.0008 # 0.00085 # HCO periods are 1080 and 850. What about combined rhythm?
@@ -147,7 +150,8 @@ z_0 = np.ravel(z_0, order='F')
 # Start by simulating the system without the disturbance. So just the hub and first HCO.
 
 p_nodist = (Iapps_nodist, network_nodist)
-z_0_nodist = np.concatenate((x_0[:12], x_0[:12], x_0[:12])) # No more than one syn per neuron.
+z_0_nodist = np.concatenate((x_0[:12], x_0[:12], x_0[:12],
+                             x_0[:12], x_0[:12])) # No more than one syn per neuron.
 # z_0_nodist[0] = -70. # Mimicking line above.
 
 dt = 0.01
@@ -165,7 +169,9 @@ sol_nodist = out_nodist.y
 z_0_before = np.concatenate((x_0, x_0, x_0, x_0, x_0))
 z_0_before[:12] = sol_nodist[:12,-1]
 z_0_before[13:13+12] = sol_nodist[12:24,-1]
-z_0_before[26:26+12] = sol_nodist[24:,-1]
+z_0_before[26:26+12] = sol_nodist[24:36,-1]
+z_0_before[39:39+12] = sol_nodist[36:48,-1]
+z_0_before[52:52+12] = sol_nodist[48:,-1]
 
 # %%
 # Now run the full 5-neuron system without the observer/controller.
