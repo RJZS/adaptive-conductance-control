@@ -1,0 +1,167 @@
+08:35-08:45 +10m. || 09:15-09:55 +40m. || 10:20-10:45 +25m. || 10:50-11:10 +20m. || 11:25-11:55 +30m. || 2hr 5m.
+12:00-12:10 +10m. || 12:20-12:40 +20m. || 13:35-14:45 +1hr10m. || 14:50-15:00 +10m. || 15:35-16:30 +55m. || 2hr 45m.
+17:20-17:40 +20m. || 17:50-18:05 +15m. || 18:10-18:30 +20m. || 18:40-19:20 +40m. || 19:30-20:10 +40m. || 2hr 15m.
+That's 7hr 5m so far.
+20:20-20:35 +15m. || 20:45-09:05 +20m. || 21:25-22:10 +45m. || 22:25-22:50 +25m. || 23:00-23:20 +20m || 2hr 5m
+23:30-23:55 +25m. || 00:15-00:25 +10m. || 00:45-01:15 +30m. || 1hr 5m.
+
+10 hours 15m. [Penultimate day, 23/12/21]
+
+To mention in email:
+- decided to keep sim2 as it is. clearer than using different neuron models.
+- orchestron plots missing 'nodist' step, didn't simulate second HCO in that time, running now. also forgot to change units.
+- bar under t axis to label stages? else I'll put in vertical lines?
+- keywords
+(- initialisation appendix)
+- large initial transient in sim2.
+(also reply to Charlotte)
+
+- try compiling plots separately?
+
+To do:
+- that temporal axis bar!!
+- exp3.npz is sitting on enid! With all 5 neurs in the nodist time period, also reduced Tf2.
+- look through Guide to Authors again
+- that example ("Consider the simple HCO model in...", Ex 5 in thiago's comments)
+- lualatex started 23:05. Finished 00:38.
+- uni address
+- example 5
+- Rodolphe wants a second reftrack sim
+- forgot to change units of orchestron plots to s (divide times by 1000 and relabel y axis)
+- initialisation appendix
+(- unnecessarily estimating g_els in sim3)
+
+Circuit diagrams: include v_hat next to controller, beneath/above the appropriate g_hat? For implementation, see:
+https://tex.stackexchange.com/questions/65471/set-label-name-on-two-lines-in-circuitikz
+Also question: what's the notation for the estimate of the ref? \hat{\bar{v}}? So it's \hat\bar{g}?
+Also in the distrej fig (sim2), note in the caption the different time-axis in the bottom plot (Id - \hat{I}_d).
+
+Today's sims:
+Exp2. Simulate no_dist first, then hand over. Done, need to process (have downloaded data).
+Exp3. Nodist first and handover. Failed! Got infs, so tried reducing gamma to 2. 18064.
+Also, with gain 5 and alpha halved is running as 18075. Failed and failed. Further reduced alpha. Failed (8-10 mins
+after start of main sim). Failed, unless I set Tf0 and Tf2 very low.
+Now: put alpha back, kept it short. If that works, extend Tf0 but not to 4000, try 3000 and 2000.
+ACTUALLY: first try without rejecting the gap!!
+
+
+Remember to deal with this:
+>
+> The convergence seems almost instantaneous with respect to the time scale of the bursts. 
+> Perhaps this suggests that the observer gains are too high ? One way to check that is to see how
+> things degrade if the measurement is noisy.
+
+Rodolphe call:
+[ref track: plotting wrong observer estimates?
+plot before and after switch controller+observer on. incl. transient.
+plot v and v_ref.]
+
+exp1:
+v and v_ref. plot trace of just a few bursts. for first third: one silent and one bursting (ie before).
+then the silent neuron would start catching up.
+then in another plot, plot the error between v and v_hat, and v_ref and v_ref_hat.
+then the v - v_ref.
+don't need to show the conductance estimates converging. they just converge to their value.
+
+distrej:
+want to see Id - Id_hat.
+again, as with reftrack, wants to see v before the disturbance, then v after the disturbance (so can see how different
+it is), and the transient ie the controller kicking in. So one voltage trace, over three different phases.
+(if the second one is visible enough, don't need v - v_nd).
+[let the disturbance mimic the disturbance in an HCO, can present it as decoupling an HCO].
+
+exp3:
+make sure I have rebound bursters!
+cartoon of 5 neurons. 3 traces: one for each rhythm, and one for the hub.
+And then the controlled hub.
+[just isolate one HCO]
+
+-----
+
+Exp3. Infs within 700s. Reduced alpha to 0.0008, didn't work. So reduced to 0.0001. (also cut Tf1 to save time).
+That works up to 700s. Synaptic ests converging nicely, resistive one slowly.
+NOTE: Unnecessarily estimating both g_els! But not totally trivial to change, as I'm using the second estimate
+Started: 13:00. Failed by 14:00. So runing with alpha back down to 0.0001 (was at 0.0004).
+Fails. What now? Know it runs to 700s (check on exp3.txt), so build up slowly.
+If fails: test 2k and 700. Then build up gradually. Want to be get data I can plot.
+Maybe my bug lies in the fact I'm estimating/controlling with g_res. Nothing so far has actually used that... maybe
+test without controller.
+2k and 700, main started 14:20. Finished 14:30.
+(older material is further down)
+
+2k and 1400, seems to work.
+Rerunning with the *0.1. That works too, but doesn't really improve the behaviour of the hub.
+So there's something wrong with the control current. Debug! 
+Meanwhile: 2k and 3000. Works. And it's long enough for estimates to converge, maybe 3500 to be safe with the els.
+But 4k and 3000 doesn't!! Took about 10 mins to fail I think, from start of main sim.
+Why fails? Because fragile to inital conditions? Look at I_cont.
+Something stupid I did this morning.
+Running 4k and 3000 again, start: 17:33. Main start: 17:38. Finish: 18:25.
+
+exp2 22:42 start. To try: no 'no_observer' period. Strengthen g_syn. Estimate an intrinsic g.
+Weirdly, gNa is estimated fine.
+Failing all that, just write the script the other way (like in exp1). Done. Started 23:04.
+Still doesn't work. Gamma = 70 makes it worse. What about gamma = 0.1? Better (-19 instead of -65).
+Try without controller. It works!
+So what the heck is happening with the controller? Seems to almost work if reduce gamma to 0.001. Or maybe will go negative,
+given enough time (that's what happened with 0.01).
+Changing Iapps didn't help.
+Transition between sims does seem smooth (didn't plot, just looked at data values at that time).
+Tolerance makes no difference.
+Also tried: observing neur_dist as well. Reducing alpha to 0.0001, or increasing it to 0.01 (0.5 causes g_hat to spiral up).
+OK. 22/12/2021. It's ok if it goes -ve I think, but problem is getting stuck there.
+And where it gets stucks depends on gamma. Let's plot P and psi. And then try generating two different controller currents,
+one for the true system and one for the observer.
+Done that, gave infs. So undid that change and tried increasing theta_hat_0. Doesn't help.
+Looked at the P and Psi plots. Does look like it's starting to converge, after a long time. Try increasing alpha
+to 0.001. Running from 09:30. Done - it worked!
+
+HCO 1: -3.1 bursts, -3.2 doesn't. 
+Goal: get RBs. Try changing Esyn. Reduce from -70 to -90. Worked. Now run for longer, verify the HCO rhythm is maintained.
+Works! But the bursts are a bit close together? So tried increasing gT from 2 to 2.2. Nope. Instead, gH from 0.1 to 0.4.
+That doesn't seem to help much with that, but does speed up the rhythm which is handy anyway.
+Now need to check I'm maintaining RB. No. -4 doesn't burst, but -3.7 does.
+Well they're still a bit close, but I'll take it. Now look at the other HCO. Want a slower rhythm.
+Nope! This is the faster one! SO, need to undo changes to first HCO pair...... COME BACK TO THAT. This one has better spacing
+Second pair: no bursts at -2.5, bursts at -2.2. Done, tested, works!
+Now go back and return HCO 1 to how it is, ie reduce gH from 0.4 back to 0.1.
+First pair: no bursts at -3.2 (though close to), bursts at -3. Tested, works!
+Now adding hub neuron to first pair. Tested, it looks good!
+Have updated main script with new params. And sent to enid. Ready to run! Started 13:45.
+
+
+Meanwhile, work on exp1. Want to stitch the two sims. How? Well, run the ref neuron for a bit and use to initialise it.
+Do this manually? No. Because want to plot v_ref as well. So write the script.
+Well it was stiff for 15s with LSODA. Switched to Radau and it runs for more than 1000s but eventually runs into infs.
+Reducing alpha didn't seem to help. So trying reducing g_res from 0.4 to 0.01. Same problem.
+So try to debug. Try to run as long as possible so have data I can download and look at. 
+Now ti doesn't seem to work at 1000s?? SO: works for 200s with original res_g and alpha.
+Now running with res_g = 5. Not much help.
+But res_g = 500 runs for 200...?!
+Have downloaded 2 files. Look at both the exp1_coupled_resg_*.npz files in downloaded data. Second one was very high g_res,
+something like 50000.
+Looking at those 2 files. First one looks ok. Biggest value in psi but it's decreasing at the end. Try putting in the init
+directly. Second one is similar (haven't actually checked if decreasing, but no crazy values).
+So it must be the init. Testing that now. Next thing to test: same problem if res_g = 0?
+Sim took 120s with res. Without: it fails... what's going on?
+As test, trying with the original initialisation (np.zeros). Still having the problem, even with no connection!! WHat's up?
+[Problem lies with overflow in dCa???]
+
+Exp1. increased tols. changed from Radau to LSODA. finished 22s (of which 2s observing) in 116s.
+switch to BDF at 19:26. Failed. So reduced alpha to 1e-4, from 5e-4. Didn't help.
+Got error:  LinAlgWarning: Diagonal number 276 is exactly zero. Singular matrix.
+(also for diagonals 276, 277, 136, 137 and others).
+Switched back to LSODA. Reduced gamma to 0.01. Alpha is 5e-4.
+
+Exp3. Started about 9pm. Failing this, just rerun the old script with the new conditions (only rejecting one HCO).
+First need to run nodist version, then find the final parameters of that and use to initialise. Finished 21:45ish.
+Start full run at 22:11. Tol 1e-4.
+
+---
+
+TAKING FOREVER!! WHY?
+Idea:
+ - try increasing tol
+ - change method, so explicit not implicit (caused stiffness problem, but could just cut gain)
+ - gradually increase run time to see when the problem starts
+ - split integration up into separate calls, so can print progress in between
