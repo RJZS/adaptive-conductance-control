@@ -14,9 +14,6 @@ from network_odes import main, no_observer
 
 Tfinal1 = 3000. # How long to run 'before'
 Tfinal2 = 12000. # How long to run observer+controller.
-
-#Tfinal1=10.
-#Tfinal2=50.
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp1.txt","a"))
 print("Tfinal2 = {}".format(Tfinal2),file=open("exp1.txt","a"))
 
@@ -56,7 +53,7 @@ Iapps = [Iconst, Iconst]
 
 # Observer parameters
 α = 0.0005 # Default is 0.5. Had to decrease as P values were exploding.
-γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
+γ = 2 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # gs of reference network. As is_exp1 is set to true, only first neuron will be controlled,
 # but the way I've written the code I need to provide a vector for each neuron in the network.

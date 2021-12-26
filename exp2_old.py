@@ -21,8 +21,8 @@ from network_odes import main, no_observer
 Tfinal = 10000.
 observe_start_time = 4000. # 2000.
 
-# Tfinal = 10.002
-# observe_start_time = 10. # 2000.
+Tfinal = 4100.
+observe_start_time = 4000. # 2000.
 
 # Initial conditions - Single Neuron Disturbance Rejection
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
@@ -88,13 +88,15 @@ tspan = (0.,Tfinal)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns_g_els,observe_start_time,to_observe,0)
 
-print("Starting simulation")#,file=open("exp2.txt","a"))
+print("Starting simulation",file=open("exp2old.txt","a"))
 start_time = time.time()
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-8,atol=1e-8,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA',
                 dense_output=False)
 end_time = time.time()
-print("Simulation time: {}s".format(end_time-start_time))#,file=open("exp2.txt","a"))
+print(out.success,file=open("exp2old.txt","a"))
+print(out.y[24,-20:],file=open("exp2old.txt","a"))
+print("Simulation time: {}s".format(end_time-start_time),file=open("exp2old.txt","a"))
 
 t = out.t
 sol = out.y
@@ -126,7 +128,7 @@ start_time = time.time()
 out_nodist = solve_ivp(lambda t, z: no_observer(t, z, p_nodist), tspan, z_0_nodist,rtol=1e-8,atol=1e-8,
                 t_eval=np.linspace(0,Tfinal,int(Tfinal/dt)), method='LSODA', dense_output=False)
 end_time = time.time()
-print("'Nodist' Simulation time: {}s".format(end_time-start_time))#,file=open("exp2.txt","a"))
+print("'Nodist' Simulation time: {}s".format(end_time-start_time),file=open("exp2old.txt","a"))
 
 t_nodist = out_nodist.t
 sol_nodist = out_nodist.y
@@ -186,7 +188,7 @@ if calc_ps:
 
 # print("sol.max: {}".format(sol.max()),file=open("exp2.txt","a"))
 # print("sol.min: {}".format(sol.min()),file=open("exp2.txt","a"))
-print("Converting and saving...",file=open("exp2.txt","a"))
+print("Converting and saving...",file=open("exp2old.txt","a"))
 t=t.astype('float32')
 t_nodist = t_nodist.astype('float32')
 sol=sol.astype('float32')

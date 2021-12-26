@@ -175,11 +175,11 @@ def main(t,z,p):
         control_currs = disturbance_rejection(controller_settings[1], g_syns,
                                               syns_hat, v̂s, network.neurons[0].Esyn, num_neurs)
         # NB: Will reject electrical connections to neurons listed in controller_settings[2]
-        if not no_res_connections:
-            gres_hats = extract_gres_hats(network.neurons, θ̂s, network.max_num_els, len(to_estimate))
-            # What about o...
-            control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, v̂s,
-                                                                            network.neurons, controller_settings[2], controller_settings[3])
+#        if not no_res_connections:
+#            gres_hats = extract_gres_hats(network.neurons, θ̂s, network.max_num_els, len(to_estimate))
+#            # What about o...
+#            control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, v̂s,
+#                                                                            network.neurons, controller_settings[2], controller_settings[3])
         injected_currents = injected_currents + control_currs
     elif controller_settings[0] == "RefTrack" and t > observe_start_time:
         # If not estimating all the intrinsic gs, will feed controller a mix of true
