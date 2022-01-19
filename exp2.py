@@ -25,6 +25,12 @@ Tfinal2 = 6000. # 2000.
 Tfinal1 = 6000.
 Tfinal2 = 20000.
 
+# Post-submission settings
+Tfinal0 = 8000.
+Tfinal1 = 8000.
+Tfinal2 = 20000. # 2000.
+
+
 print("Tfinal0 = {}".format(Tfinal0),file=open("exp2.txt","a"))
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp2.txt","a"))
 print("Tfinal2 = {}".format(Tfinal2),file=open("exp2.txt","a"))
@@ -45,10 +51,15 @@ to_estimate = np.array([],dtype=np.int32)
 to_observe = np.array([0], dtype=np.int32)
 estimate_g_syns_g_els = True
 
-syn = Synapse(0.8, 1)
+# syn = Synapse(0.8, 1)
 
-neur_one_gs = np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1])
-neur_dist_gs = np.array([120.,0.1,3.,0,80.,1.,2.,0.,0.1])
+# neur_one_gs = np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1])
+# neur_dist_gs = np.array([120.,0.1,3.,0,80.,1.,2.,0.,0.1])
+
+# Post-submission settings
+syn = Synapse(2.5, 1)
+neur_one_gs = np.array([60.,0.1,2.,0,80.,0.4,2.,0.,0.12])
+neur_dist_gs = np.array([130.,0.1,3.2,0,80.,1.,2.,0.,0.1])
 
 neur_one_nodist = Neuron(0.1, neur_one_gs, [], 0)
 network_nodist = Network([neur_one_nodist], [])

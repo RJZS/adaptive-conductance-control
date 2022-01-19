@@ -84,16 +84,31 @@ Iconst = lambda t: -3.2 # -3.7
 Iconst2 = lambda t: -2.5
 
 
-# Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2] 
-Iapps_nodist = [Irb, Iconst, lambda t:38, Irb2, Iconst2]
-Iapps_before = [Iconst, Iconst, lambda t: 38, Iconst2, Iconst2]
-Iapps = [Iconst, Iconst, lambda t:38, Iconst2, Iconst2]
+# # Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2] 
+# Iapps_nodist = [Irb, Iconst, lambda t:38, Irb2, Iconst2]
+# Iapps_before = [Iconst, Iconst, lambda t: 38, Iconst2, Iconst2]
+# Iapps = [Iconst, Iconst, lambda t:38, Iconst2, Iconst2]
+
+# Iapps for swapped case.
+Iapps_nodist = [Irb2, Iconst2, lambda t:38, Irb, Iconst]
+Iapps_before = [Iconst2, Iconst2, lambda t: 38, Iconst, Iconst]
+Iapps = [Iconst2, Iconst2, lambda t:38, Iconst, Iconst]
 
 #x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
 
-hco_one_gs = np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1])
-hub_gs = np.array([80.,0.1,2.,0,30.,0.,1.,0.,0.1])
-hco_two_gs = np.array([120.,0.1,1.6,0,80.,0.2,2.,0.,0.1])
+# hco_one_gs = np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1])
+# hub_gs = np.array([80.,0.1,2.,0,30.,0.,1.,0.,0.1])
+# hco_two_gs = np.array([120.,0.1,1.6,0,80.,0.2,2.,0.,0.1])
+
+# # Post-submission parameters
+# hco_one_gs = np.array([130.,0.1,3.2,0,80.,1.,2.,0.,0.1])
+# hub_gs = np.array([60.,0.1,2.,0,30.,0.,1.,0.,0.1])
+# hco_two_gs = np.array([120.,0.1,1.6,0,80.,0.2,2.,0.,0.1])
+
+# Post-submission parameters 2 (as above, except swapped HCOs).
+hco_one_gs = np.array([120.,0.1,1.6,0,80.,0.2,2.,0.,0.1])
+hub_gs = np.array([60.,0.1,2.,0,30.,0.,1.,0.,0.1])
+hco_two_gs = np.array([130.,0.1,3.2,0,80.,1.,2.,0.,0.1])
 
 one = Neuron(0.1, hco_one_gs, [syn1], 0)
 two = Neuron(0.1, hco_one_gs, [syn2], 1)
