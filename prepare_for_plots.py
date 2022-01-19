@@ -13,12 +13,14 @@ if prep_exp1:
     sol=data['sol']; sol_ref=data['sol_ref']
     # t = t[:-50000] # Truncate
     # sol = sol[:,:-50000]
+    t = t / 1000; t_ref = t_ref / 1000
+    print(t_ref[-1])
+    print(t[-1])
     
-    t_control = t+t_ref[-1] # Need one consistent t in the plots.
-    tc = np.concatenate((t_ref[:-1], t_control))
+    t_control = t # Define t = 0 as moment controller is switched on.
+    tc = np.concatenate((t_ref[:-1] - t_ref[-1], t_control))
     vc = np.concatenate((sol_ref[0,:-1], sol[0,:]))
     v2c = np.concatenate((sol_ref[11,:-1], sol[102,:]))
-    # plt.plot(t[ps_idx:],sol[0,ps_idx:],t[ps_idx:],sol_ref[0,:])
     
     v = sol[0,:]
     v_hat = sol[11,:]
@@ -28,9 +30,12 @@ if prep_exp1:
     v_ref = sol[102,:]
     v_ref_hat = sol[102+11,:]
     error_ref = v_ref - v_ref_hat
+
+    tracking_error = v2c - vc
     
     k = 700000
     tc_trunc = tc[:k]; vc_trunc = vc[:k]; v2c_trunc = v2c[:k]
+    tracking_error_trunc = tracking_error[:k]
     
     k = -600000
     t_control_trunc = t_control[:k]; error_trunc = error[:k]
@@ -38,14 +43,15 @@ if prep_exp1:
     
     skp = 10
     tc = tc[0::skp]; t_control = t_control[0::skp]
-    vc = vc[0::skp]; v2c = v2c[0::skp]
+    vc = vc[0::skp]; v2c = v2c[0::skp]; tracking_error = tracking_error[0::skp]
     tc_trunc = tc_trunc[0::skp]; vc_trunc = vc_trunc[0::skp]
+    tracking_error_trunc = tracking_error_trunc[0::skp]
     v2c_trunc = v2c_trunc[0::skp]
     v = v[0::skp]; v_hat = v_hat[0::skp]; error = error[0::skp]
     v_ref = v_ref[0::skp]; v_ref_hat = v_ref_hat[0::skp]; error_ref = error_ref[0::skp]
     
-    exp1_control_data = np.vstack((tc, vc, v2c)).T
-    exp1_control_data_zoomed = np.vstack((tc_trunc, vc_trunc, v2c_trunc)).T
+    exp1_control_data = np.vstack((tc, vc, v2c, tracking_error)).T
+    exp1_control_data_zoomed = np.vstack((tc_trunc, vc_trunc, v2c_trunc, tracking_error_trunc)).T
     exp1_observe_data = np.vstack((t_control, v, v_hat, v_ref, v_ref_hat, error, error_ref)).T
     exp1_error_zoomed = np.vstack((t_control_trunc, error_trunc, logerror_trunc)).T
     
