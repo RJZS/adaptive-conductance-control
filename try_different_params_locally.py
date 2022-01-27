@@ -35,7 +35,6 @@ def Irb2(t): # For rebound burster
     
 
 Iapps = [Ioffset_dist, Irb2]
-Iapps = [Ioffset_dist, lambda t: -2] # test 
 
 tspan = (0.,Tfinal)
 
@@ -44,9 +43,8 @@ tspan = (0.,Tfinal)
 # two  = Neuron(0.1, [130.,0.1,3.1,0,80.,1.,2.,0.,0.1], [], 0)
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
-one   = Neuron(0.1, [60.,0.1,2.,0,80.,0.4,2.,0.,0.12], [], 0) # From exp2, commit "Changed DistRej max gs to make disturbance impact clearer."
+one   = Neuron(0.1, [60.,0.1,2.,0,80.,0.4,4,0.,0.12], [], 0) # From exp2, commit "Changed DistRej max gs to make disturbance impact clearer." But increased gKCa to decrease period.
 two  = Neuron(0.1, [130.,0.1,3.1,0,80.,1.,2.,0.,0.1], [], 0)
-two   = Neuron(0.1, [60.,0.1,2.,0,80.,0.4,3.5,0.,0.12], [], 0)
 
 x_0 = [0,0,0,0,0,0,0,0,0,0,0] # 0 syns
 
