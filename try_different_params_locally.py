@@ -36,11 +36,13 @@ tspan = (0.,Tfinal)
 # one   = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [], 0)
 # two  = Neuron(0.1, [130.,0.1,3.1,0,80.,1.,2.,0.,0.1], [], 0)
 
+syn = Synapse(2.5, 1)
+
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
-one   = Neuron(0.1, [60.,0.1,2.,0,80.,0.4,4,0.,0.12], [], 0) # From exp2, commit "Changed DistRej max gs to make disturbance impact clearer." But increased gKCa to decrease period.
+one   = Neuron(0.1, [60.,0.1,2.,0,80.,0.4,4,0.,0.12], [syn], 0) # From exp2, commit "Changed DistRej max gs to make disturbance impact clearer." But increased gKCa to decrease period.
 two  = Neuron(0.1, [130.,0.1,3.1,0,75.,1.,2.,0.,0.1], [], 0)
 
-x_0 = [0,0,0,0,0,0,0,0,0,0,0] # 0 syns
+x_0 = [0,0,0,0,0,0,0,0,0,0,0,0] # 1 syn
 
 network_play = Network([one, two], [])
 p_play = (Iapps, network_play)
