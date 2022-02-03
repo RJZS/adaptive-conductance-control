@@ -206,8 +206,8 @@ def main(t,z,p):
             g_syns = softplus(θ̂s[len(to_estimate):len(to_estimate)+max_num_syns,:]) # Start after intrinsic gs.
         else:
             g_syns = np.zeros((max_num_syns, num_neurs))
-        for (idx, neur) in enumerate(network.neurons):
-            g_syns[:neur.num_syns, idx] = neur.g_syns
+            for (idx, neur) in enumerate(network.neurons):
+                g_syns[:neur.num_syns, idx] = neur.g_syns
         observer_gs = np.vstack((neur_gs, g_syns))
         if controller_settings[2]: # if is_exp1
             control_currs = reference_tracking_exp1(Vs[0], ints_hat[:,0], syns_hat[:,0], observer_gs[:,0], 
