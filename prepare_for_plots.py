@@ -82,7 +82,7 @@ if prep_exp2:
     
     gsyn_hat = sol[24,:]
 
-    syn_g = 0.8; Esyn = -90; # Saving these parameters could be automated.
+    syn_g = 2.5; Esyn = -90; # Saving these parameters could be automated.
     Id = syn_g * sol[11,:] * (sol[0,:] - Esyn)
     Id_hat = gsyn_hat * sol[23,:] * (sol[12,:] - Esyn)
     error = Id - Id_hat # Note there's a large initial transient (down to -1323).
