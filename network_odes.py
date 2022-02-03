@@ -9,10 +9,13 @@ import numpy as np
 
 from network_and_neuron import Neuron, HHModelNeuron, Network, mKir_inf, calc_res_gs_and_terms
 
+def softplus(x, t=10):
+    return np.log(1 + np.exp(t*x))/t
+
 def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
     Isyn_estimates = np.zeros(num_neurs)
     for (neur_i, syn_i) in to_reject:
-        Isyn_estimates[neur_i] = Isyn_estimates[neur_i] - g_syns[syn_i,neur_i] * syns_hat[syn_i,neur_i] * (Vs[neur_i] - Esyn)
+        Isyn_estimates[neur_i] = Isyn_estimates[neur_i] - softplus(g_syns[syn_i,neur_i]) * syns_hat[syn_i,neur_i] * (Vs[neur_i] - Esyn)
     return -Isyn_estimates
 
 # The 'which_el' parameter is particularly hacky. Tailored to exp3.
@@ -22,7 +25,7 @@ def disturbance_rejection_resistive(estimate_g_els, gres_hats, el_connects, Vs, 
         (neur_res_gs_true, terms, neur_res_bool) = calc_res_gs_and_terms(el_connects, idx, Vs, neur.c)
         terms = np.multiply(terms, neur.c) # As calc_res returns a dv term, but here we want a current.
         if estimate_g_els:
-            neur_res_gs = gres_hats[neur_res_bool,idx]
+            neur_res_gs = softplus(gres_hats[neur_res_bool,idx])
         else: neur_res_gs = neur_res_gs_true
         if idx in reject_els_to_neur_idxs:
             Ires_estimates[idx] = np.dot(neur_res_gs[which_el], terms[which_el])
@@ -173,19 +176,19 @@ def main(t,z,p):
             for (idx, neur) in enumerate(network.neurons):
                 g_syns[:neur.num_syns, idx] = neur.g_syns
         control_currs = disturbance_rejection(controller_settings[1], g_syns,
-                                              syns_hat, v̂s, network.neurons[0].Esyn, num_neurs)
+                                              syns_hat, Vs, network.neurons[0].Esyn, num_neurs)
         # NB: Will reject electrical connections to neurons listed in controller_settings[2]
 #        if not no_res_connections:
 #            gres_hats = extract_gres_hats(network.neurons, θ̂s, network.max_num_els, len(to_estimate))
 #            # What about o...
-#            control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, v̂s,
+#            control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, Vs,
 #                                                                            network.neurons, controller_settings[2], controller_settings[3])
         injected_currents = injected_currents + control_currs
     elif controller_settings[0] == "RefTrack" and t > observe_start_time:
         # If not estimating all the intrinsic gs, will feed controller a mix of true
         # and estimated gs. Need to generate this list of gs to feed in.
         neur_gs = np.zeros((num_neur_gs, num_neurs))
-        neur_gs[to_estimate,:] = θ̂s[:len(to_estimate),:]
+        neur_gs[to_estimate,:] = softplus(θ̂s[:len(to_estimate),:])
         
         # Use idxs of true gs where not estimating. So need to 'invert' to_estimate.
         # Ie need an array listing the elements that are NOT in to_estimate.
@@ -200,18 +203,18 @@ def main(t,z,p):
         # if-else block below is very similar to the "DistRej" case above.
         # Ignoring electrical connections
         if estimate_g_syns_g_els:
-            g_syns = θ̂s[len(to_estimate):len(to_estimate)+max_num_syns,:] # Start after intrinsic gs.
+            g_syns = softplus(θ̂s[len(to_estimate):len(to_estimate)+max_num_syns,:]) # Start after intrinsic gs.
         else:
             g_syns = np.zeros((max_num_syns, num_neurs))
         for (idx, neur) in enumerate(network.neurons):
             g_syns[:neur.num_syns, idx] = neur.g_syns
         observer_gs = np.vstack((neur_gs, g_syns))
         if controller_settings[2]: # if is_exp1
-            control_currs = reference_tracking_exp1(v̂s[0], ints_hat[:,0], syns_hat[:,0], observer_gs[:,0], 
-                                               np.concatenate((θ̂s[:8,1],[neur_gs[-1,0]])), network, num_neurs, num_neur_gs)
+            control_currs = reference_tracking_exp1(Vs[0], ints_hat[:,0], syns_hat[:,0], observer_gs[:,0], 
+                                               np.concatenate((softplus(θ̂s[:8,1]),[neur_gs[-1,0]])), network, num_neurs, num_neur_gs)
             injected_currents[0] = injected_currents[0] + control_currs[0]
         else:
-            control_currs = reference_tracking(v̂s, ints_hat, syns_hat, observer_gs, 
+            control_currs = reference_tracking(Vs, ints_hat, syns_hat, observer_gs, 
                                            controller_settings[1], network, num_neurs, num_neur_gs)
             injected_currents = injected_currents + control_currs
     
