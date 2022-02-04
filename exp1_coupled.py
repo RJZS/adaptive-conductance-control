@@ -13,7 +13,7 @@ from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer
 
 Tfinal1 = 3000. # How long to run 'before'
-Tfinal2 = 12000. # How long to run observer+controller.
+Tfinal2 = 24000. # How long to run observer+controller.
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp1.txt","a"))
 print("Tfinal2 = {}".format(Tfinal2),file=open("exp1.txt","a"))
 
