@@ -117,13 +117,7 @@ def main(t,z,p):
     estimate_g_syns_g_els = p[6]
     observe_start_time = p[7]
     to_observe = p[8]
-    # is_exp1_res_g = p[9] # Rather hacky. For introducing the diffusive coupling alongside the observer.
-    
-    # if is_exp1_res_g > 0:
-    #     if t < observe_start_time:
-    #         network.el_connects = np.array([[0., 0, 1]])
-    #     else:
-    #         network.el_connects = np.array([[is_exp1_res_g, 0, 1]])
+    does_gT_vary = p[9]
     
     # Assuming all the neurons are of the same model:
     num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns

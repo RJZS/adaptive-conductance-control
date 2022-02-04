@@ -42,7 +42,6 @@ neur_one = Neuron(0.1, neur_one_gs, np.array([]), 0)
 neur_ref = Neuron(0.1, neur_ref_gs, np.array([]), 0)
 
 res_g = 0.4
-is_exp1_res_g = res_g # Hacky...
 el_connects = np.array([[res_g, 0, 1]])
 network = Network([neur_one, neur_ref], []) # for ref tracking. No gap junction yet.
 
@@ -114,8 +113,9 @@ network = Network([neur_one, neur_ref], el_connects)
 # Integration initial conditions and parameters
 tspan = (0.,Tfinal2)
 observe_start_time = 0.
+does_gT_vary = False
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,observe_start_time,to_observe,is_exp1_res_g)
+     estimate_g_syns_g_els,observe_start_time,to_observe,does_gT_vary)
 
 print("Starting simulation",file=open("exp1.txt","a"))
 start_time = time.time()

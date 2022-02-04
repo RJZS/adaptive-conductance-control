@@ -217,8 +217,9 @@ z_0[4*neur_bef_start_idx:4*neur_bef_start_idx+13] = out_before.y[4*13:,-1] # ini
 # Integration initial conditions and parameters
 tspan = (0.,Tfinal2)
 # controller_on = True
+does_gT_vary = False
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,0.,to_observe,0)
+     estimate_g_syns_g_els,0.,to_observe,does_gT_vary)
 
 print("Starting simulation",file=open("exp3.txt","a"))
 start_time = time.time()

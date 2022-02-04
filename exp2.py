@@ -161,8 +161,9 @@ z_0[neur_bef_start_idx:neur_bef_start_idx+12] = sol_before[12:,-1] # init[11:]
 
 tspan = (0.,Tfinal2)
 # controller_on = True
+does_gT_vary = False
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,0.,to_observe,0)
+     estimate_g_syns_g_els,0.,to_observe,does_gT_vary)
 
 print("Starting simulation",file=open("exp2.txt","a"))
 start_time = time.time()
