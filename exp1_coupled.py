@@ -113,9 +113,9 @@ network = Network([neur_one, neur_ref], el_connects)
 # Integration initial conditions and parameters
 tspan = (0.,Tfinal2)
 observe_start_time = 0.
-does_gT_vary = False
+varying_gT = (False)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,observe_start_time,to_observe,does_gT_vary)
+     estimate_g_syns_g_els,observe_start_time,to_observe,varying_gT)
 
 print("Starting simulation",file=open("exp1.txt","a"))
 start_time = time.time()

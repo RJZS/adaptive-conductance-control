@@ -117,7 +117,7 @@ def main(t,z,p):
     estimate_g_syns_g_els = p[6]
     observe_start_time = p[7]
     to_observe = p[8]
-    does_gT_vary = p[9]
+    varying_gT = p[9]
     
     # Assuming all the neurons are of the same model:
     num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
@@ -163,6 +163,14 @@ def main(t,z,p):
     
     injected_currents = np.zeros(num_neurs)
     for i in range(num_neurs): injected_currents[i] = Iapps[i](t)
+
+    # If gT is varying, update gT.
+    # Expect second element of tuple to be a function which takes t and returns a vector.
+    if varying_gT[0]:
+        gTs = varying_gT[1](t)
+        for (idx, neur) in enumerate(network.neurons):
+            neur.gT = gTs[idx]
+            neur.gs[2] = gTs[idx] # Neuron object also keeps gT here.
     
     # Run controller
     if controller_settings[0] == "DistRej" and t > observe_start_time:
