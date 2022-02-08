@@ -595,97 +595,150 @@ def calc_dv_terms_final_step_if_not_est_gsyns_gels(gs, g_syns, terms, syn_terms,
 ## Gating Functions for full model
 # Na-current (m=activation variable, h=inactivation variable)
 @njit(cache=True)
+def alpha_m(V): return -0.025*(V+40.)/( np.exp(-(V+40)/10) - 1.0 )
+
+@njit(cache=True)
+def beta_m(V): return np.exp(-(V+65)/18)
+
+@njit(cache=True)
+def mNa_inf(V): return alpha_m(V) / (alpha_m(V) + beta_m(V)) # Activation function
+
+@njit(cache=True)
+def tau_mNa(V): return 1. / (alpha_m(V) + beta_m(V))/5 # Activation time-constant     
+
+@njit(cache=True)
 def gating_mNa(v):
-    def alpha_m(V): return -0.025*(V+40.)/( np.exp(-(V+40)/10) - 1.0 )
-    def beta_m(V): return np.exp(-(V+65)/18)
-    def mNa_inf(V): return alpha_m(V) / (alpha_m(V) + beta_m(V)) # Activation function
-    def tau_mNa(V): return 1. / (alpha_m(V) + beta_m(V))/5 # Activation time-constant 
     τ = tau_mNa(v)
     σ = mNa_inf(v)
     return τ, σ
     
 @njit(cache=True)
+def alpha_h(V): return 0.0175*np.exp(-(V+65)/20)
+
+@njit(cache=True)
+def beta_h(V): return 0.25/(1.0 + np.exp(-(V+35)/10) )
+
+@njit(cache=True)
+def hNa_inf(V): return alpha_h(V) / (alpha_h(V) + beta_h(V)) # Inactivation function
+
+@njit(cache=True)
+def tau_hNa(V): return 1 / (alpha_h(V) + beta_h(V))/5 # Inactivation time-constant
+
+@njit(cache=True)
 def gating_hNa(v):
-    def alpha_h(V): return 0.0175*np.exp(-(V+65)/20)
-    def beta_h(V): return 0.25/(1.0 + np.exp(-(V+35)/10) )
-    def hNa_inf(V): return alpha_h(V) / (alpha_h(V) + beta_h(V)) # Inactivation function
-    def tau_hNa(V): return 1 / (alpha_h(V) + beta_h(V))/5 # Inactivation time-constant
     τ = tau_hNa(v)
     σ = hNa_inf(v)
     return τ, σ
 
 # KD-current (mKD=activation variable)
 @njit(cache=True)
+def alpha_mKd(V): return 0.0025*(V+55.)/(1. - np.exp(-(V+55.)/10.) )
+
+@njit(cache=True)
+def beta_mKd(V): return 0.03125*np.exp(-(V+65.)/80.)
+
+@njit(cache=True)
+def mKd_inf(V,Kdshift): return alpha_mKd(V-Kdshift) / (alpha_mKd(V-Kdshift) + beta_mKd(V-Kdshift)) # Activation function
+
+@njit(cache=True)
+def tau_mKd(V,Kdshift): return 1. / (alpha_mKd(V-Kdshift) + beta_mKd(V-Kdshift))/5 # Activation time-constant
+    
+
+@njit(cache=True)
 def gating_mKD(v):
     Kdshift=10.0
-    def alpha_mKd(V): return 0.0025*(V+55.)/(1. - np.exp(-(V+55.)/10.) )
-    def beta_mKd(V): return 0.03125*np.exp(-(V+65.)/80.)
-    def mKd_inf(V): return alpha_mKd(V-Kdshift) / (alpha_mKd(V-Kdshift) + beta_mKd(V-Kdshift)) # Activation function
-    def tau_mKd(V): return 1. / (alpha_mKd(V-Kdshift) + beta_mKd(V-Kdshift))/5 # Activation time-constant
-    τ = tau_mKd(v)
-    σ = mKd_inf(v)
+    τ = tau_mKd(v,Kdshift)
+    σ = mKd_inf(v,Kdshift)
     return τ, σ
 
 # H-current (mH=activation variable)
 @njit(cache=True)
+def alpha_mH(V): return np.exp(-14.59-(0.086*V))
+
+@njit(cache=True)
+def beta_mH(V): return np.exp(-1.87+(0.0701*V))
+
+@njit(cache=True)
+def mH_inf(V): return alpha_mH(V) /(alpha_mH(V) + beta_mH(V)) # Activation function
+
+@njit(cache=True)
+def tau_mH(V): return 1./(alpha_mH(V) + beta_mH(V)) # Activation time-constant
+
+@njit(cache=True)
 def gating_mH(v):
-    def alpha_mH(V): return np.exp(-14.59-(0.086*V))
-    def beta_mH(V): return np.exp(-1.87+(0.0701*V))
-    def mH_inf(V): return alpha_mH(V) /(alpha_mH(V) + beta_mH(V)) # Activation function
-    def tau_mH(V): return 1./(alpha_mH(V) + beta_mH(V)) # Activation time-constant
     τ = tau_mH(v)
     σ = mH_inf(v)
     return τ, σ
 
 # A-current (mA=activation variable, hA=inactivation variable)
 @njit(cache=True)
+def mA_inf(V): return 1/(1+np.exp(-(V+90)/8.5)) # Activation function
+
+@njit(cache=True)
+def tau_mA(V): return 0.37 + 1/(np.exp((V+35.82)/19.697)+np.exp((V+79.69)/-12.7))/5 # Activation time-constant    
+
+@njit(cache=True)
 def gating_mA(v):
-    def mA_inf(V): return 1/(1+np.exp(-(V+90)/8.5)) # Activation function
-    def tau_mA(V): return 0.37 + 1/(np.exp((V+35.82)/19.697)+np.exp((V+79.69)/-12.7))/5 # Activation time-constant
     τ = tau_mA(v)
     σ = mA_inf(v)
     return τ, σ
 
 @njit(cache=True)
-def gating_hA(v):
-    def hA_inf(V): return 1/(1+np.exp((V+78)/6)) # Inactivation function
-    def tau_hA(V): # Inactivation time-constant
+def hA_inf(V): return 1/(1+np.exp((V+78)/6)) # Inactivation function
+
+@njit(cache=True)
+def tau_hA(V): # Inactivation time-constant
         if V < -63:
             tau_hA = 1/(np.exp((V+46.05)/5)+np.exp((V+238.4)/-37.45))
         else:
             tau_hA = 19
         return tau_hA/5
+
+@njit(cache=True)
+def gating_hA(v):
     τ = tau_hA(v)
     σ = hA_inf(v)
     return τ, σ
 
 # T-type Ca-current (mt=activation variable, ht=inactivation variable)
 @njit(cache=True)
+def mT_inf(V): return 1/(1+np.exp(-(V+57)/6.2)) # Activation function
+
+@njit(cache=True)
+def tau_mT(V): return 0.612 + 1/(np.exp(-(V+131.6)/16.7)+np.exp((V+16.8)/18.2)) # Activation time-constant
+
+@njit(cache=True)
 def gating_mT(v):
-    def mT_inf(V): return 1/(1+np.exp(-(V+57)/6.2)) # Activation function
-    def tau_mT(V): return 0.612 + 1/(np.exp(-(V+131.6)/16.7)+np.exp((V+16.8)/18.2)) # Activation time-constant
     τ = tau_mT(v)
     σ = mT_inf(v)
     return τ, σ
-    
+
 @njit(cache=True)
-def gating_hT(v):
-    def hT_inf(V): return 1/(1+np.exp((V+81)/4.03)) # Inactivation function
-    def tau_hT(V):
+def hT_inf(V): return 1/(1+np.exp((V+81)/4.03)) # Inactivation function
+
+@njit(cache=True)
+def tau_hT(V):
         if V < -80:
             tau_ht = np.exp((V+467)/66.6)
         else:
             tau_ht = (np.exp(-(V+21.88)/10.2)+28)
         return tau_ht
+    
+@njit(cache=True)
+def gating_hT(v):
     τ = tau_hT(v)
     σ = hT_inf(v)
     return τ, σ
 
 # L-type Ca-current (mL=activation variable) (from Drion2011)
 @njit(cache=True)
+def mL_inf(V): return 1/(1+np.exp(-(V+55.)/3)) # Activation 
+
+@njit(cache=True)
+def tau_mL(V): return (72*np.exp(-(V+45.)**2/400)+6.) # Activation time-constant
+
+@njit(cache=True)
 def gating_mL(v):
-    def mL_inf(V): return 1/(1+np.exp(-(V+55.)/3)) # Activation function
-    def tau_mL(V): return (72*np.exp(-(V+45.)**2/400)+6.) # Activation time-constant
     τ = tau_mL(v)
     σ = mL_inf(v)
     return τ, σ
@@ -698,7 +751,9 @@ def mKir_inf(V):
 
 # Synapse
 @njit(cache=True)
+def Tm(V): return 1/(1+np.exp(-(V-2)/5))    
+
+@njit(cache=True)
 def dGABA_A(v, s):
-    def Tm(V): return 1/(1+np.exp(-(V-2)/5))
     ds = 0.53*Tm(v)*(1-s)-0.18*s
     return ds
