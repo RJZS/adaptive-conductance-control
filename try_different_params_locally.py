@@ -8,11 +8,12 @@ from network_odes import main, no_observer
 
 # Only simulating two neurons at a time, for when I'm using the Mac and so can view the plots directly.
 
-Tfinal= 4000.
+Tfinal= 8000.
 dt=0.01
     
 Iconst = lambda t: -3.2
 Iconst2 = lambda t: -2.5
+
 
 # From exp2, commit "Changed DistRej max gs to make disturbance impact clearer."
 def Irb(t): # So two neurons in HCO don't burst simultaneously
@@ -28,7 +29,7 @@ def Irb2(t): # For rebound burster
         return -12
     
 
-Iapps = [Irb, Irb2]
+Iapps = [Irb, lambda t: -2.3, Irb2, lambda t: -4.3]
 
 tspan = (0.,Tfinal)
 
@@ -36,18 +37,30 @@ tspan = (0.,Tfinal)
 # one   = Neuron(0.1, [120.,0.1,1.6,0,80.,0.2,2.,0.,0.1], [], 0)
 # two  = Neuron(0.1, [130.,0.1,3.1,0,80.,1.,2.,0.,0.1], [], 0)
 
-syn = Synapse(2.5, 1)
+# Exp2 syn
+# syn = Synapse(2.5, 1)
+
+# Exp3 syns
+syn1 = Synapse(3.5, 1) # 0.5 and 2 seem to have the same result.
+syn2 = Synapse(3.5, 0)
+syn3 = Synapse(3, 3)
+syn4 = Synapse(3, 2)
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
-one   = Neuron(0.1, [60.,0.1,2.,0,80.,0.4,4,0.,0.12], [syn], 0) # From exp2, commit "Changed DistRej max gs to make disturbance impact clearer." But increased gKCa to decrease period.
-two  = Neuron(0.1, [130.,0.1,3.1,0,75.,1.,2.,0.,0.1], [], 0)
+one_gs = [60.,0.1,2.,0,80.,0.4,4,0.,0.12]
+two_gs = [130.,0.1,3.1,0,75.,1.,2.,0.,0.1]
+
+one   = Neuron(0.1, one_gs, [syn1], 0) # From exp2, commit "Changed DistRej max gs to make disturbance impact clearer." But increased gKCa to decrease period.
+two   = Neuron(0.1, one_gs, [syn2], 0)
+three = Neuron(0.1, two_gs, [syn3], 0)
+four  = Neuron(0.1, two_gs, [syn4], 0)
 
 x_0 = [0,0,0,0,0,0,0,0,0,0,0,0] # 1 syn
 
-network_play = Network([one, two], [])
+network_play = Network([one, two, three, four], [])
 p_play = (Iapps, network_play)
 
-z_0_play = np.concatenate((x_0, x_0))
+z_0_play = np.concatenate((x_0, x_0, x_0, x_0))
 
 print("Starting 'play' simulation. Tfinal = {}".format(Tfinal))
 start_time = time.time()
