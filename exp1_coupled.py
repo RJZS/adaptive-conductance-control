@@ -41,7 +41,7 @@ neur_ref_gs = np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1])
 neur_one = Neuron(0.1, neur_one_gs, np.array([]), 0)
 neur_ref = Neuron(0.1, neur_ref_gs, np.array([]), 0)
 
-res_g = 0.4
+res_g = 0.1
 el_connects = np.array([[res_g, 0, 1]])
 network = Network([neur_one, neur_ref], []) # for ref tracking. No gap junction yet.
 
@@ -113,7 +113,7 @@ network = Network([neur_one, neur_ref], el_connects)
 # Integration initial conditions and parameters
 tspan = (0.,Tfinal2)
 observe_start_time = 0.
-varying_gT = (False)
+varying_gT = (False,)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns_g_els,observe_start_time,to_observe,varying_gT)
 

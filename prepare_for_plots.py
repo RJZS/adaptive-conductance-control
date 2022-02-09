@@ -6,9 +6,9 @@ Created on Sun Dec 12 16:21:18 2021
 """
 import numpy as np
 
-prep_exp1 = True
+prep_exp1 = False
 if prep_exp1:
-    data = np.load("downloaded_data/exp1_relu.npz")
+    data = np.load("data/exp1_relu.npz")
     t=data['t']; t_ref=data['t_ref']
     sol=data['sol']; sol_ref=data['sol_ref']
     # t = t[:-50000] # Truncate
@@ -53,14 +53,14 @@ if prep_exp1:
     exp1_observe_data = np.vstack((t_control, v, v_hat, v_ref, v_ref_hat, error, error_ref)).T
     exp1_error_zoomed = np.vstack((t_control_trunc, error_trunc)).T
     
-    np.savetxt("../reports/ifac-data/exp1_controller_performance.txt",exp1_control_data,delimiter=' ')
-    np.savetxt("../reports/ifac-data/exp1_controller_zoomed.txt",exp1_control_data_zoomed,delimiter=' ')
-    np.savetxt("../reports/ifac-data/exp1_observer_performance.txt",exp1_observe_data,delimiter=' ')
-    np.savetxt("../reports/ifac-data/exp1_error_zoomed.txt",exp1_error_zoomed,delimiter=' ')
+    np.savetxt("/scratch/phd-git/reports/ifac-data/exp1_controller_performance.txt",exp1_control_data,delimiter=' ')
+    np.savetxt("/scratch/phd-git/reports/ifac-data/exp1_controller_zoomed.txt",exp1_control_data_zoomed,delimiter=' ')
+    np.savetxt("/scratch/phd-git/reports/ifac-data/exp1_observer_performance.txt",exp1_observe_data,delimiter=' ')
+    np.savetxt("/scratch/phd-git/reports/ifac-data/exp1_error_zoomed.txt",exp1_error_zoomed,delimiter=' ')
     
 prep_exp2 = False
 if prep_exp2:
-    data = np.load("downloaded_data/exp2_relu.npz")
+    data = np.load("data/exp2_relu.npz")
     tbef = data['tbef']; t=data['t']; tnd=data['tnd']
     solbef = data['solbef']; sol=data['sol']; solnd=data['solnd']
     t = t[:1500000] # Truncate
@@ -106,14 +106,14 @@ if prep_exp2:
     exp2_dist_data = np.vstack((tdc, vdc, Idc)).T
     exp2_observe_data = np.vstack((t_control, gsyn_hat, Id, Id_hat, error)).T
     
-    np.savetxt("../reports/ifac-data/exp2_controller_performance.txt",exp2_control_data,delimiter=' ')
-    np.savetxt("../reports/ifac-data/exp2_dist_data.txt",exp2_dist_data,delimiter=' ')
-    np.savetxt("../reports/ifac-data/exp2_observer_performance.txt",exp2_observe_data,delimiter=' ')
+    np.savetxt("/scratch/phd-git/reports/ifac-data/exp2_controller_performance.txt",exp2_control_data,delimiter=' ')
+    np.savetxt("/scratch/phd-git/reports/ifac-data/exp2_dist_data.txt",exp2_dist_data,delimiter=' ')
+    np.savetxt("/scratch/phd-git/reports/ifac-data/exp2_observer_performance.txt",exp2_observe_data,delimiter=' ')
     
 prep_exp3 = False
 if prep_exp3:
     # Note how controller plots use t_psd, observer plots use t.
-    data = np.load("downloaded_data/exp3_relu.npz")
+    data = np.load("data/exp3_relu.npz")
     tbef = data['tbef']; t=data['t']; tnd=data['tnd']
     solbef = data['solbef']; sol=data['sol']; solnd=data['solnd']
     # t = t[:450000] # Truncate
@@ -155,8 +155,8 @@ if prep_exp3:
     # exp3_dist_t_data = np.vstack((tcd, vc1d, vc2d, vc3d, vc4, vc5)).T
     exp3_observe_data = np.vstack((t_control, g_ests)).T
     
-    np.savetxt("../reports/ifac-data/exp3_full_t.txt",exp3_full_t_data,delimiter=' ')
+    np.savetxt("/scratch/phd-git/reports/ifac-data/exp3_full_t.txt",exp3_full_t_data,delimiter=' ')
     # np.savetxt("../reports/ifac-data/exp3_dist_t.txt",exp3_dist_t_data,delimiter=' ')
-    np.savetxt("../reports/ifac-data/exp3_observer_performance.txt",exp3_observe_data,delimiter=' ')
+    np.savetxt("/scratch/phd-git/reports/ifac-data/exp3_observer_performance.txt",exp3_observe_data,delimiter=' ')
     
     

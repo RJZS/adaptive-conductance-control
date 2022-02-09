@@ -161,7 +161,7 @@ z_0[neur_bef_start_idx:neur_bef_start_idx+12] = sol_before[12:,-1] # init[11:]
 
 tspan = (0.,Tfinal2)
 # controller_on = True
-varying_gT = (False)
+varying_gT = (False,)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns_g_els,0.,to_observe,varying_gT)
 

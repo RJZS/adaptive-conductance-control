@@ -8,7 +8,7 @@ from network_odes import main, no_observer
 
 # Only simulating two neurons at a time, for when I'm using the Mac and so can view the plots directly.
 
-Tfinal= 2500.
+Tfinal= 2000.
 dt=0.01
 
 
@@ -28,8 +28,8 @@ def Irb2(t): # For rebound burster
 
 # Iapps = [Irb, lambda t: -2.3, Irb2, lambda t: -4.3]
 
-Iconst = lambda t: 3
-Iconst2 = lambda t: 3
+Iconst = lambda t: 0
+Iconst2 = lambda t: 0
 Iapps = [Iconst, Iconst2, Iconst, Iconst]
 
 tspan = (0.,Tfinal)
@@ -50,9 +50,9 @@ syn4 = Synapse(3, 2)
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
 # one_gs = [60.,0.1,2.,0,80.,0.4,4,0.,0.12]
 # two_gs = [130.,0.1,3.1,0,75.,1.,2.,0.,0.1]
-one_gs = np.array([120.,0.1,2.,0,80.,0.2,0.3,0.,0.1])
+one_gs = np.array([500.,0.1,5.,0.5,120.,1.,2.5,0.,0.1])
 # two_gs = np.array([120.,0.1,0.,0,80.,0.4,0.,0.,0.1])
-two_gs = np.array([120.,0.1,0.,0,80.,0.2,0.3,0.,0.1])
+two_gs = np.array([500.,0.1,0.,0.5,120.,1.,2.5,0.,0.1])
 
 one   = Neuron(0.1, one_gs, [], 0) # From exp2, commit "Changed DistRej max gs to make disturbance impact clearer." But increased gKCa to decrease period.
 two   = Neuron(0.1, one_gs, [], 0)
