@@ -512,25 +512,28 @@ def calc_dgate(τ, x, σ):
 #     return dv_contribution
 
 @njit(cache=True)
+def res_condition(x, neur_idx): 
+    f = np.zeros(len(x), dtype=np.bool_)
+    ones = x[:,0]; twos = x[:,1] # Doing it this way due to numba error: 'iterating over 2D array'
+    for i in range(len(x)):
+        if ones[i] == neur_idx or twos[i] == neur_idx:
+            f[i] = True
+    return f
+
+@njit(cache=True)
 def calc_res_gs_and_terms(el_connects, neur_idx, Vs, c):
     # Filter to find connections involving our neuron.
-    def res_condition(x): 
-        f = np.zeros(len(x), dtype=np.bool_)
-        for (i, (one,two)) in enumerate(x):
-            if one == neur_idx or two == neur_idx:
-                f[i] = True
-        return f
     res_idxs = el_connects[:,1:]
     
-    neur_res_bool = res_condition(res_idxs)
+    neur_res_bool = res_condition(res_idxs, neur_idx)
     neur_res_idxs = res_idxs[neur_res_bool]
     neur_res_idxs = neur_res_idxs.astype(np.int8)
     neur_res_gs = el_connects[neur_res_bool,0]
         
     # Now calculate terms.
     terms = np.zeros(len(neur_res_idxs))
-    for (i, res_pair) in enumerate(neur_res_idxs):
-        other_neur_idx = np.extract(res_pair != neur_idx, res_pair)[0]
+    for i in range(len(neur_res_idxs)):
+        other_neur_idx = np.extract(neur_res_idxs[i] != neur_idx, neur_res_idxs[i])[0]
         terms[i] = - (Vs[neur_idx] - Vs[other_neur_idx])
     terms = np.divide(terms, c)
     
