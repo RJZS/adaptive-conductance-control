@@ -8,7 +8,7 @@ import numpy as np
 
 prep_exp1 = True
 if prep_exp1:
-    data = np.load("downloaded_data/exp1f.npz")
+    data = np.load("downloaded_data/exp1_relu.npz")
     t=data['t']; t_ref=data['t_ref']
     sol=data['sol']; sol_ref=data['sol_ref']
     # t = t[:-50000] # Truncate
@@ -25,7 +25,6 @@ if prep_exp1:
     v = sol[0,:]
     v_hat = sol[11,:]
     error = v - v_hat # Large initial transient.
-    logerror = np.log(error)
     
     v_ref = sol[102,:]
     v_ref_hat = sol[102+11,:]
@@ -39,7 +38,6 @@ if prep_exp1:
     
     k = -600000
     t_control_trunc = t_control[:k]; error_trunc = error[:k]
-    logerror_trunc = logerror[:k]
     
     skp = 10
     tc = tc[0::skp]; t_control = t_control[0::skp]
@@ -53,7 +51,7 @@ if prep_exp1:
     exp1_control_data = np.vstack((tc, vc, v2c, tracking_error)).T
     exp1_control_data_zoomed = np.vstack((tc_trunc, vc_trunc, v2c_trunc, tracking_error_trunc)).T
     exp1_observe_data = np.vstack((t_control, v, v_hat, v_ref, v_ref_hat, error, error_ref)).T
-    exp1_error_zoomed = np.vstack((t_control_trunc, error_trunc, logerror_trunc)).T
+    exp1_error_zoomed = np.vstack((t_control_trunc, error_trunc)).T
     
     np.savetxt("../reports/ifac-data/exp1_controller_performance.txt",exp1_control_data,delimiter=' ')
     np.savetxt("../reports/ifac-data/exp1_controller_zoomed.txt",exp1_control_data_zoomed,delimiter=' ')
@@ -62,7 +60,7 @@ if prep_exp1:
     
 prep_exp2 = False
 if prep_exp2:
-    data = np.load("downloaded_data/exp2f.npz")
+    data = np.load("downloaded_data/exp2_relu.npz")
     tbef = data['tbef']; t=data['t']; tnd=data['tnd']
     solbef = data['solbef']; sol=data['sol']; solnd=data['solnd']
     t = t[:1500000] # Truncate
@@ -115,7 +113,7 @@ if prep_exp2:
 prep_exp3 = False
 if prep_exp3:
     # Note how controller plots use t_psd, observer plots use t.
-    data = np.load("downloaded_data/exp3f.npz")
+    data = np.load("downloaded_data/exp3_relu.npz")
     tbef = data['tbef']; t=data['t']; tnd=data['tnd']
     solbef = data['solbef']; sol=data['sol']; solnd=data['solnd']
     # t = t[:450000] # Truncate
