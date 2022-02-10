@@ -598,7 +598,7 @@ def calc_dv_terms_final_step_if_not_est_gsyns_gels(gs, g_syns, terms, syn_terms,
 ## Gating Functions for full model
 # Na-current (m=activation variable, h=inactivation variable)
 @njit(cache=True)
-def gating_mNa(v):
+def gating_mNa(V):
     alpha_m = -0.025*(V+40.)/( np.exp(-(V+40)/10) - 1.0 )
     beta_m = np.exp(-(V+65)/18)
     τ = 1. / (alpha_m + beta_m)/5 # Activation time-constant
@@ -606,7 +606,7 @@ def gating_mNa(v):
     return τ, σ
 
 @njit(cache=True)
-def gating_hNa(v):
+def gating_hNa(V):
     alpha_h = 0.0175*np.exp(-(V+65)/20)
     beta_h = 0.25/(1.0 + np.exp(-(V+35)/10) )
     τ = 1 / (alpha_h + beta_h)/5 # Inactivation time-constant
@@ -619,8 +619,8 @@ def gating_mKD(V):
     Kdshift = 10.0
     alpha_mKd = 0.0025*(V+55.-Kdshift)/(1. - np.exp(-(V+55.-Kdshift)/10.) )
     beta_mKd = 0.03125*np.exp(-(V+65-Kdshift)/80.)
-    τ = alpha_mKd / (alpha_mKd + beta_mKd) # Activation function
-    σ = 1. / (alpha_mKd + beta_mKd)/5 # Activation time-constant
+    τ = 1. / (alpha_mKd + beta_mKd)/5 # Activation time-constant
+    σ = alpha_mKd / (alpha_mKd + beta_mKd) # Activation function
     return τ, σ
 
 # H-current (mH=activation variable)
