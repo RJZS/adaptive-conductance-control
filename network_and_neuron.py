@@ -68,203 +68,32 @@ class Neuron:
         self.pre_neurs = np.zeros(self.num_syns, dtype=np.int8)
         for (idx, syn) in enumerate(self.syns):
             self.pre_neurs[idx] = syn.pre_neur
-    
-    ## Gating functions. All the functions being used have been moved out of
-    ## the class definition!
-    
-    # # Intracellular calcium. USING THIS?
-    # def ICa_pump(self, Ca): 0.1*Ca/(Ca+0.0001)
-    
-    # # Gate for KCa. Instead of modelling [Ca]. Term is g_{KCa} mCa^4 (V - E_{KCa})
-    # # This is from Thiago's HCO2.
-    # def gating_mCa(self, v):
-    #     vh_inf_mL = 55
-    #     vh_τ_mL = 45
-    #     k_inf_mL = 3
-    #     k_τ_mL = 400
-    #     def mCa_inf(V): return 1/(1+np.exp(-(V+vh_inf_mL)/k_inf_mL))
-    #     def tau_mCa(V): return (72*np.exp(-(V+vh_τ_mL)**2/k_τ_mL)+6.)*2
-    #     τ = tau_mCa(v)
-    #     σ = mCa_inf(v)
-    #     return τ, σ
-    
-    
-    
-    # # Synaptic current
-    # def gating_s(self, v):
-    #     V12syn=-20.0
-    #     ksyn=4.0
-    #     def msyn_inf(V): return 1.0 / ( 1.0 + np.exp(-(V-V12syn)/ksyn) )
-    #     tausyn = 20.0
-    #     τ = tausyn
-    #     σ = msyn_inf(v)
-    #     return τ, σ
-    
-    # What's this function for? Not used?
-    # def neuron_calcs(self, v, m, h, n, I):
-    #     (τm,σm) = self.gating_m(v);
-    #     (τh,σh) = self.gating_h(v);
-    #     (τn,σn) = self.gating_n(v);
-    
-    #     g = [self.gNa, self.gK, self.gL]
-    #     phi = [-m**3*h*(v-self.ENa),-n**4*(v-self.EK),-(v-self.EL)];
-    
-    #     dv = 1/self.c * (np.dot(phi,g) + I);
-    #     dm = 1/τm*(-m + σm);
-    #     dh = 1/τh*(-h + σh);
-    #     dn = 1/τn*(-n + σn);
-    
-    #     return [dv,dm,dh,dn]
-    
-    # ------ FOR REBOUND BURSTER ------
-    # def gating_m(self, v):
-    #     Vhalf = -40.;
-    #     k = 9.;              #15 in izhikevich
-    #     Vmax = -38.;
-    #     std = 30.;
-    #     Camp = 0.46;
-    #     Cbase = 0.04;
-    #     (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-    #     return τ, σ 
-    
-    # # Sodium inactivation
-    # def gating_h(self, v):
-    #     Vhalf = -62.;
-    #     k = -7.;
-    #     Vmax = -67.;
-    #     std = 20.;
-    #     Camp = 7.4;
-    #     Cbase = 1.2;
-    #     (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-    #     return τ, σ
-    
-    # # Potassium activation
-    # def gating_mKD(self, v):
-    #     Vhalf = -53.;
-    #     k = 15.;
-    #     Vmax = -79.;
-    #     std = 50.;
-    #     Camp = 4.7;
-    #     Cbase = 1.1;
-    #     (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-    #     return τ, σ
-    
-    # # Synaptic gate
-    # def gating_s(self, v): # Terms are same as m unless stated.
-    #     Vhalf = -45.; # From Dethier et al - 2015
-    #     k = 2.; # From Dethier et al - 2015
-    #     Vmax = -38.;
-    #     std = 30.;
-    #     Camp = 0.46;
-    #     Cbase = 0.04;
-    #     (τ, σ) = calc_tau_and_sigma(v, Cbase, Camp, Vmax, std, Vhalf, k)
-    #     return τ, σ   
-    
-    # # Replace gating variables for mT. This is Ca current from Thiago's 'HCO'.
-    # # mCa activation
-    # def thiago_gam(v,c,vhalf,sig): return c/(1+np.exp((v+vhalf)/sig))
-    # def thiago_tau(v,c1,c2,vhalf,sig): return c1 + c2/(1+np.exp((v+vhalf)/sig))
-    
-    # # this is HCO_knietics.jl... so what's the one right above?
-    # def t_σ(self, v,r,k): 
-    #     return 1/(1+np.exp(-(v-r)/k))
-        
-    # def t_τ(self, v,c1,c2,r,k):
-    #     return c1 + c2*self.t_σ(v,r,k)
-    
-    # def gating_mT(self, v):
-    #     rCa_m = -67.1;          
-    #     kCa_m = 7.2;
-    #     σCa_m = self.t_σ(v,rCa_m,kCa_m)
-        
-    #     # mCa time constant
-    #     c1Ca_m = 43.4;
-    #     c2Ca_m = -42.6;
-    #     rτCa_m = -68.1;
-    #     kτCa_m = 20.5;
-    #     τCa_m = self.t_τ(v,c1Ca_m,c2Ca_m,rτCa_m,kτCa_m)
-    #     return τCa_m, σCa_m
-        
-    # def gating_hT(self, v):
-    #     rCa_h = -100 # -82.1;
-    #     kCa_h = -2.2 # -5.5;
-    #     σCa_h = self.t_σ(v,rCa_h,kCa_h)
-        
-    #     # hCa time constant
-    #     c1Ca_h = 40 #140;
-    #     c2Ca_h = -35 # -100;
-    #     rτCa_h = -55;
-    #     kτCa_h = 16.9;
-    #     τCa_h = self.t_τ(v,c1Ca_h,c2Ca_h,rτCa_h,kτCa_h)
-    #     return τCa_h, σCa_h
-    
-    # ------ END OF CODE FOR REBOUND BURSTER ------
-    
-    # ------ DRION PLOS 18 ------
-    
-    # # gating functions
-    # def boltz(self,V,A,B): return 1./(1. + np.exp((V+A)/B))
-    # def tauX(self,V,A,B,D,E): return A - B/(1+np.exp((V+D)/E))
-    # def mNainf(self,V): return self.boltz(V,35.5,-5.29)
-    # def taumNa(self,V): return self.tauX(V,1.32,1.26,120.,-25.)
-    # def hNainf(self,V): return self.boltz(V,48.9,5.18)
-    # def tauhNa(self,V): return (0.67/(1+np.exp((V+62.9)/-10.0)))*(1.5 + 1/(1+np.exp((V+34.9)/3.6)))
-    # def mKdinf(self,V): return self.boltz(V,12.3,-11.8)
-    # def taumKd(self,V): return self.tauX(V,7.2,6.4,28.3,-19.2)
-    # def mCaTinf(self,V): return self.boltz(V,67.1,-7.2)
-    # def taumCaT(self,V): return self.tauX(V,21.7,21.3,68.1,-20.5)
-    # def hCaTinf(self,V): return self.boltz(V,80.1,5.5)
-    # def tauhCaT(self,V): return 2*self.tauX(V,205.,89.8,55.,-16.9)
-    # def mHinf(self,V): return self.boltz(V,80.,6.)
-    # def taumH(self,V): return self.tauX(V,272.,-1149.,42.2,-8.73)
-    # def mKCainf(self,Ca): return (Ca/(Ca+170))**2
-    
-    # def gating_m(self,v):
-    #     return self.taumNa(v), self.mNainf(v)
-    # def gating_h(self,v):
-    #     return self.tauhNa(v), self.hNainf(v)
-    # def gating_mH(self,v):
-    #     return self.taumH(v), self.mHinf(v)
-    # def gating_mT(self,v):
-    #     return self.taumCaT(v), self.mCaTinf(v)
-    # def gating_hT(self,v):
-    #     return self.tauhCaT(v), self.hCaTinf(v)
-    # def gating_mKD(self,v):
-    #     return self.taumKd(v), self.mKdinf(v)
-    
-    
-    
-    # dGABAB(V::Float64,GABAB::Float64) = (dt)*(0.016*Tm(V)*(1-GABAB)-0.0047*GABAB)
-    
-    # ------ END OF CODE FOR DRION PLOS 18 ------
+
+        self.dints = np.zeros(self.NUM_GATES)
+        self.dsyns = np.zeros(self.num_syns)
+        self.taus = np.zeros(9)
+        self.sigmas = np.zeros(9)
     
     def gate_calcs(self, v, int_gates, syn_gates, v_pres):
-        dints = np.zeros(self.NUM_GATES)
-        (τm,σm) = gating_mNa(v);
-        (τh,σh) = gating_hNa(v);
-        (τmH,σmH) = gating_mH(v);
-        (τmT,σmT) = gating_mT(v);
-        (τhT,σhT) = gating_hT(v);
-        (τmA,σmA) = gating_mA(v);
-        (τhA,σhA) = gating_hA(v);
-        (τmKD,σmKD) = gating_mKD(v);
-        (τmL,σmL) = gating_mL(v);
-        # (τCa,σCa) = self.gating_mCa(v);
-        
-        taus = np.array([τm, τh, τmH, τmT, τhT, τmA, τhA, τmKD, τmL])
-        sigmas = np.array([σm, σh, σmH, σmT, σhT, σmA, σhA, σmKD, σmL])
-        dints[:9] = calc_dgate(taus, int_gates[:9], sigmas)
+        self.taus[0], self.sigmas[0] = gating_mNa(v)
+        self.taus[1], self.sigmas[1] = gating_hNa(v)
+        self.taus[2], self.sigmas[2] = gating_mH(v)
+        self.taus[3], self.sigmas[3] = gating_mT(v)
+        self.taus[4], self.sigmas[4] = gating_hT(v)
+        self.taus[5], self.sigmas[5] = gating_mA(v)
+        self.taus[6], self.sigmas[6] = gating_hA(v)
+        self.taus[7], self.sigmas[7] = gating_mKD(v)
+        self.taus[8], self.sigmas[8] = gating_mL(v)
+
+        self.dints[:9] = calc_dgate(self.taus, int_gates[:9], self.sigmas)
         
         dCa = (-0.1*self.gL_for_Ca*int_gates[8]*(v-self.ECa)-0.01*int_gates[9])/4
-        dints[9] = dCa
+        self.dints[9] = dCa
         
-        dsyns = np.zeros(self.num_syns)
         for (idx, syn) in enumerate(self.syns):
-            # (τs,σs) = self.gating_s(v_pres[idx])
-            # dsyns[idx] = calc_dgate(τs, syn_gates[idx], σs);
-            dsyns[idx] = dGABA_A(v_pres[idx], syn_gates[idx])
+            self.dsyns[idx] = dGABA_A(v_pres[idx], syn_gates[idx])
             
-        return (dints, dsyns)
+        return (self.dints, self.dsyns)
     
     # Note this function spits out the length of vectors tailored to the neuron,
     # not the standardised 'max length' required by the ODE solver.
