@@ -63,6 +63,7 @@ if prep_exp2:
     data = np.load("data/exp2_relu.npz")
     tbef = data['tbef']; t=data['t']; tnd=data['tnd']
     solbef = data['solbef']; sol=data['sol']; solnd=data['solnd']
+    t = t / 1000; tbef = tbef / 1000; tnd = tnd / 1000
     t = t[:1500000] # Truncate
     sol = sol[:,:1500000]
     # diff = sol[0,:ps_idx] - sol_nodist[0,:]
@@ -116,6 +117,7 @@ if prep_exp3:
     data = np.load("data/exp3_relu.npz")
     tbef = data['tbef']; t=data['t']; tnd=data['tnd']
     solbef = data['solbef']; sol=data['sol']; solnd=data['solnd']
+    t = t / 1000; tbef = tbef / 1000; tnd = tnd / 1000
     # t = t[:450000] # Truncate
     # sol = sol[:,:450000]
     
