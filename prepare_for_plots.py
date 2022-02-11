@@ -75,9 +75,7 @@ if prep_exp2:
     t_control = t + tnd[-1] + tbef[-1]
     tc = np.concatenate((tnd[:-1], tbef[:-1] + tnd[-1], t_control))
     vc = np.concatenate((solnd[0,:-1], solbef[0,:-1], sol[0,:]))
-    
-    tdc = np.concatenate((tbef[:-1] + tnd[-1], t_control))
-    vdc = np.concatenate((solbef[12,:-1], sol[27,:]))
+    vdc = np.concatenate((solnd[11,:-1], solbef[12,:-1], sol[27,:]))
     
     gsyn_hat = sol[24,:]
 
@@ -86,6 +84,7 @@ if prep_exp2:
     Id_hat = gsyn_hat * sol[23,:] * (sol[12,:] - Esyn)
     error = Id - Id_hat # Note there's a large initial transient (down to -1323).
     
+    tdc = np.concatenate((tbef[:-1] + tnd[-1], t_control))
     Idbef = syn_g * solbef[11,:] * (solbef[0,:] - Esyn)
     Idc = np.concatenate((Idbef[:-1], Id))
     
@@ -103,8 +102,8 @@ if prep_exp2:
     Idc = Idc[0::skp]; gsyn_hat = gsyn_hat[0::skp]
     error = error[0::skp]; tnd = tnd[0::skp]
     
-    exp2_control_data = np.vstack((tc, vc)).T
-    exp2_dist_data = np.vstack((tdc, vdc, Idc)).T
+    exp2_control_data = np.vstack((tc, vc, vdc)).T
+    exp2_dist_data = np.vstack((tdc, Idc)).T
     exp2_observe_data = np.vstack((t_control, gsyn_hat, Id, Id_hat, error)).T
     
     np.savetxt("/scratch/phd-git/reports/ifac-data/exp2_controller_performance.txt",exp2_control_data,delimiter=' ')

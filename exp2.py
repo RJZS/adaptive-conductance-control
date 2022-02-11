@@ -62,10 +62,10 @@ neur_one_gs = np.array([60.,0.1,2.,0,80.,0.4,2.,0.,0.12])
 neur_dist_gs = np.array([130.,0.1,3.2,0,80.,1.,2.,0.,0.1])
 
 neur_one_nodist = Neuron(0.1, neur_one_gs, [], 0)
-network_nodist = Network([neur_one_nodist], [])
+neur_dist = Neuron(0.1, neur_dist_gs, [], 0)
+network_nodist = Network([neur_one_nodist, neur_dist], [])
 
 neur_one = Neuron(0.1, neur_one_gs, [syn], 0)  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
-neur_dist = Neuron(0.1, neur_dist_gs, [], 0)
 network = Network([neur_one, neur_dist], [])
 
 control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
@@ -82,8 +82,8 @@ def Ioffset_dist(t): # So two neurons in HCO don't burst simultaneously
 Iconst = lambda t: -2.
 Iconst_dist = lambda t: -1.
 
-Iapps_nodist = [Iconst]
-Iapps_before = [Iconst, Ioffset_dist]
+Iapps_nodist = [Iconst, Ioffset_dist]
+Iapps_before = [Iconst, Iconst_dist]
 Iapps = [Iconst, Iconst_dist]
 
 # Observer parameters
@@ -117,7 +117,7 @@ z_0 = np.ravel(z_0, order='F')
 # Single neuron disturbance rejection
 
 p_nodist = (Iapps_nodist, network_nodist)
-z_0_nodist = x_0[:11] # Only one neur
+z_0_nodist = np.concatenate((x_0[:11], x_0[:11])) # No synapses
 
 dt = 0.01
 tspan = (0.,Tfinal0)
@@ -133,6 +133,7 @@ sol_nodist = out_nodist.y
 # Now use those parameters to initialise the next sim.
 z_0_before = np.concatenate((x_0, x_0))
 z_0_before[:11] = sol_nodist[:11,-1]
+z_0_before[12:12+11] = sol_nodist[11:,-1]
 
 # %%
 # Now run the perturbed system without the observer/controller.
