@@ -84,6 +84,9 @@ if prep_exp2:
     Id_hat = gsyn_hat * sol[23,:] * (sol[12,:] - Esyn)
     error = Id - Id_hat # Note there's a large initial transient (down to -1323).
     
+    k=140000
+    t_control_trunc = t_control[:k]; error_trunc = error[:k]
+    
     tdc = np.concatenate((tbef[:-1] + tnd[-1], t_control))
     Idbef = syn_g * solbef[11,:] * (solbef[0,:] - Esyn)
     Idc = np.concatenate((Idbef[:-1], Id))
@@ -100,15 +103,18 @@ if prep_exp2:
     tdc = tdc[0::skp]
     vdc = vdc[0::skp]; Id = Id[0::skp]; Id_hat = Id_hat[0::skp]
     Idc = Idc[0::skp]; gsyn_hat = gsyn_hat[0::skp]
-    error = error[0::skp]; tnd = tnd[0::skp]
+    error = error[0::skp]
+    t_control_trunc = t_control_trunc[0::skp]; error_trunc = error_trunc[0::skp]
     
     exp2_control_data = np.vstack((tc, vc, vdc)).T
     exp2_dist_data = np.vstack((tdc, Idc)).T
     exp2_observe_data = np.vstack((t_control, gsyn_hat, Id, Id_hat, error)).T
+    exp2_observe_zoomed = np.vstack((t_control_trunc, error_trunc)).T
     
     np.savetxt("/scratch/phd-git/reports/ifac-data/exp2_controller_performance.txt",exp2_control_data,delimiter=' ')
     np.savetxt("/scratch/phd-git/reports/ifac-data/exp2_dist_data.txt",exp2_dist_data,delimiter=' ')
     np.savetxt("/scratch/phd-git/reports/ifac-data/exp2_observer_performance.txt",exp2_observe_data,delimiter=' ')
+    np.savetxt("/scratch/phd-git/reports/ifac-data/exp2_observer_zoomed.txt",exp2_observe_zoomed,delimiter=' ')
     
 prep_exp3 = False
 if prep_exp3:
