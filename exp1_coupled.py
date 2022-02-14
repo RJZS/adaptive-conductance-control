@@ -60,7 +60,7 @@ Iapps = [Iconst, Iconst]
 ref_gs = np.array([]).T
 
 is_exp1 = True # Have created controller specifically for eq 1. Easier that way.
-control_law = ["RefTrack", ref_gs, is_exp1]
+control_law = [0, ref_gs, is_exp1] # For first element, 0 is RefTrack, 1 is DistRej.
 # control_law = [""]
 
 num_neurs = len(network.neurons)

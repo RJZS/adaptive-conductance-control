@@ -137,13 +137,13 @@ network_nodist = Network([one, two, three_nodist, four,
 α = 0.0001 # 0.0001 # 0.0008 # 0.00085 # HCO periods are 1080 and 850. What about combined rhythm?
 γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
-# For disturbance rejection, the format is ["DistRej", [(neur, syn), (neur, syn), ...], reject_els_to...]
+# For disturbance rejection, the format is [1, [(neur, syn), (neur, syn), ...], reject_els_to...]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,
 # and then the index of the synapse in the neuron.
 # The next two elements of the control_law array pertain to electrical connections. They're very hacky!!
 reject_els_to_neur_idxs = [2] # Rejecting connections to the hub neuron
 reject_el_idx_of_reject_els_to_neur = 1 # Reject which of the connections involving 2.
-control_law = ["DistRej", [(2, 1)], reject_els_to_neur_idxs,
+control_law = [1, [(2, 1)], reject_els_to_neur_idxs,
                reject_el_idx_of_reject_els_to_neur]
 # control_law = [""]
 

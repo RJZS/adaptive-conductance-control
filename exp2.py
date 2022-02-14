@@ -68,7 +68,7 @@ network_nodist = Network([neur_one_nodist, neur_dist], [])
 neur_one = Neuron(0.1, neur_one_gs, [syn], 0)  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
 network = Network([neur_one, neur_dist], [])
 
-control_law = ["DistRej", [(0, 0)]]#, (0, 1)]]
+control_law = [1, [(0, 0)]] # For first element, 0 is RefTrack, 1 is DistRej.
 # control_law = [""]
 
 ## Dist Rej Currents

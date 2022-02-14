@@ -172,8 +172,8 @@ def main(t,z,p):
             neur.gT = gTs[idx]
             neur.gs[2] = gTs[idx] # Neuron object also keeps gT here.
     
-    # Run controller
-    if controller_settings[0] == "DistRej" and t > observe_start_time:
+    # Run controller. First check if it's DistRej.
+    if controller_settings[0] == 1 and t > observe_start_time:
         if estimate_g_syns_g_els:
             g_syns = θ̂s[len(to_estimate):,:] # Start after intrinsic gs.
         else:
@@ -189,7 +189,8 @@ def main(t,z,p):
 #            control_currs = control_currs + disturbance_rejection_resistive(estimate_g_syns_g_els, gres_hats, network.el_connects, Vs,
 #                                                                            network.neurons, controller_settings[2], controller_settings[3])
         injected_currents = injected_currents + control_currs
-    elif controller_settings[0] == "RefTrack" and t > observe_start_time:
+    # If it's RefTrack.
+    elif controller_settings[0] == 0 and t > observe_start_time:
         # If not estimating all the intrinsic gs, will feed controller a mix of true
         # and estimated gs. Need to generate this list of gs to feed in.
         neur_gs = np.zeros((num_neur_gs, num_neurs))
