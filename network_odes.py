@@ -125,7 +125,9 @@ def find_jac_sparsity(num_neurs, num_ests, len_neur_state, max_num_syns):
     J[num_neurs:num_neurs+num_gates*num_neurs,0:num_neurs] = 1 # Gates depend on vs (any v, as includes synaptic gates).
     J[osi:osi+num_neurs,0:num_neurs] = 1 # Each dv̂ can depend on any vs.
     for n in range(num_neurs):
-        J[osi+n,osi+num_neurs+num_gates*n:osi+num_neurs+num_gates*(n+1)] = 1 # Each v estimates depends on its own gate estimates.
+        J[osi+n,osi+num_neurs+num_gates*n:osi+num_neurs+num_gates*(n+1)] = 1 # Each v estimate depends on its own gate estimates.
+        J[osi+n,psi+num_ests**2*n:psi+num_ests**2*(n+1)] = 1 # It also depends on its own P...
+        J[osi+n,psisi+num_ests*n:psisi+num_ests*(n+1)] = 1 # ...and Ψ.
     J[osi+num_neurs:osi+num_neurs+num_gates*num_neurs,0:num_neurs] = 1 # Gate estimates depend on vs
     for n in range(num_neurs):
         J[tsi+num_ests*n:tsi+num_ests*(n+1),n] = 1 # Theta_hat depends on own v...
