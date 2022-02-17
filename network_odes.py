@@ -107,6 +107,20 @@ def hhmodel_reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, 
         adjusting_currents[i] = np.dot(g_diffs[:,i],terms[:,i]) # diag(A^T B)?
     return adjusting_currents
         
+def jac_sparsity(num_neurs, num_estimators, len_neur_state, num_int_gates, max_num_syns):
+    num_gates = num_int_gates + max_num_syns
+    len_z = ((len_neur_state+max_num_syns)*2+num_estimators*2+num_estimators**2)*num_neurs
+    J = np.zeros((len_z, len_z))
+    np.fill_diagonal(J, 1)
+    for n in range(num_neurs):
+        J[n,0:num_neurs] = 1 # dv can depend on other vs.
+        J[n,num_neurs+n*num_gates:num_neurs+n*num_gates+num_gates] = 1 # dv depends on its own gates.
+        # now dw... Need to include in this for loop?
+        J[num_neurs*num_gates:num_neurs+num_neurs*num_gates+num_gates,0:num_neurs] = 1 # gates depend on vs (any v, as includes synaptic gates).
+        # J[num_neurs*num_gates:num_neurs+num_neurs*num_gates+num_gates,
+        # Test what I have so far!
+    return J
+
 def main(t,z,p):
     Iapps = p[0]
     network = p[1]
