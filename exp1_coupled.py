@@ -10,7 +10,7 @@ from scipy.integrate import solve_ivp
 import time
 
 from network_and_neuron import Synapse, Neuron, Network
-from network_odes import main, no_observer
+from network_odes import main, no_observer, find_jac_sparsity
 
 Tfinal1 = 3000. # How long to run 'before'
 Tfinal2 = 24000. # How long to run observer+controller.
@@ -119,9 +119,10 @@ p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
 
 print("Starting simulation",file=open("exp1.txt","a"))
 start_time = time.time()
+J_sparse = find_jac_sparsity(num_neurs, num_estimators, len_neur_state, max_num_syns) # Define sparsity matrix.
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-3,
                 t_eval=np.linspace(0,Tfinal2,int(Tfinal2/dt)), method='Radau',
-                dense_output=False)
+                dense_output=False,jac_sparsity=J_sparse)
 end_time = time.time()
 print(out.success, file=open("exp1.txt","a"))
 print("Simulation time: {}s".format(end_time-start_time),file=open("exp1.txt","a"))

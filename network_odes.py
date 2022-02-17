@@ -107,7 +107,8 @@ def hhmodel_reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, 
         adjusting_currents[i] = np.dot(g_diffs[:,i],terms[:,i]) # diag(A^T B)?
     return adjusting_currents
         
-def jac_sparsity(num_neurs, num_ests, len_neur_state, num_int_gates, max_num_syns):
+def find_jac_sparsity(num_neurs, num_ests, len_neur_state, max_num_syns):
+    num_int_gates = 10 # Model is hardcoded (needs to be, as assuming [Ca]'s dependence on m_L).
     num_gates = num_int_gates + max_num_syns
     len_z = ((len_neur_state+max_num_syns)*2+num_ests*2+num_ests**2)*num_neurs
     J = np.zeros((len_z, len_z))
@@ -137,10 +138,10 @@ def jac_sparsity(num_neurs, num_ests, len_neur_state, num_int_gates, max_num_syn
     for n in range(num_neurs):
         J[psisi+num_ests*n:psisi+num_ests*(n+1),osi+num_neurs+num_gates*n:osi+num_neurs+num_gates*(n+1)] = 1 # ...and on own gate estimates.
         
-    # NB there is one coupling amongst the gates: d[Ca] depends on m_L:
+    # NB there is one coupling amongst the gates: d[Ca] depends on m_L. Account for this...
     for n in range(num_neurs):
-        J[num_neurs+num_gates*n+9,num_neurs+num_gates*n+8] = 1 # For true system.
-        J[osi+num_neurs+num_gates*n+9,osi+num_neurs+num_gates*n+8] = 1 # For observer.
+        J[num_neurs+num_gates*n+9,num_neurs+num_gates*n+8] = 1 # ...true system, and...
+        J[osi+num_neurs+num_gates*n+9,osi+num_neurs+num_gates*n+8] = 1 # ...in observer.
     return J
 
 def main(t,z,p):
