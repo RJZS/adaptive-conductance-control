@@ -107,18 +107,40 @@ def hhmodel_reference_tracking_njit(Vs, m̂s, ĥs, n̂s, syns_hat, gs, ref_gs, 
         adjusting_currents[i] = np.dot(g_diffs[:,i],terms[:,i]) # diag(A^T B)?
     return adjusting_currents
         
-def jac_sparsity(num_neurs, num_estimators, len_neur_state, num_int_gates, max_num_syns):
+def jac_sparsity(num_neurs, num_ests, len_neur_state, num_int_gates, max_num_syns):
     num_gates = num_int_gates + max_num_syns
-    len_z = ((len_neur_state+max_num_syns)*2+num_estimators*2+num_estimators**2)*num_neurs
+    len_z = ((len_neur_state+max_num_syns)*2+num_ests*2+num_ests**2)*num_neurs
     J = np.zeros((len_z, len_z))
     np.fill_diagonal(J, 1)
+    osi = num_neurs + num_gates*num_neurs # 'Observer start index'
+    tsi = 2*osi # 'θ̂ start index'
+    psi = tsi + num_ests*num_neurs # 'P start index'
+    psisi = psi + num_ests**2*num_neurs # 'Psi start index'
+    
+    # Going through dz in order.
+    J[0:num_neurs,0:num_neurs] = 1 # Each dv can depends on any other vs (think of resistive connections)
     for n in range(num_neurs):
-        J[n,0:num_neurs] = 1 # dv can depend on other vs.
-        J[n,num_neurs+n*num_gates:num_neurs+n*num_gates+num_gates] = 1 # dv depends on its own gates.
-        # now dw... Need to include in this for loop?
-        J[num_neurs*num_gates:num_neurs+num_neurs*num_gates+num_gates,0:num_neurs] = 1 # gates depend on vs (any v, as includes synaptic gates).
-        # J[num_neurs*num_gates:num_neurs+num_neurs*num_gates+num_gates,
-        # Test what I have so far!
+        J[n,num_neurs+n*num_gates:num_neurs+n*num_gates+num_gates] = 1 # Each dv depends on its own gates.
+    J[num_neurs:num_neurs+num_gates*num_neurs,0:num_neurs] = 1 # Gates depend on vs (any v, as includes synaptic gates).
+    J[osi:osi+num_neurs,0:num_neurs] = 1 # Each dv̂ can depend on any vs.
+    for n in range(num_neurs):
+        J[osi+n,osi+num_neurs+num_gates*n:osi+num_neurs+num_gates*(n+1)] = 1 # Each v estimates depends on its own gate estimates.
+    J[osi+num_neurs:osi+num_neurs+num_gates*num_neurs,0:num_neurs] = 1 # Gate estimates depend on vs
+    for n in range(num_neurs):
+        J[tsi+num_ests*n:tsi+num_ests*(n+1),n] = 1 # Theta_hat depends on own v...
+        J[tsi+num_ests*n:tsi+num_ests*(n+1),osi+n] = 1 # ...and v_hat...
+        J[tsi+num_ests*n:tsi+num_ests*(n+1),psi+num_ests**2*n:psi+num_ests**2*(n+1)] = 1 # ...and P...
+        J[tsi+num_ests*n:tsi+num_ests*(n+1),psisi+num_ests*n:psisi+num_ests*(n+1)] = 1 # ...and psi.
+        J[psi+num_ests**2*n:psi+num_ests**2*(n+1),psi+num_ests**2*n:psi+num_ests**2*(n+1)] = 1 # Ps have block digonal structure...
+        J[psi+num_ests**2*n:psi+num_ests**2*(n+1),psisi+num_ests*n:psisi+num_ests*(n+1)] = 1 # ...and also depend on own Ψ.
+    J[psisi:,0:num_neurs] = 1 # dΨ depends on all vs...
+    for n in range(num_neurs):
+        J[psisi+num_ests*n:psisi+num_ests*(n+1),osi+num_neurs+num_gates*n:osi+num_neurs+num_gates*(n+1)] = 1 # ...and on own gate estimates.
+        
+    # NB there is one coupling amongst the gates: d[Ca] depends on m_L:
+    for n in range(num_neurs):
+        J[num_neurs+num_gates*n+9,num_neurs+num_gates*n+8] = 1 # For true system.
+        J[osi+num_neurs+num_gates*n+9,osi+num_neurs+num_gates*n+8] = 1 # For observer.
     return J
 
 def main(t,z,p):
