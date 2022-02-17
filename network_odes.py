@@ -145,6 +145,38 @@ def find_jac_sparsity(num_neurs, num_ests, len_neur_state, max_num_syns):
     for n in range(num_neurs):
         J[num_neurs+num_gates*n+9,num_neurs+num_gates*n+8] = 1 # ...true system, and...
         J[osi+num_neurs+num_gates*n+9,osi+num_neurs+num_gates*n+8] = 1 # ...in observer.
+    
+    # The above assumes the vector is [dvs, dints, etc...] whereas in fact it's [dv1, dm1, ... dv2].
+    # How to fix this? Can use something like the two commands below? Or need to start again?!?
+    snsi = len_z // num_neurs # 'Second neuron start idx'
+    dvl = np.arange(num_neurs)
+    dwl = np.arange(num_neurs,num_neurs+num_gates*num_neurs)
+    dtl = np.arange(tsi,tsi+num_ests*num_neurs)
+    dPl = np.arange(psi,psi+num_ests**2*num_neurs)
+    dpsil = np.arange(psisi,psisi+num_ests*num_neurs)
+    
+    dvl_new = [i*snsi for i in range(num_neurs)]
+    dv̂l_new = [i*snsi + 1 + num_gates for i in range(num_neurs)]
+    dwl_new = np.zeros(len(dwl))
+    dw_hatl_new = np.zeros(len(dwl))
+    dθ̂l_new = np.zeros(len(dtl))
+    dPl_new = np.zeros(len(dPl))
+    dpsil_new = np.zeros(len(dpsil))
+    for (n, idx) in enumerate(dvl_new):
+        dwl_new[n*num_gates:(n+1)*num_gates] = idx + np.arange(num_gates)
+        dw_hatl_new[n*num_gates:(n+1)*num_gates] = idx + 1 + num_gates + np.arange(num_gates)
+        dθ̂l_new = idx + 2*(1 + num_gates) + np.arange(num_ests)
+        dPl_new = idx + 2*(1 + num_gates) + num_ests + np.arange(num_ests**2)
+        dpsil_new = idx + 2*(1 + num_gates) + num_ests + num_ests**2 + np.arange(num_ests)
+    # Have the idxs. Now reshuffle.
+    # Or use to rewrite the original fn? Could start with something like:
+        # for n in range(num_neurs):
+            # j = J[n*len_z//num_neurs:(n+1)*len_z//num_neurs,n*len_z//num_neurs:(n+1)*len_z//num_neurs]
+            # j[0] = 
+        
+    # Are the two lines below useful?
+    # dz = np.reshape(dz_mat, (len(z),), order='F')
+    # dPs = np.reshape(dPs, (num_estimators**2, num_neurs), order='F')
     return J
 
 def main(t,z,p):
