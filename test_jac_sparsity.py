@@ -24,14 +24,14 @@ solvemethod = 'Radau'
 # observe_start_time = 10. # 2000.
 
 # Initial conditions - Single Neuron Disturbance Rejection
-x_0 = [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca, s
-x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-θ̂_0 = np.ones(2); # Estimating 1syn. idx 24
-P_0 = np.eye(2);
-Ψ_0 = np.zeros(2);
+x_0 = [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, Ca
+x̂_0 = [0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+θ̂_0 = np.ones(1); # Estimating 1syn. idx 24
+P_0 = np.eye(1);
+Ψ_0 = np.zeros(1);
 to_estimate = np.array([0],dtype=np.int32)
-to_observe = np.array([0,1], dtype=np.int32)
-estimate_g_syns_g_els = True
+to_observe = np.array([0], dtype=np.int32)
+estimate_g_syns_g_els = False
 
 # syn = Synapse(0.8, 1)
 
@@ -44,11 +44,14 @@ neur_one_gs = np.array([60.,0.1,2.,0,80.,0.4,2.,0.,0.12])
 neur_dist_gs = np.array([130.,0.1,3.2,0,80.,1.,2.,0.,0.1])
 
 neur_one_nodist = Neuron(0.1, neur_one_gs, [], 0)
-neur_dist = Neuron(0.1, neur_dist_gs, [], 0)
+neur_dist = Neuron(0.1, neur_dist_gs, [], 1)
 network_nodist = Network([neur_one_nodist, neur_dist], [])
 
-neur_one = Neuron(0.1, neur_one_gs, [syn], 0)  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
-network = Network([neur_one, neur_dist], [])
+neur_one = Neuron(0.1, neur_one_gs, [], 1)  # gNa, gH, gT, gA, gKD, gL, gKCa, gKir, gleak
+
+res_g = 0.1
+el_connects = np.array([[res_g, 0, 1]])
+network = Network([neur_one, neur_dist], el_connects)
 
 control_law = [3]
 
