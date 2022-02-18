@@ -163,21 +163,19 @@ def find_jac_sparsity(num_neurs, num_ests, len_neur_state, max_num_syns):
     dPl_new = np.zeros(len(dPl))
     dpsil_new = np.zeros(len(dpsil))
     for (n, idx) in enumerate(dvl_new):
-        dwl_new[n*num_gates:(n+1)*num_gates] = idx + np.arange(num_gates)
-        dw_hatl_new[n*num_gates:(n+1)*num_gates] = idx + 1 + num_gates + np.arange(num_gates)
-        dθ̂l_new = idx + 2*(1 + num_gates) + np.arange(num_ests)
-        dPl_new = idx + 2*(1 + num_gates) + num_ests + np.arange(num_ests**2)
-        dpsil_new = idx + 2*(1 + num_gates) + num_ests + num_ests**2 + np.arange(num_ests)
-    # Have the idxs. Now reshuffle.
-    # Or use to rewrite the original fn? Could start with something like:
-        # for n in range(num_neurs):
-            # j = J[n*len_z//num_neurs:(n+1)*len_z//num_neurs,n*len_z//num_neurs:(n+1)*len_z//num_neurs]
-            # j[0] = 
-        
-    # Are the two lines below useful?
-    # dz = np.reshape(dz_mat, (len(z),), order='F')
-    # dPs = np.reshape(dPs, (num_estimators**2, num_neurs), order='F')
-    return J
+        dwl_new[n*num_gates:(n+1)*num_gates] = idx + 1 + np.arange(num_gates)
+        dw_hatl_new[n*num_gates:(n+1)*num_gates] = idx + 2 + num_gates + np.arange(num_gates)
+        dθ̂l_new[n*num_ests:(n+1)*num_ests] = idx + 2*(1 + num_gates) + np.arange(num_ests)
+        dPl_new[n*num_ests**2:(n+1)*num_ests**2] = idx + 2*(1 + num_gates) + num_ests + np.arange(num_ests**2)
+        dpsil_new[n*num_ests:(n+1)*num_ests] = idx + 2*(1 + num_gates) + num_ests + num_ests**2 + np.arange(num_ests)
+    new_order_inv = np.concatenate((dvl_new,dwl_new,dv̂l_new,dw_hatl_new,dθ̂l_new,
+                                dPl_new,dpsil_new)).astype(int)
+    new_order = np.zeros(len_z)
+    for (idx, val) in enumerate(new_order_inv):
+        new_order[idx] = np.where(new_order_inv == idx)[0][0]
+    new_order = new_order.astype(int)
+    J_resorted = J[:, new_order][new_order]
+    return J_resorted
 
 def main(t,z,p):
     Iapps = p[0]
