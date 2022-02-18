@@ -121,12 +121,15 @@ def find_jac_sparsity(num_neurs, num_ests, len_neur_state, max_num_syns):
     # Going through dz in order.
     J[0:num_neurs,0:num_neurs] = 1 # Each dv can depends on any other vs (think of resistive connections)
     for n in range(num_neurs):
-        J[n,num_neurs+n*num_gates:num_neurs+n*num_gates+num_gates] = 1 # Each dv depends on its own gates.
+        J[n,num_neurs+n*num_gates:num_neurs+n*num_gates+num_gates] = 1 # Each dv depends on its own gates...
+        J[n,osi+num_neurs+num_gates*n:osi+num_neurs+num_gates*(n+1)] = 1 # ..and gate estimates (when there's a controller)...
+        J[n,tsi:psi] = 1 # ...and potentially on any theta_hats (think reference tracking).
     J[num_neurs:num_neurs+num_gates*num_neurs,0:num_neurs] = 1 # Gates depend on vs (any v, as includes synaptic gates).
     J[osi:osi+num_neurs,0:num_neurs] = 1 # Each dv̂ can depend on any vs.
     for n in range(num_neurs):
         J[osi+n,osi+num_neurs+num_gates*n:osi+num_neurs+num_gates*(n+1)] = 1 # Each v estimate depends on its own gate estimates.
-        J[osi+n,tsi+num_ests*n:tsi+num_ests*(n+1)] = 1 # It also depends on its own theta_hat
+        # J[osi+n,tsi+num_ests*n:tsi+num_ests*(n+1)] = 1 # It also depends on its own theta_hat
+        J[osi+n,tsi:psi] = 1 # It can depend on any theta_hat (think reference tracking controller)
         J[osi+n,psi+num_ests**2*n:psi+num_ests**2*(n+1)] = 1 # ...and P...
         J[osi+n,psisi+num_ests*n:psisi+num_ests*(n+1)] = 1 # ...and Ψ.
     J[osi+num_neurs:osi+num_neurs+num_gates*num_neurs,0:num_neurs] = 1 # Gate estimates depend on vs
