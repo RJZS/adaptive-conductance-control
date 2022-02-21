@@ -16,7 +16,9 @@ from scipy.integrate import solve_ivp
 import time
 
 from network_and_neuron import Synapse, Neuron, Network
-from network_odes import main, no_observer
+from network_odes import main, no_observer, find_jac_sparsity
+
+# np.seterr(all='ignore')
 
 Tfinal0 = 4000.
 Tfinal1 = 4000.
@@ -165,12 +167,13 @@ tspan = (0.,Tfinal2)
 varying_gT = (False,)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns_g_els,0.,to_observe,varying_gT)
+J_sparse = find_jac_sparsity(num_neurs, num_estimators, len_neur_state, max_num_syns) # Define sparsity matrix.
 
 print("Starting simulation",file=open("exp2.txt","a"))
 start_time = time.time()
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=tol,atol=tol,
                 t_eval=np.linspace(0,Tfinal2,int(Tfinal2/dt)), method=solvemethod,
-                dense_output=False)
+                dense_output=False, jac_sparsity=J_sparse)
 end_time = time.time()
 print(out.success,file=open("exp2.txt","a"))
 print(f"Latest estimates: {out.y[24,-20:]}",file=open("exp2.txt","a"))
