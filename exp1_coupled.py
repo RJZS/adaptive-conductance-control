@@ -116,10 +116,10 @@ observe_start_time = 0.
 varying_gT = (False,)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns_g_els,observe_start_time,to_observe,varying_gT)
+J_sparse = find_jac_sparsity(num_neurs, num_estimators, len_neur_state, max_num_syns).astype(int) # Define sparsity matrix.
 
 print("Starting simulation",file=open("exp1.txt","a"))
 start_time = time.time()
-J_sparse = find_jac_sparsity(num_neurs, num_estimators, len_neur_state, max_num_syns) # Define sparsity matrix.
 out = solve_ivp(lambda t, z: main(t, z, p), tspan, z_0,rtol=1e-3,atol=1e-3,
                 t_eval=np.linspace(0,Tfinal2,int(Tfinal2/dt)), method='Radau',
                 dense_output=False,jac_sparsity=J_sparse)
