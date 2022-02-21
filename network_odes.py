@@ -180,6 +180,19 @@ def find_jac_sparsity(num_neurs, num_ests, len_neur_state, max_num_syns):
     J_resorted = J[:, new_order][new_order]
     return J_resorted
 
+def init_state_update_dict(num_neurs, num_int_gates, max_num_syns, num_estimators):
+    s = {}
+    s['dvs'] = np.zeros(num_neurs); s['dv̂s'] = np.zeros(num_neurs)
+    s['dints'] = np.zeros((num_int_gates, num_neurs))
+    s['dints_hat'] = np.zeros((num_int_gates, num_neurs))
+    s['dsyns_mat'] = np.zeros((max_num_syns, num_neurs))
+    s['dsyns_hat_mat'] = np.zeros((max_num_syns, num_neurs))
+    
+    s['dθ̂s'] = np.zeros((num_estimators, num_neurs))
+    s['dΨs'] = np.zeros((num_estimators, num_neurs))
+    s['dPs'] = np.zeros((num_estimators, num_estimators, num_neurs))
+    return s
+
 def main(t,z,p):
     Iapps = p[0]
     network = p[1]
@@ -191,10 +204,11 @@ def main(t,z,p):
     observe_start_time = p[7]
     to_observe = p[8]
     varying_gT = p[9]
+    sud = p[10] # State update dict
     
     # Assuming all the neurons are of the same model:
-    num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
-    len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
+    # num_neur_gates = network.neurons[0].NUM_GATES + network.max_num_syns
+    # len_neur_state = num_neur_gates + 1 # Effectively hardcoded below anyway.
     num_neur_gs = 9 # Na, H, T, A, KD, L, KCa, KIR, leak
     num_int_gates = 10 # m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
     max_num_syns = network.max_num_syns
@@ -205,18 +219,10 @@ def main(t,z,p):
     z_mat = np.reshape(z, (len(z)//num_neurs, num_neurs), order='F')
     # True system.
     Vs = z_mat[0,:]
-    ms = z_mat[1,:]
-    hs = z_mat[2,:]
-    mHs = z_mat[3,:]
-    mTs = z_mat[4,:]
-    hTs = z_mat[5,:]
-    mAs = z_mat[6,:]
-    hAs = z_mat[7,:]
-    mKDs = z_mat[8,:]
-    mLs = z_mat[9,:]
-    mCas = z_mat[10,:]
-    ints = z_mat[1:11,:] # All the intrinsic gates.
+    ints = z_mat[1:11,:] # All the intrinsic gates. The order is:
+    # ms, hs, mHs, mTs, hTs, mAs, hAs, mKDs, mLs, mCas
     syns = z_mat[11:11+max_num_syns,:]
+    
     # Terms for adaptive observer
     v̂s = z_mat[11+max_num_syns,:]
     ints_hat = z_mat[11+max_num_syns+1:11+max_num_syns+11,:] # All the intrinsic gate estimates.
@@ -297,16 +303,7 @@ def main(t,z,p):
                                            controller_settings[1], network, num_neurs, num_neur_gs)
             injected_currents = injected_currents + control_currs
     
-    # Now make one time step. First, initialise the required vectors.
-    dvs = np.zeros(num_neurs); dv̂s = np.zeros(num_neurs)
-    dints = np.zeros((num_int_gates, num_neurs))
-    dints_hat = np.zeros((num_int_gates, num_neurs))
-    dsyns_mat = np.zeros((max_num_syns, num_neurs))
-    dsyns_hat_mat = np.zeros((max_num_syns, num_neurs))
-    
-    dθ̂s = np.zeros((num_estimators, num_neurs))
-    dΨs = np.zeros((num_estimators, num_neurs))
-    dPs = np.zeros((num_estimators, num_estimators, num_neurs))
+    # Now make one time step.
     for (i, neur) in enumerate(network.neurons):
         # Need to 'reduce' terms. This is as vectors/matrices are sized for
         # the neuron/s with the largest number of synapses.
@@ -320,11 +317,11 @@ def main(t,z,p):
         (θ, ϕ, b) = neur.define_dv_terms(to_estimate, estimate_g_syns_g_els, 
                                          Vs[i], ints[:,i], syns[:,i], injected_currents[i],
                                          no_res_connections, network.el_connects, i, Vs)
-        dvs[i] = np.dot(ϕ,θ) + b
+        sud['dvs'][i] = np.dot(ϕ,θ) + b
         # b here includes the input current, which is different from the paper I think
         
         v_pres = Vs[neur.pre_neurs]
-        (dints[:,i], dsyns_mat[:neur.num_syns,i]) = neur.gate_calcs(
+        (sud['dints'][:,i], sud['dsyns_mat'][:neur.num_syns,i]) = neur.gate_calcs(
             Vs[i], ints[:,i], syns[:,i], v_pres)
         
         # Finally, run the adaptive observer
@@ -333,22 +330,22 @@ def main(t,z,p):
                                              Vs[i], ints_hat[:,i], syns_hat[:,i], injected_currents[i],
                                              no_res_connections, network.el_connects, i, Vs)
             
-            dv̂s[i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
-            (dints_hat[:,i], dsyns_hat_mat[:neur.num_syns,i]) = neur.gate_calcs(
+            sud['dv̂s'][i] = np.dot(ϕ̂,θ̂) + b_hat + γ*(1+Ψ@P@Ψ.T)*(Vs[i]-v̂s[i])
+            (sud['dints_hat'][:,i], sud['dsyns_hat_mat'][:neur.num_syns,i]) = neur.gate_calcs(
                 Vs[i], ints_hat[:,i], syns_hat[:,i], v_pres)
             
-            dθ̂s[:num_neur_ests,i] = γ*P@Ψ.T*(Vs[i]-v̂s[i]);
-            dΨs[:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
+            sud['dθ̂s'][:num_neur_ests,i] = γ*P@Ψ.T*(Vs[i]-v̂s[i]);
+            sud['dΨs'][:num_neur_ests,i] = np.array([-γ*Ψ + ϕ̂]);
             aux = np.outer(Ψ,Ψ)
             dP = α*P - P@aux@P;
             dP = (dP+np.transpose(dP))/2;
-            dPs[:num_neur_ests,:num_neur_ests,i] = dP
+            sud['dPs'][:num_neur_ests,:num_neur_ests,i] = dP
         
     # Finally, need to stack and flatten everything.
     # To stack, need to 'reduce' dP to 2 axes instead of 3
-    dPs = np.reshape(dPs, (num_estimators**2, num_neurs), order='F')
-    dz_mat = np.vstack((dvs, dints, dsyns_mat,
-                         dv̂s, dints_hat, dsyns_hat_mat, dθ̂s, dPs, dΨs))
+    sud['dPs'] = np.reshape(sud['dPs'], (num_estimators**2, num_neurs), order='F')
+    dz_mat = np.vstack((sud['dvs'], sud['dints'], sud['dsyns_mat'],
+                         sud['dv̂s'], sud['dints_hat'], sud['dsyns_hat_mat'], sud['dθ̂s'], sud['dPs'], sud['dΨs']))
     dz = np.reshape(dz_mat, (len(z),), order='F')
     return dz
 

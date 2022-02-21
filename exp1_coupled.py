@@ -10,7 +10,7 @@ from scipy.integrate import solve_ivp
 import time
 
 from network_and_neuron import Synapse, Neuron, Network
-from network_odes import main, no_observer, find_jac_sparsity
+from network_odes import main, no_observer, find_jac_sparsity, init_state_update_dict
 
 Tfinal1 = 3000. # How long to run 'before'
 Tfinal2 = 24000. # How long to run observer+controller.
@@ -65,7 +65,8 @@ control_law = [0, ref_gs, is_exp1] # For first element, 0 is RefTrack, 1 is Dist
 
 num_neurs = len(network.neurons)
 num_estimators = len(θ̂_0)
-len_neur_state = network.neurons[0].NUM_GATES + 1
+num_int_gates = network.neurons[0].NUM_GATES
+len_neur_state = num_int_gates + 1
 max_num_syns = network.max_num_syns
 
 # Assuming each neuron initialised the same. If not, could use np.ravel()
@@ -114,6 +115,7 @@ network = Network([neur_one, neur_ref], el_connects)
 tspan = (0.,Tfinal2)
 observe_start_time = 0.
 varying_gT = (False,)
+state_update_dict = init_state_update_dict(num_neurs, num_int_gates, max_num_syns, num_estimators)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
      estimate_g_syns_g_els,observe_start_time,to_observe,varying_gT)
 
