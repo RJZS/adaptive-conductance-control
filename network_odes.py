@@ -343,9 +343,9 @@ def main(t,z,p):
         
     # Finally, need to stack and flatten everything.
     # To stack, need to 'reduce' dP to 2 axes instead of 3
-    sud['dPs'] = np.reshape(sud['dPs'], (num_estimators**2, num_neurs), order='F')
+    dPs_reduced = np.reshape(sud['dPs'], (num_estimators**2, num_neurs), order='F')
     dz_mat = np.vstack((sud['dvs'], sud['dints'], sud['dsyns_mat'],
-                         sud['dv̂s'], sud['dints_hat'], sud['dsyns_hat_mat'], sud['dθ̂s'], sud['dPs'], sud['dΨs']))
+                         sud['dv̂s'], sud['dints_hat'], sud['dsyns_hat_mat'], sud['dθ̂s'], dPs_reduced, sud['dΨs']))
     dz = np.reshape(dz_mat, (len(z),), order='F')
     return dz
 
