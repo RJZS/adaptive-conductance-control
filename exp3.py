@@ -10,7 +10,7 @@ from scipy.integrate import solve_ivp
 import time
 
 from network_and_neuron import Synapse, Neuron, Network
-from network_odes import main, no_observer, find_jac_sparsity
+from network_odes import main, no_observer, find_jac_sparsity, init_state_update_list
 
 Tfinal0 = 4000.
 Tfinal1 = 6000.
@@ -149,7 +149,8 @@ control_law = [1, [(2, 1)], reject_els_to_neur_idxs,
 
 num_neurs = len(network.neurons)
 num_estimators = len(θ̂_0)
-len_neur_state = network.neurons[0].NUM_GATES + 1
+num_int_gates = network.neurons[0].NUM_GATES
+len_neur_state = num_int_gates + 1
 max_num_syns = network.max_num_syns
 
 # Assuming each neuron initialised the same. If not, could use np.ravel()
@@ -218,8 +219,9 @@ z_0[4*neur_bef_start_idx:4*neur_bef_start_idx+13] = out_before.y[4*13:,-1] # ini
 tspan = (0.,Tfinal2)
 # controller_on = True
 varying_gT = (False,)
+state_update_list = init_state_update_list(num_neurs, num_int_gates, max_num_syns, num_estimators)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,0.,to_observe,varying_gT)
+     estimate_g_syns_g_els,0.,to_observe,varying_gT,state_update_list)
 J_sparse = find_jac_sparsity(num_neurs, num_estimators, len_neur_state, max_num_syns).astype(int) # Define sparsity matrix.
 
 print("Starting simulation",file=open("exp3.txt","a"))
