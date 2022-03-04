@@ -119,7 +119,7 @@ four = Neuron(0.1, hco_two_gs, [syn3], 1)
 five = Neuron(0.1, hco_two_gs, [syn4], 0)
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
 
-res_g = 0.01 # TODO: Need to raise this, otherwise hub isn't affecting HCO.
+res_g = 0.004
 el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
 network = Network([one, two, three, four, five], el_connects)
 
