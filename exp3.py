@@ -64,9 +64,9 @@ def Irb(t): # For rebound burster
     
 def Irb2(t): # For rebound burster
     if t < 400 or t > 600:
-        return -2.5 # -3.7
+        return -3.5 # -3.7
     else:
-        return -6
+        return -8
 
 # def Ioffset(t): # So two neurons in HCO don't burst simultaneously
 #     if t < 200:
@@ -81,7 +81,7 @@ def Irb2(t): # For rebound burster
 #         return -2.
     
 Iconst = lambda t: -3.2 # -3.7
-Iconst2 = lambda t: -2.5
+Iconst2 = lambda t: -3.5
 
 
 # # Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2] 
@@ -106,7 +106,7 @@ Iapps = [Iconst2, Iconst2, lambda t:38, Iconst, Iconst]
 # hco_two_gs = np.array([120.,0.1,1.6,0,80.,0.2,2.,0.,0.1])
 
 # Post-submission parameters 2 (as above, except swapped HCOs).
-hco_one_gs = np.array([120.,0.1,1.6,0,80.,0.2,2.,0.,0.1])
+hco_one_gs = np.array([120.,0.1,1.6,0,80.,0.8,2.,0.,0.1])
 hub_gs = np.array([60.,0.1,2.,0,30.,0.,1.,0.,0.1])
 hco_two_gs = np.array([130.,0.1,3.2,0,80.,1.,2.,0.,0.1])
 
