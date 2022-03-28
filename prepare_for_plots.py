@@ -19,7 +19,7 @@ if prep_demo:
     IK = currs[4,i:j]
     ICaT = currs[2,i:j]
     
-    demo_data = np.vstack((t,v,INa,IK,ICaT))
+    demo_data = np.vstack((t,v,INa,IK,ICaT)).T
     np.savetxt("/scratch/phd-git/reports/ifac-data/demo_data.txt",demo_data,delimiter=' ')
 
 prep_exp1 = False
