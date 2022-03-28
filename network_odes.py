@@ -349,7 +349,7 @@ def main(t,z,p):
     # To stack, need to 'reduce' dP to 2 axes instead of 3
     dPs_reduced = np.reshape(sul[8], (num_estimators**2, num_neurs), order='F')
     dz_mat = np.vstack((sul[0], sul[2], sul[4],
-                         sul[1], sul[3], sul[5], sul[6], dPs_reduced, sul[8]))
+                         sul[1], sul[3], sul[5], sul[6], dPs_reduced, sul[7]))
     dz = np.reshape(dz_mat, (len(z),), order='F')
     return dz
 

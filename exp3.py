@@ -10,7 +10,7 @@ from scipy.integrate import solve_ivp
 import time
 
 from network_and_neuron import Synapse, Neuron, Network
-from network_odes import main, no_observer, find_jac_sparsity
+from network_odes import main, no_observer, find_jac_sparsity, init_state_update_list
 
 Tfinal0 = 4000.
 Tfinal1 = 6000.
@@ -64,9 +64,9 @@ def Irb(t): # For rebound burster
     
 def Irb2(t): # For rebound burster
     if t < 400 or t > 600:
-        return -2.5 # -3.7
+        return -3.5 # -3.7
     else:
-        return -6
+        return -8
 
 # def Ioffset(t): # So two neurons in HCO don't burst simultaneously
 #     if t < 200:
@@ -81,7 +81,7 @@ def Irb2(t): # For rebound burster
 #         return -2.
     
 Iconst = lambda t: -3.2 # -3.7
-Iconst2 = lambda t: -2.5
+Iconst2 = lambda t: -3.5
 
 
 # # Iapps = [Iconst, Ioffset, lambda t: 38, Iconst, Ioffset2] 
@@ -106,7 +106,7 @@ Iapps = [Iconst2, Iconst2, lambda t:38, Iconst, Iconst]
 # hco_two_gs = np.array([120.,0.1,1.6,0,80.,0.2,2.,0.,0.1])
 
 # Post-submission parameters 2 (as above, except swapped HCOs).
-hco_one_gs = np.array([120.,0.1,1.6,0,80.,0.2,2.,0.,0.1])
+hco_one_gs = np.array([120.,0.1,1.6,0,80.,0.8,2.,0.,0.1])
 hub_gs = np.array([60.,0.1,2.,0,30.,0.,1.,0.,0.1])
 hco_two_gs = np.array([130.,0.1,3.2,0,80.,1.,2.,0.,0.1])
 
@@ -119,7 +119,7 @@ four = Neuron(0.1, hco_two_gs, [syn3], 1)
 five = Neuron(0.1, hco_two_gs, [syn4], 0)
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
 
-res_g = 0.01 # TODO: Need to raise this, otherwise hub isn't affecting HCO.
+res_g = 0.004
 el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
 network = Network([one, two, three, four, five], el_connects)
 
@@ -149,7 +149,8 @@ control_law = [1, [(2, 1)], reject_els_to_neur_idxs,
 
 num_neurs = len(network.neurons)
 num_estimators = len(θ̂_0)
-len_neur_state = network.neurons[0].NUM_GATES + 1
+num_int_gates = network.neurons[0].NUM_GATES
+len_neur_state = num_int_gates + 1
 max_num_syns = network.max_num_syns
 
 # Assuming each neuron initialised the same. If not, could use np.ravel()
@@ -218,8 +219,9 @@ z_0[4*neur_bef_start_idx:4*neur_bef_start_idx+13] = out_before.y[4*13:,-1] # ini
 tspan = (0.,Tfinal2)
 # controller_on = True
 varying_gT = (False,)
+state_update_list = init_state_update_list(num_neurs, num_int_gates, max_num_syns, num_estimators)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,0.,to_observe,varying_gT)
+     estimate_g_syns_g_els,0.,to_observe,varying_gT,state_update_list)
 J_sparse = find_jac_sparsity(num_neurs, num_estimators, len_neur_state, max_num_syns).astype(int) # Define sparsity matrix.
 
 print("Starting simulation",file=open("exp3.txt","a"))
