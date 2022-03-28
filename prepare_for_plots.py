@@ -6,6 +6,22 @@ Created on Sun Dec 12 16:21:18 2021
 """
 import numpy as np
 
+prep_demo = True
+if prep_demo:
+    data = np.load("data/neuron_demo.npz")
+    t=data['t']; sol=data['sol']; currs=data['currs']
+    t = t / 1000;
+    
+    i=68000;j=82000 # Will 'zoom in' to a single burst.
+    t = t[i:j]
+    v = sol[0,i:j]
+    INa = currs[0,i:j]
+    IK = currs[4,i:j]
+    ICaT = currs[2,i:j]
+    
+    demo_data = np.vstack((t,v,INa,IK,ICaT))
+    np.savetxt("/scratch/phd-git/reports/ifac-data/demo_data.txt",demo_data,delimiter=' ')
+
 prep_exp1 = False
 if prep_exp1:
     data = np.load("data/exp1_relu.npz")
