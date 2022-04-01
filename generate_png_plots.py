@@ -158,58 +158,15 @@ vc5 = np.concatenate((solnd[48,:-1], solbef[52,:-1], sol[200,:]))
 
 g_ests = sol[126:130,:]
 
-# Need tc, vc1 + vc2, vc3, vc4 + vc5
 print("// ORCHESTRON //")
-print(f"tc[-1]: {tc[-1]}")
-exp3_i = np.concatenate((vc1, vc2))
-exp3_iii = np.concatenate((vc4, vc5))
-print(f"exp3_i_doubled min: {exp3_i.min()} max: {exp3_i.max()}")
-print(f"vc3 min: {vc3.min()} max: {vc3.max()}")
-print(f"exp3_iii_doubled min: {exp3_iii.min()} max: {exp3_iii.max()}")
-
-print("// ORCHESTRON NON DOUBLED //")
 print(f"vc1 min: {vc1.min()} max: {vc1.max()}")
 print(f"vc2 min: {vc2.min()} max: {vc2.max()}")
 print(f"vc3 min: {vc3.min()} max: {vc3.max()}")
 print(f"vc4 min: {vc4.min()} max: {vc4.max()}")
 print(f"vc5 min: {vc5.min()} max: {vc5.max()}")
 
-# Function I wrote doesn't allow for multiple lines on a single plot.
-fig = plt.figure(figsize=(800/my_dpi, 800/my_dpi), dpi=my_dpi) # Change figsize?
-ax = plt.Axes(fig, [0., 0., 1., 1.])
-ax.set_axis_off()
-fig.add_axes(ax)
-plt.plot(tc, vc1, linewidth=lw, label=r'$v_1$')
-plt.plot(tc, vc2, color='C3', linewidth=lw, label=r'$v_2$')
-plt.vlines([4,10],exp3_i.min(), exp3_i.max(),linestyles='dashed',color='k',linewidth=lw)
-# Draw the legend.  # bbox (x, y, width, height) doesn't seem to work, so just used (x, y) and then fontsize.
-# leg = plt.legend(loc='upper right',bbox_to_anchor=(0.95,0.95),fontsize='x-small')
-# Don't think I need the below to move bbox.
-# From the following link (with slight adaptation due to a deprecated API call):
-# https://stackoverflow.com/questions/23238041/move-and-resize-legends-box-in-matplotlib
-
-# plt.draw() # Draw the figure so you can find the positon of the legend. 
-# # Get the bounding box of the original legend
-# bb = leg.get_bbox_to_anchor().transformed(ax.transAxes.inverted())
-# # Change to location of the legend. 
-# xOffset = 0.03
-# bb.x0 -= xOffset
-# bb.x1 -= xOffset
-# leg.set_bbox_to_anchor(bb, transform = ax.transAxes)
-fig.savefig(f"../reports/ifac-raw-plots/exp3_i_double.png", dpi=my_dpi, transparent=True)
-
 create_plot(tc, vc1, 'exp3_i', 'C0', [4,10])
 create_plot(tc, vc2, 'exp3_ii', 'C3')
 create_plot(tc, vc3, 'exp3_iii', 'C4', [4,10])
 create_plot(tc, vc4, 'exp3_iv', 'C0', [4,10])
 create_plot(tc, vc5, 'exp3_v', 'C3')
-
-fig = plt.figure(figsize=(800/my_dpi, 800/my_dpi), dpi=my_dpi) # Change figsize?
-ax = plt.Axes(fig, [0., 0., 1., 1.])
-ax.set_axis_off()
-fig.add_axes(ax)
-plt.plot(tc, vc4, linewidth=lw, label=r'$v_4$')
-plt.plot(tc, vc5, color='C3', linewidth=lw, label=r'$v_5$')
-# leg = plt.legend(loc='upper right',bbox_to_anchor=(0.95,0.95),fontsize='x-small')
-plt.vlines([4,10],exp3_i.min(), exp3_i.max(),linestyles='dashed',color='k',linewidth=lw)
-fig.savefig(f"../reports/ifac-raw-plots/exp3_iii_double.png", dpi=my_dpi, transparent=True)
