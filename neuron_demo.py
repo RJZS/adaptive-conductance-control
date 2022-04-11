@@ -14,7 +14,7 @@ import time
 from network_and_neuron import Synapse, Neuron, Network, mKir_inf
 from network_odes import no_observer
 
-Tfinal1 = 1000.
+Tfinal1 = 1800.
 print("Tfinal1 = {}".format(Tfinal1),file=open("neuron_demo.txt","a"))
 
 # Single neuron reference tracking.
@@ -25,13 +25,13 @@ print("Tfinal1 = {}".format(Tfinal1),file=open("neuron_demo.txt","a"))
 x_0 = [0,0,0,0,0,0,0,0,0,0,0]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, 
-neur_gs = np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1])
+neur_gs = np.array([120.,0.1,1.4,0,100.,0.4,2.,4.,0.1])
 
 neur = Neuron(0.1, neur_gs, np.array([]), 0)
 
 network = Network([neur], [])
 
-Iconst = lambda t: -2
+Iconst = lambda t: 5
 # Iconstsin = lambda t: -2 + np.sin(2*np.pi/10*t)
 Iapps_ref = [Iconst, Iconst]
 Iapps = [Iconst, Iconst]
