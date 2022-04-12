@@ -14,13 +14,7 @@ from network_odes import main, no_observer, find_jac_sparsity, init_state_update
 
 Tfinal0 = 4000.
 Tfinal1 = 6000.
-# Tfinal2 = 10000.
 Tfinal2 = 4500.
-
-#Tfinal0 = 605.
-#Tfinal1 = 2000.
-## Tfinal2 = 2500.
-#Tfinal2 = 20.
 
 print("Tfinal0 = {}".format(Tfinal0),file=open("exp3.txt","a"))
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp3.txt","a"))
