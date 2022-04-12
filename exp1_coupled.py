@@ -13,7 +13,7 @@ from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer, find_jac_sparsity, init_state_update_list
 
 Tfinal1 = 3000. # How long to run 'before'
-Tfinal2 = 24000. # How long to run observer+controller.
+Tfinal2 = 18000. # How long to run observer+controller.
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp1.txt","a"))
 print("Tfinal2 = {}".format(Tfinal2),file=open("exp1.txt","a"))
 
@@ -35,13 +35,14 @@ estimate_g_syns_g_els = False
 
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, 
 neur_one_gs = np.array([0.,0.,0.,0,0.,0.,0.,0.,0.1])
+# neur_one_gs = np.array([10.,0.,1.,0,3.,0.6,0.,0.,0.1]) # For testing
 neur_ref_gs = np.array([120.,0.1,2.,0,80.,0.4,2.,0.,0.1])
 
 # Initially, the neurons are isolated.
 neur_one = Neuron(0.1, neur_one_gs, np.array([]), 0)
 neur_ref = Neuron(0.1, neur_ref_gs, np.array([]), 0)
 
-res_g = 0.1
+res_g = 0.04
 el_connects = np.array([[res_g, 0, 1]])
 network = Network([neur_one, neur_ref], []) # for ref tracking. No gap junction yet.
 
@@ -51,7 +52,7 @@ Iapps_ref = [Iconst, Iconst]
 Iapps = [Iconst, Iconst]
 
 # Observer parameters
-α = 0.0005 # Default is 0.5. Had to decrease as P values were exploding.
+α = 0.0008 # 0.0005 # Default is 0.5. Had to decrease as P values were exploding.
 γ = 2 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # gs of reference network. As is_exp1 is set to true, only first neuron will be controlled,

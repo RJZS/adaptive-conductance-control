@@ -15,6 +15,10 @@ def softplus(x, t=10):
 def relu(x):
     return x * (x > 0)
 
+def overline_rho(x,beta):
+    beta_vec = beta * np.ones(x.shape)
+    return np.minimum(x, beta_vec)
+
 def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
     Isyn_estimates = np.zeros(num_neurs)
     for (neur_i, syn_i) in to_reject:
@@ -61,7 +65,7 @@ def reference_tracking(Vs, ints_hat, syns_hat, gs, ref_gs, network, num_neurs, n
 
 def reference_tracking_njit(Vs, ints_hat, mKirs, syns_hat, gs, ref_gs, Es, num_neurs, num_neur_gs, max_num_syns, cs):
     adjusting_currents = np.zeros(num_neurs)
-    g_diffs = relu(ref_gs)-relu(gs)
+    g_diffs = relu(ref_gs)-overline_rho(gs, 100)
     terms = np.zeros((num_neur_gs+max_num_syns, num_neurs))
     for i in range(num_neurs):
         terms[:num_neur_gs,i] = np.array([
