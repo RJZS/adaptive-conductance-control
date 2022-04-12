@@ -43,8 +43,30 @@ create_plot(t, INa, 'neuron_demo_ii')
 create_plot(t, IK, 'neuron_demo_iii')
 create_plot(t, ICaT, 'neuron_demo_iv')
 
+## NEURON DEMO FIG TWO BURSTS
+print("Neuron Demo Two Bursts")
+data = np.load("data/neuron_demo_twobursts.npz")
+t=data['t']; sol=data['sol']; currs=data['currs']
+t = t / 1000;
+
+i=100000;j=165000 # Will 'zoom in' to two bursts.
+t = t[i:j]
+v = sol[0,i:j]
+INa = currs[0,i:j]
+IK = currs[4,i:j]
+ICaT = currs[2,i:j]
+print(f"T max - min: {t[-1] - t[0]}")
+print(f"v min: {v.min()} max: {v.max()}")
+print(f"INa min: {INa.min()} max: {INa.max()}")
+print(f"IK min: {IK.min()} max: {IK.max()}")
+print(f"ICaT min: {ICaT.min()} max: {ICaT.max()}")
+
+create_plot(t, v, 'neuron_demo2_i', 'C3')
+create_plot(t, INa, 'neuron_demo2_ii')
+create_plot(t, IK, 'neuron_demo2_iii')
+create_plot(t, ICaT, 'neuron_demo2_iv')
+
 ## REFTRACK FIGS
-print("RefTrack")
 data = np.load("data/exp1_relu.npz")
 t=data['t']; t_ref=data['t_ref']
 sol=data['sol']; sol_ref=data['sol_ref']
@@ -73,11 +95,17 @@ tracking_error_trunc = tracking_error[:k]
 
 k = -600000
 t_control_trunc = t_control[:k]; error_trunc = error[:k]
+
+# Truncate tc a little for the bottom plot.
+j = 2250000
+tc = tc[:j]
+tracking_error = tracking_error[:j]
     
-print(f"tc_trunc[-1]: {tc_trunc[-1]}")
+print("\n\nREFTRACK")
+print(f"tc_trunc start: {tc_trunc[0]} end: {tc_trunc[-1]}")
 print(f"v2c_trunc min: {v2c_trunc.min()} max: {v2c_trunc.max()}")
 print(f"vc_trunc min: {vc_trunc.min()} max: {vc_trunc.max()}")
-print(f"tc[-1]: {tc[-1]}")
+print(f"tc start: {tc[0]} end: {tc[-1]}")
 print(f"tracking_error min: {tracking_error.min()} max: {tracking_error.max()}")
 
 create_plot(tc_trunc, v2c_trunc, 'exp1_a_i', 'C3')
@@ -117,8 +145,8 @@ tdc = np.concatenate((tbef[:-1] + tnd[-1], t_control))
 Idbef = syn_g * solbef[11,:] * (solbef[0,:] - Esyn)
 Idc = np.concatenate((Idbef[:-1], Id))
 
-print("// DISTREJ //")
-print(f"tc[-1]: {tc[-1]}")
+print("\n\nDISTREJ")
+print(f"tc start: {tc[0]} end: {tc[-1]}")
 print(f"vc min: {vc.min()} max: {vc.max()}")
 print(f"vdc min: {vdc.min()} max: {vdc.max()}")
 print(f"tdc start: {tdc[0]} end: {tdc[-1]}")
@@ -158,15 +186,16 @@ vc5 = np.concatenate((solnd[48,:-1], solbef[52,:-1], sol[200,:]))
 
 g_ests = sol[126:130,:]
 
-print("// ORCHESTRON //")
+print("\n\nORCHESTRON")
+print(f"tc start: {tc[0]} end: {tc[-1]}")
 print(f"vc1 min: {vc1.min()} max: {vc1.max()}")
 print(f"vc2 min: {vc2.min()} max: {vc2.max()}")
 print(f"vc3 min: {vc3.min()} max: {vc3.max()}")
 print(f"vc4 min: {vc4.min()} max: {vc4.max()}")
 print(f"vc5 min: {vc5.min()} max: {vc5.max()}")
 
-create_plot(tc, vc1, 'exp3_i', 'C0', [4,10])
-create_plot(tc, vc2, 'exp3_ii', 'C3')
-create_plot(tc, vc3, 'exp3_iii', 'C4', [4,10])
-create_plot(tc, vc4, 'exp3_iv', 'C0', [4,10])
-create_plot(tc, vc5, 'exp3_v', 'C3')
+create_plot(tc, vc1, 'exp3_i', 'C0')
+create_plot(tc, vc2, 'exp3_ii', 'C3')#, [4,10]) # Removed lines as drawing on pgfplots.
+create_plot(tc, vc3, 'exp3_iii', 'C4')#, [4,10])
+create_plot(tc, vc4, 'exp3_iv', 'C0')
+create_plot(tc, vc5, 'exp3_v', 'C3')#, [4,10])
