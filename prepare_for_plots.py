@@ -6,7 +6,7 @@ Created on Sun Dec 12 16:21:18 2021
 """
 import numpy as np
 
-prep_demo = True
+prep_demo = False
 if prep_demo:
     data = np.load("data/neuron_demo.npz")
     t=data['t']; sol=data['sol']; currs=data['currs']
@@ -27,7 +27,7 @@ if prep_exp1:
     data = np.load("data/exp1_relu.npz")
     t=data['t']; t_ref=data['t_ref']
     sol=data['sol']; sol_ref=data['sol_ref']
-    # t = t[:-50000] # Truncate
+    # t = t[:-50000] # Truncatevs
     # sol = sol[:,:-50000]
     t = t / 1000; t_ref = t_ref / 1000
     print(t_ref[-1])
@@ -110,9 +110,12 @@ if prep_exp2:
     # For the 'zoomed in' error plot.
     # j=50000;k=1000000 # NB: this cuts out a large initial transient! Down to -1323...
     # t_trunc = t_control[j:k]; error_trunc = error[j:k]
-    # trnc = 75000 # As observer converges so quickly, can truncate time-axis.
-    # t_trunc = t[:trnc]; g_ests = g_ests[:,:trnc]
-    # Id = Id[:trnc]; Id_hat = Id_hat[:trnc]
+    
+    trnc = 2200000 # As observer converges so quickly, can truncate time-axis.
+    tc = tc[:trnc]; vc = vc[:trnc]; vdc = vdc[:trnc]
+    
+    trnc = 1400000
+    tdc = tdc[:trnc]; Idc = Idc[:trnc]
     
     skp = 10 # Skip every 'skp'th index. As lualatex struggles with the memory requirements.
     t_control = t_control[0::skp]; tc = tc[0::skp]; vc = vc[0::skp]

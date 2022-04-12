@@ -186,13 +186,18 @@ def init_state_update_list(num_neurs, num_int_gates, max_num_syns, num_estimator
     # dsyns_hat_mat, dθ̂s, dΨs, dPs
     s.append(np.zeros(num_neurs)); s.append(np.zeros(num_neurs))
     s.append(np.zeros((num_int_gates, num_neurs)))
-    s.append(np.zeros((num_int_gates, num_neurs)))
+    s.append(0.1*np.ones((num_int_gates, num_neurs)))
     s.append(np.zeros((max_num_syns, num_neurs)))
-    s.append(np.zeros((max_num_syns, num_neurs)))
+    s.append(0.1*np.ones((max_num_syns, num_neurs)))
     
+    s.append(np.ones((num_estimators, num_neurs)))
     s.append(np.zeros((num_estimators, num_neurs)))
-    s.append(np.zeros((num_estimators, num_neurs)))
-    s.append(np.zeros((num_estimators, num_estimators, num_neurs)))
+    Ps = np.zeros((num_estimators, num_estimators, num_neurs))
+    for j in range(num_neurs):
+        P = Ps[:,:,j]
+        P = np.eye(num_estimators)
+        Ps[:,:,j] = P
+    s.append(Ps)
     return s
 
 def main(t,z,p):
