@@ -89,7 +89,7 @@ error_ref = v_ref - v_ref_hat
 
 tracking_error = v2c - vc
 
-k = 700000
+k = 1050000
 tc_trunc = tc[:k]; vc_trunc = vc[:k]; v2c_trunc = v2c[:k]
 tracking_error_trunc = tracking_error[:k]
 
