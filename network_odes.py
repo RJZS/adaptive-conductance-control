@@ -22,7 +22,8 @@ def overline_rho(x,beta):
 def disturbance_rejection(to_reject, g_syns, syns_hat, Vs, Esyn, num_neurs):
     Isyn_estimates = np.zeros(num_neurs)
     for (neur_i, syn_i) in to_reject:
-        Isyn_estimates[neur_i] = Isyn_estimates[neur_i] - relu(g_syns[syn_i,neur_i]) * syns_hat[syn_i,neur_i] * (Vs[neur_i] - Esyn)
+        Isyn_estimates[neur_i] = Isyn_estimates[neur_i] - overline_rho(g_syns[syn_i,neur_i],20) * syns_hat[syn_i,neur_i] * (Vs[neur_i] - Esyn)
+        # Had beta = 100 for exp2
     return -Isyn_estimates
 
 # The 'which_el' parameter is particularly hacky. Tailored to exp3.

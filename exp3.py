@@ -12,9 +12,13 @@ import time
 from network_and_neuron import Synapse, Neuron, Network
 from network_odes import main, no_observer, find_jac_sparsity, init_state_update_list
 
-Tfinal0 = 4000.
-Tfinal1 = 6000.
+import warnings
+warnings.filterwarnings("ignore")
+
+Tfinal0 = 40.
+Tfinal1 = 60.
 Tfinal2 = 4500.
+Tfinal2 = 800.
 
 print("Tfinal0 = {}".format(Tfinal0),file=open("exp3.txt","a"))
 print("Tfinal1 = {}".format(Tfinal1),file=open("exp3.txt","a"))
@@ -27,15 +31,15 @@ solvemethod = 'Radau'
 
 # Initial conditions
 x_0 = [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.]; # V, m, h, mH, mT, hT, mA, hA, mKD, mL, mCa, s1, s2
-x̂_0 = [10, 0.1, 0.2, 0.01, 0.3, 0.1, 0.2, 0., 0.1, 0.2, 0.1, 0.1, 0.1]
-θ̂_0 = np.ones(4); # 2 syn, 2 el. Starts at idx 26.
-P_0 = np.eye(4);
-Ψ_0 = np.zeros(4);
+x̂_0 = [0, 0.1, 0.2, 0.01, 0.3, 0.1, 0.2, 0., 0.1, 0.2, 0.1, 0.1, 0.1]
+θ̂_0 = np.ones(2); # 2 syn, 2 el. Starts at idx 26.
+P_0 = np.eye(2);
+Ψ_0 = np.zeros(2);
 to_estimate = np.array([], dtype=np.int32)
 
 # Have to change this if choose to reject the other g_el!
 # Also have to change the nodist simulation below.
-to_observe = np.array([2,3], dtype=np.int32)
+to_observe = np.array([2], dtype=np.int32)
 
 estimate_g_syns_g_els = True # Switch this.
 
@@ -113,7 +117,7 @@ four = Neuron(0.1, hco_two_gs, [syn3], 1)
 five = Neuron(0.1, hco_two_gs, [syn4], 0)
 # Remember, order of currents is Na, H, T, A, KD, L, KCA, KIR, leak
 
-res_g = 0.004
+res_g = 0.002
 el_connects = np.array([[res_g, 1, 2],[res_g, 3, 2]])
 network = Network([one, two, three, four, five], el_connects)
 
@@ -129,7 +133,7 @@ network_nodist = Network([one, two, three_nodist, four,
 
 # Observer parameters
 α = 0.0001 # 0.0001 # 0.0008 # 0.00085 # HCO periods are 1080 and 850. What about combined rhythm?
-γ = 5 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
+γ = 2 # Default is 70, though Thiago's since lowered to 5. But 5 was causing psi to explode.
 
 # For disturbance rejection, the format is [1, [(neur, syn), (neur, syn), ...], reject_els_to...]
 # where (neur, syn) is a synapse to be rejected, identified by the index of the neuron in the network,

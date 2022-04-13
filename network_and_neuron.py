@@ -411,9 +411,12 @@ def calc_intrins_dv_terms(gs, terms, to_estimate):
 
 @njit(cache=True)
 def calc_dv_terms_final_step_if_est_gsyns_gels(θ_intrins, g_syns, ϕ_intrins, syn_terms, gs, terms, g_res, res_terms):
-    θ = np.concatenate((θ_intrins, g_syns, g_res))
-    ϕ = np.concatenate((ϕ_intrins, syn_terms, res_terms))
-    b = np.dot(gs, terms)
+    θ = np.concatenate((θ_intrins, g_syns))
+    ϕ = np.concatenate((ϕ_intrins, syn_terms))
+    b = np.dot(
+            np.concatenate((gs, g_res)),
+            np.concatenate((terms, res_terms))
+            )
     return (θ, ϕ, b)
 
 @njit(cache=True)
