@@ -67,7 +67,7 @@ create_plot(t, IK, 'neuron_demo2_iii')
 create_plot(t, ICaT, 'neuron_demo2_iv')
 
 ## REFTRACK FIGS
-data = np.load("data/exp1_relu.npz")
+data = np.load("data/exp1.npz")
 t=data['t']; t_ref=data['t_ref']
 sol=data['sol']; sol_ref=data['sol_ref']
 # t = t[:-50000] # Truncate
