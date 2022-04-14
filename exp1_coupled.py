@@ -10,7 +10,7 @@ from scipy.integrate import solve_ivp
 import time
 
 from network_and_neuron import Synapse, Neuron, Network
-from network_odes import main, no_observer, find_jac_sparsity, init_state_update_list
+from network_odes import main, no_observer, find_jac_sparsity
 
 Tfinal1 = 3000. # How long to run 'before'
 Tfinal2 = 18000. # How long to run observer+controller.
@@ -116,9 +116,8 @@ network = Network([neur_one, neur_ref], el_connects)
 tspan = (0.,Tfinal2)
 observe_start_time = 0.
 varying_gT = (False,)
-state_update_list = init_state_update_list(num_neurs, num_int_gates, max_num_syns, num_estimators)
 p = (Iapps,network,(α,γ),to_estimate,num_estimators,control_law,
-     estimate_g_syns_g_els,observe_start_time,to_observe,varying_gT,state_update_list)
+     estimate_g_syns_g_els,observe_start_time,to_observe,varying_gT)
 J_sparse = find_jac_sparsity(num_neurs, num_estimators, len_neur_state, max_num_syns).astype(int) # Define sparsity matrix.
 
 print("Starting simulation",file=open("exp1.txt","a"))
