@@ -114,7 +114,7 @@ create_plot(tc, tracking_error, 'exp1_b_i', 'C3')
 
 ## DISTREJ FIGS
 
-data = np.load("data/exp2_relu.npz")
+data = np.load("data/exp2.npz")
 tbef = data['tbef']; t=data['t']; tnd=data['tnd']
 solbef = data['solbef']; sol=data['sol']; solnd=data['solnd']
 t = t / 1000; tbef = tbef / 1000; tnd = tnd / 1000
@@ -162,7 +162,7 @@ create_plot(t_control_trunc, error_trunc, 'exp2_b_ii', 'C3')
 # ORCHESTRON FIGS
 
 # Note how controller plots use t_psd, observer plots use t.
-data = np.load("data/exp3_relu.npz")
+data = np.load("data/exp3.npz")
 tbef = data['tbef']; t=data['t']; tnd=data['tnd']
 solbef = data['solbef']; sol=data['sol']; solnd=data['solnd']
 t = t / 1000; tbef = tbef / 1000; tnd = tnd / 1000
